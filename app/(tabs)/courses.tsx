@@ -10,7 +10,8 @@ import {
     TextInput,
     TouchableOpacity,
     View,
-    Dimensions
+    Dimensions,
+    ImageBackground
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -227,13 +228,43 @@ export default function CoursesScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Courses</Text>
-          <Text style={styles.headerSubtitle}>Learn something new today</Text>
+      <View style={styles.container}>
+        {/* Hero Section with Background */}
+        <View style={styles.heroSection}>
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+            style={styles.heroBackground}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
+              style={styles.heroGradient}
+            >
+              <View style={styles.heroContent}>
+                <Text style={styles.heroTitle}>Master New Skills</Text>
+                <Text style={styles.heroSubtitle}>Discover thousands of courses from industry experts</Text>
+                <View style={styles.heroStats}>
+                  <View style={styles.heroStatItem}>
+                    <Text style={styles.heroStatNumber}>500+</Text>
+                    <Text style={styles.heroStatLabel}>Courses</Text>
+                  </View>
+                  <View style={styles.heroStatItem}>
+                    <Text style={styles.heroStatNumber}>50K+</Text>
+                    <Text style={styles.heroStatLabel}>Students</Text>
+                  </View>
+                  <View style={styles.heroStatItem}>
+                    <Text style={styles.heroStatNumber}>4.8</Text>
+                    <Text style={styles.heroStatLabel}>Rating</Text>
+                  </View>
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
         </View>
+
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Search and Filter Section */}
+        <View style={styles.searchSection}>
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -291,7 +322,7 @@ export default function CoursesScreen() {
           contentContainerStyle={styles.coursesList}
         />
         </ScrollView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 }
@@ -303,6 +334,73 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    backgroundColor: '#000000',
+  },
+  // Hero Section Styles
+  heroSection: {
+    height: 300,
+    position: 'relative',
+  },
+  heroBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  heroContent: {
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
+  },
+  heroSubtitle: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginBottom: 30,
+    textAlign: 'center',
+    lineHeight: 22,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  heroStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    maxWidth: 300,
+  },
+  heroStatItem: {
+    alignItems: 'center',
+  },
+  heroStatNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginBottom: 4,
+  },
+  heroStatLabel: {
+    fontSize: 12,
+    color: '#CCCCCC',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  searchSection: {
+    backgroundColor: '#1a1a1a',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -316,6 +414,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   header: {
     padding: 20,
@@ -391,6 +490,7 @@ const styles = StyleSheet.create({
   },
   coursesList: {
     paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 100,
   },
   courseCard: {
