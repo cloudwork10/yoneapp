@@ -19,11 +19,28 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
-        <ScrollView style={styles.scrollView}>
+      <LinearGradient 
+        colors={['#000000', '#1a1a1a', '#2d2d2d', '#1a1a1a', '#000000']} 
+        locations={[0, 0.3, 0.5, 0.7, 1]}
+        style={styles.container}
+      >
+        {/* Netflix-style background elements */}
+        <View style={styles.backgroundElements}>
+          <LinearGradient
+            colors={['rgba(229, 9, 20, 0.15)', 'rgba(0, 0, 0, 0.8)', 'transparent']}
+            locations={[0, 0.6, 1]}
+            style={styles.gradientOverlay}
+          />
+          <View style={styles.netflixPattern} />
+        </View>
+        
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.greeting}>Welcome back!</Text>
-          <Text style={styles.subtitle}>Continue your learning journey</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.greeting}>Welcome back!</Text>
+            <Text style={styles.subtitle}>Continue your learning journey</Text>
+          </View>
+          <View style={styles.netflixAccent} />
         </View>
 
         <View style={styles.statsContainer}>
@@ -90,23 +107,69 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    position: 'relative',
+  },
+  backgroundElements: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0,
+  },
+  gradientOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '70%',
+  },
+  netflixPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    opacity: 0.05,
   },
   scrollView: {
     flex: 1,
     padding: 20,
+    zIndex: 1,
   },
   header: {
     marginBottom: 30,
+    position: 'relative',
+  },
+  headerContent: {
+    zIndex: 2,
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#CCCCCC',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  netflixAccent: {
+    position: 'absolute',
+    top: -10,
+    right: -20,
+    width: 100,
+    height: 4,
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+    opacity: 0.8,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -114,12 +177,19 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   statCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
     flex: 1,
     marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   statValue: {
     fontSize: 20,
@@ -146,19 +216,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   courseCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+    padding: 18,
     marginRight: 15,
-    width: 200,
+    width: 220,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   courseImage: {
-    height: 100,
-    backgroundColor: 'rgba(229, 9, 20, 0.2)',
-    borderRadius: 8,
+    height: 120,
+    backgroundColor: 'rgba(229, 9, 20, 0.3)',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.2)',
   },
   courseImageText: {
     fontSize: 32,
@@ -195,11 +274,18 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   actionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
     width: '47%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   actionIcon: {
     fontSize: 32,
