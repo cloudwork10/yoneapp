@@ -227,19 +227,19 @@ export default function CoursesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Hero Section with Background */}
-        <View style={styles.heroSection}>
-          <ImageBackground
-            source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
-            style={styles.heroBackground}
-            resizeMode="cover"
+    <View style={styles.container}>
+      {/* Hero Section with Background - Full Screen */}
+      <View style={styles.heroSection}>
+        <ImageBackground
+          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+          style={styles.heroBackground}
+          resizeMode="cover"
+        >
+          <LinearGradient
+            colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
+            style={styles.heroGradient}
           >
-            <LinearGradient
-              colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
-              style={styles.heroGradient}
-            >
+            <SafeAreaView style={styles.heroSafeArea}>
               <View style={styles.heroContent}>
                 <Text style={styles.heroTitle}>Master New Skills</Text>
                 <Text style={styles.heroSubtitle}>Discover thousands of courses from industry experts</Text>
@@ -258,9 +258,10 @@ export default function CoursesScreen() {
                   </View>
                 </View>
               </View>
-            </LinearGradient>
-          </ImageBackground>
-        </View>
+            </SafeAreaView>
+          </LinearGradient>
+        </ImageBackground>
+      </View>
 
         {/* Search and Filter Section */}
         <View style={styles.searchSection}>
@@ -322,7 +323,6 @@ export default function CoursesScreen() {
           showsVerticalScrollIndicator={false}
         />
       </View>
-    </SafeAreaView>
   );
 }
 
@@ -335,10 +335,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  // Hero Section Styles
+  // Hero Section Styles - Full Screen
   heroSection: {
-    height: 300,
+    height: 350,
     position: 'relative',
+  },
+  heroSafeArea: {
+    flex: 1,
+    justifyContent: 'center',
   },
   heroBackground: {
     flex: 1,
