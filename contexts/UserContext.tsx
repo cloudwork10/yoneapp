@@ -8,6 +8,7 @@ interface User {
   isAdmin: boolean;
   adminLevel?: 'super' | 'admin' | 'moderator';
   role: string;
+  createdAt?: string;
 }
 
 interface UserContextType {

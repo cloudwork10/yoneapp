@@ -1,9 +1,27 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useUser } from '@/contexts/UserContext';
 
 export default function ProfileScreen() {
+  const { user, logout, isAdmin } = useUser();
+  const [userStats, setUserStats] = useState({
+    coursesCompleted: 0,
+    totalHours: 0,
+    currentStreak: 0,
+  });
+
+  useEffect(() => {
+    // In a real app, you would fetch user stats from the API
+    // For now, we'll use placeholder data
+    setUserStats({
+      coursesCompleted: 12,
+      totalHours: 45,
+      currentStreak: 7,
+    });
+  }, []);
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -16,8 +34,8 @@ export default function ProfileScreen() {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement actual logout logic
+          onPress: async () => {
+            await logout();
             router.replace('/login');
           },
         },
@@ -25,19 +43,30 @@ export default function ProfileScreen() {
     );
   };
 
-  const profileData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    joinDate: 'January 2024',
-    coursesCompleted: 12,
-    totalHours: 45,
-    currentStreak: 7,
+  const formatJoinDate = (dateString: string) => {
+    if (!dateString) return 'Recently';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long' 
+    });
   };
 
+  // Show loading or redirect if no user
+  if (!user) {
+    return (
+      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </LinearGradient>
+    );
+  }
+
   const stats = [
-    { label: 'Courses Completed', value: profileData.coursesCompleted },
-    { label: 'Total Hours', value: `${profileData.totalHours}h` },
-    { label: 'Current Streak', value: `${profileData.currentStreak} days` },
+    { label: 'Courses Completed', value: userStats.coursesCompleted },
+    { label: 'Total Hours', value: `${userStats.totalHours}h` },
+    { label: 'Current Streak', value: `${userStats.currentStreak} days` },
   ];
 
   return (
@@ -57,14 +86,24 @@ export default function ProfileScreen() {
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {profileData.name.split(' ').map(n => n[0]).join('')}
+                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
               </Text>
             </View>
+            {isAdmin && (
+              <View style={styles.adminBadge}>
+                <Text style={styles.adminBadgeText}>👑</Text>
+              </View>
+            )}
           </View>
           
-          <Text style={styles.userName}>{profileData.name}</Text>
-          <Text style={styles.userEmail}>{profileData.email}</Text>
-          <Text style={styles.joinDate}>Member since {profileData.joinDate}</Text>
+          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userEmail}>{user.email}</Text>
+          <Text style={styles.joinDate}>Member since {formatJoinDate(user.createdAt || '')}</Text>
+          {isAdmin && (
+            <View style={styles.roleBadge}>
+              <Text style={styles.roleBadgeText}>Admin User</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.statsSection}>
@@ -133,6 +172,7 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     marginBottom: 20,
+    position: 'relative',
   },
   avatar: {
     width: 100,
@@ -146,6 +186,36 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 32,
     fontWeight: 'bold',
+  },
+  adminBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#E50914',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  adminBadgeText: {
+    fontSize: 16,
+  },
+  roleBadge: {
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+    marginTop: 10,
+  },
+  roleBadgeText: {
+    color: '#E50914',
+    fontSize: 12,
+    fontWeight: '600',
   },
   userName: {
     fontSize: 24,
@@ -220,5 +290,15 @@ const styles = StyleSheet.create({
     color: '#E50914',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '500',
   },
 });

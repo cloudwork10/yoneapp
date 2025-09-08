@@ -61,7 +61,8 @@ export default function LoginScreen() {
           email: userData.email,
           isAdmin: userData.isAdmin || false,
           adminLevel: userData.adminLevel,
-          role: userData.isAdmin ? 'admin' : 'user'
+          role: userData.isAdmin ? 'admin' : 'user',
+          createdAt: userData.createdAt
         });
         
         // Store token for future API calls
