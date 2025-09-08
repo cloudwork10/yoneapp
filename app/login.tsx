@@ -51,6 +51,7 @@ export default function LoginScreen() {
       });
 
       const data = await response.json();
+      console.log('Login response data:', data);
 
       if (response.ok) {
         // Store user data and token
@@ -66,8 +67,12 @@ export default function LoginScreen() {
         });
         
         // Store token for future API calls
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        await AsyncStorage.setItem('token', data.token);
+        if (data.data.token) {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+          await AsyncStorage.setItem('token', data.data.token);
+        } else {
+          console.warn('No token received from server');
+        }
         
         console.log('Login successful:', userData);
         
