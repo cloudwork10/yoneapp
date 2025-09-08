@@ -262,56 +262,54 @@ export default function CoursesScreen() {
           </ImageBackground>
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Search and Filter Section */}
         <View style={styles.searchSection}>
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search courses..."
+              placeholderTextColor="#666"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            <Text style={styles.searchIcon}>🔍</Text>
+          </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search courses..."
-            placeholderTextColor="#666"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <Text style={styles.searchIcon}>🔍</Text>
-        </View>
-
-        {/* Categories */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
-              style={[
-                styles.categoryButton,
-                selectedCategory === category && styles.categoryButtonActive
-              ]}
-              onPress={() => setSelectedCategory(category)}
-            >
-              <Text
+          {/* Categories */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesContainer}
+            contentContainerStyle={styles.categoriesContent}
+          >
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category}
                 style={[
-                  styles.categoryButtonText,
-                  selectedCategory === category && styles.categoryButtonTextActive
+                  styles.categoryButton,
+                  selectedCategory === category && styles.categoryButtonActive
                 ]}
+                onPress={() => setSelectedCategory(category)}
               >
-                {category}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <Text
+                  style={[
+                    styles.categoryButtonText,
+                    selectedCategory === category && styles.categoryButtonTextActive
+                  ]}
+                >
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
-        {/* Results Count */}
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsText}>
-            {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''} found
-          </Text>
-        </View>
+          {/* Results Count */}
+          <View style={styles.resultsContainer}>
+            <Text style={styles.resultsText}>
+              {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''} found
+            </Text>
+          </View>
         </View>
 
         {/* Courses List */}
@@ -319,10 +317,10 @@ export default function CoursesScreen() {
           data={filteredCourses}
           renderItem={renderCourse}
           keyExtractor={(item) => item.id}
-          scrollEnabled={false}
+          style={styles.scrollView}
           contentContainerStyle={styles.coursesList}
+          showsVerticalScrollIndicator={false}
         />
-        </ScrollView>
       </View>
     </SafeAreaView>
   );
