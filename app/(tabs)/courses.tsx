@@ -411,12 +411,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   searchSectionGradient: {
-    paddingVertical: 10,
-    marginTop: -120,
+    paddingVertical: 20,
+    marginTop: -40,
   },
   searchSection: {
     backgroundColor: 'transparent',
-    paddingVertical: 10,
+    paddingVertical: 20,
     paddingHorizontal: 20,
   },
   loadingContainer: {
