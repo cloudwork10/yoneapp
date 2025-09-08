@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
-    FlatList,
     ImageBackground,
     ScrollView,
     StyleSheet,
@@ -412,11 +411,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   searchSectionGradient: {
-    paddingVertical: 20,
+    paddingVertical: 10,
+    marginTop: -50,
   },
   searchSection: {
     backgroundColor: 'transparent',
-    paddingVertical: 20,
+    paddingVertical: 10,
     paddingHorizontal: 20,
   },
   loadingContainer: {
