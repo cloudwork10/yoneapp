@@ -21,7 +21,7 @@ export default function HomeScreen() {
     { label: 'Certificates', value: '15+' },
   ];
 
-  // Create a coding-themed background image with parallax effect
+  // Create a real background image with parallax effect
   const CodingBackground = () => (
     <Animated.View 
       style={[
@@ -39,27 +39,40 @@ export default function HomeScreen() {
         },
       ]}
     >
-      <LinearGradient
-        colors={['#0a0a0a', '#1a1a1a', '#0f0f0f', '#000000']}
-        style={styles.backgroundGradient}
-      />
-      <View style={styles.codingOverlay}>
-        <Text style={styles.codeLine1}>const developer = {`{`}</Text>
-        <Text style={styles.codeLine2}>  skills: ['React', 'Node.js', 'MongoDB'],</Text>
-        <Text style={styles.codeLine3}>  passion: 'Learning & Teaching',</Text>
-        <Text style={styles.codeLine4}>  goal: 'Build Amazing Apps'</Text>
-        <Text style={styles.codeLine5}>{`};`}</Text>
-        <Text style={styles.codeLine6}>// Welcome to YONE Learning Platform</Text>
-        <Text style={styles.codeLine7}>function startLearning() {`{`}</Text>
-        <Text style={styles.codeLine8}>  return 'Success!';</Text>
-        <Text style={styles.codeLine9}>{`}`}</Text>
-      </View>
-      {/* Add some geometric shapes for visual interest */}
-      <View style={styles.geometricShapes}>
-        <View style={[styles.shape, styles.shape1]} />
-        <View style={[styles.shape, styles.shape2]} />
-        <View style={[styles.shape, styles.shape3]} />
-      </View>
+      {/* Real background image */}
+      <ImageBackground
+        source={{
+          uri: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'
+        }}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        {/* Dark overlay for better text readability */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
+          style={styles.overlayGradient}
+        />
+        
+        {/* Coding overlay for theme */}
+        <View style={styles.codingOverlay}>
+          <Text style={styles.codeLine1}>const developer = {`{`}</Text>
+          <Text style={styles.codeLine2}>  skills: ['React', 'Node.js', 'MongoDB'],</Text>
+          <Text style={styles.codeLine3}>  passion: 'Learning & Teaching',</Text>
+          <Text style={styles.codeLine4}>  goal: 'Build Amazing Apps'</Text>
+          <Text style={styles.codeLine5}>{`};`}</Text>
+          <Text style={styles.codeLine6}>// Welcome to YONE Learning Platform</Text>
+          <Text style={styles.codeLine7}>function startLearning() {`{`}</Text>
+          <Text style={styles.codeLine8}>  return 'Success!';</Text>
+          <Text style={styles.codeLine9}>{`}`}</Text>
+        </View>
+        
+        {/* Add some geometric shapes for visual interest */}
+        <View style={styles.geometricShapes}>
+          <View style={[styles.shape, styles.shape1]} />
+          <View style={[styles.shape, styles.shape2]} />
+          <View style={[styles.shape, styles.shape3]} />
+        </View>
+      </ImageBackground>
     </Animated.View>
   );
 
@@ -214,8 +227,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     minHeight: height * 0.6,
   },
-  backgroundGradient: {
+  backgroundImage: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlayGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   codingOverlay: {
     position: 'absolute',
@@ -225,7 +247,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     padding: 20,
     justifyContent: 'center',
-    opacity: 0.1,
+    opacity: 0.15,
   },
   codeLine1: {
     fontSize: 16,
@@ -293,7 +315,7 @@ const styles = StyleSheet.create({
   },
   shape: {
     position: 'absolute',
-    opacity: 0.1,
+    opacity: 0.2,
   },
   shape1: {
     width: 100,
