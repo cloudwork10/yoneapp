@@ -237,7 +237,13 @@ export default function CourseDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        scrollEventThrottle={16}
+        decelerationRate="fast"
+      >
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <LinearGradient
@@ -310,12 +316,21 @@ export default function CourseDetailsScreen() {
         </View>
 
         {/* Tab Content */}
-        <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.contentScroll} 
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+          scrollEventThrottle={16}
+          decelerationRate="fast"
+          overScrollMode="auto"
+          nestedScrollEnabled={true}
+          contentContainerStyle={styles.scrollContent}
+        >
           {selectedTab === 'overview' && renderOverview()}
           {selectedTab === 'curriculum' && renderCurriculum()}
           {selectedTab === 'reviews' && renderReviews()}
         </ScrollView>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -330,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   heroSection: {
-    height: height * 0.4,
+    height: height * 0.35,
     backgroundColor: '#1a1a1a',
     position: 'relative',
   },
@@ -462,9 +477,14 @@ const styles = StyleSheet.create({
   },
   contentScroll: {
     flex: 1,
+    backgroundColor: 'transparent',
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   tabContent: {
     padding: 20,
+    paddingTop: 10,
   },
   sectionTitle: {
     fontSize: 20,
