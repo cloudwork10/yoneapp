@@ -1,10 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { useUser } from '@/contexts/UserContext';
 
 export default function MoreScreen() {
-  const menuItems = [
+  const { user, isAdmin, logout } = useUser();
+
+  const baseMenuItems = [
     {
       id: 1,
       title: 'Profile',
@@ -14,27 +17,20 @@ export default function MoreScreen() {
     },
     {
       id: 2,
-      title: 'Dashboard',
-      description: 'Your learning analytics and progress',
-      icon: '📊',
-      route: '/dashboard'
-    },
-    {
-      id: 3,
       title: 'Settings',
       description: 'App preferences and configuration',
       icon: '⚙️',
       route: '/settings'
     },
     {
-      id: 4,
+      id: 3,
       title: 'Help & Support',
       description: 'Get help and contact support',
       icon: '❓',
       route: '/help'
     },
     {
-      id: 5,
+      id: 4,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
@@ -42,15 +38,58 @@ export default function MoreScreen() {
     },
   ];
 
+  // Add Dashboard only for admin users
+  const adminMenuItems = [
+    {
+      id: 2,
+      title: 'Admin Dashboard',
+      description: 'Manage users and monitor system',
+      icon: '👑',
+      route: '/dashboard',
+      isAdmin: true
+    }
+  ];
+
+  // Combine menu items based on user role
+  const menuItems = isAdmin 
+    ? [
+        baseMenuItems[0], // Profile
+        ...adminMenuItems, // Admin Dashboard
+        ...baseMenuItems.slice(1) // Settings, Help, About
+      ]
+    : baseMenuItems;
+
   const handleMenuPress = (route: string) => {
     if (route === '/profile') {
       router.push('/profile');
     } else if (route === '/dashboard') {
-      router.push('/dashboard');
+      if (isAdmin) {
+        router.push('/dashboard');
+      } else {
+        Alert.alert('Access Denied', 'You need admin privileges to access the dashboard.');
+      }
     } else {
       // For other routes, you can implement them later
       console.log(`Navigate to ${route}`);
     }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Logout', 
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/login');
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -59,6 +98,16 @@ export default function MoreScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>More</Text>
           <Text style={styles.subtitle}>Additional features and settings</Text>
+          {user && (
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>Welcome, {user.name}</Text>
+              {isAdmin && (
+                <View style={styles.adminBadge}>
+                  <Text style={styles.adminText}>👑 Admin</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={styles.menuContainer}>
@@ -85,6 +134,9 @@ export default function MoreScreen() {
         </View>
 
         <View style={styles.footer}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>🚪 Logout</Text>
+          </TouchableOpacity>
           <Text style={styles.footerText}>YONE Learning Platform</Text>
           <Text style={styles.versionText}>Version 1.0.0</Text>
         </View>
@@ -113,6 +165,30 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#CCCCCC',
+    marginBottom: 15,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  userName: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  adminBadge: {
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  adminText: {
+    color: '#E50914',
+    fontSize: 12,
+    fontWeight: '600',
   },
   menuContainer: {
     gap: 15,
@@ -164,6 +240,20 @@ const styles = StyleSheet.create({
     marginTop: 40,
     alignItems: 'center',
     paddingVertical: 20,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+    marginBottom: 20,
+  },
+  logoutButtonText: {
+    color: '#E50914',
+    fontSize: 16,
+    fontWeight: '600',
   },
   footerText: {
     fontSize: 16,

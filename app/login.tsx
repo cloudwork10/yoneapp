@@ -12,12 +12,14 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useUser } from '@/contexts/UserContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { login } = useUser();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -51,9 +53,22 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (response.ok) {
+        // Store user data and token
+        const userData = data.data.user;
+        await login({
+          id: userData._id,
+          name: userData.name,
+          email: userData.email,
+          isAdmin: userData.isAdmin || false,
+          adminLevel: userData.adminLevel,
+          role: userData.isAdmin ? 'admin' : 'user'
+        });
+        
         // Store token for future API calls
-        // You can use AsyncStorage or secure storage here
-        console.log('Login successful:', data.data.user);
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        await AsyncStorage.setItem('token', data.token);
+        
+        console.log('Login successful:', userData);
         
         // Navigate to main app
         router.replace('/(tabs)');
