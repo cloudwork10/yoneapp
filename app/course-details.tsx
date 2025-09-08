@@ -10,6 +10,7 @@ import {
   Image,
   Dimensions,
   Alert,
+  ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -111,15 +112,60 @@ export default function CourseDetailsScreen() {
     }
   };
 
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   const handlePlayVideo = (lecture: any) => {
-    router.push({
-      pathname: '/video-player',
-      params: { 
-        videoId: lecture.id || '1',
-        type: 'course',
-        videoType: 'lecture'
-      }
-    });
+    setSelectedVideo(lecture);
+    setIsPlaying(true);
+  };
+
+  const renderInlineVideoPlayer = () => {
+    if (!selectedVideo) return null;
+
+    return (
+      <View style={styles.videoPlayerContainer}>
+        <ImageBackground
+          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+          style={styles.videoPlayerBackground}
+          resizeMode="cover"
+        >
+          <LinearGradient
+            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+            style={styles.videoPlayerGradient}
+          >
+            <View style={styles.videoPlayerHeader}>
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => setSelectedVideo(null)}
+              >
+                <Text style={styles.closeIcon}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.videoPlayerTitle}>{selectedVideo.title}</Text>
+              <Text style={styles.videoPlayerDuration}>{selectedVideo.duration}</Text>
+            </View>
+
+            <View style={styles.videoPlayerCenter}>
+              <TouchableOpacity 
+                style={styles.videoPlayButton} 
+                onPress={() => setIsPlaying(!isPlaying)}
+              >
+                <Text style={styles.videoPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.videoPlayerBottom}>
+              <View style={styles.videoProgressContainer}>
+                <View style={styles.videoProgressBar}>
+                  <View style={[styles.videoProgressFill, { width: '25%' }]} />
+                </View>
+                <Text style={styles.videoTimeText}>2:15 / {selectedVideo.duration}</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </ImageBackground>
+      </View>
+    );
   };
 
   const renderOverview = () => (
@@ -252,6 +298,9 @@ export default function CourseDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Inline Video Player */}
+      {renderInlineVideoPlayer()}
+      
       <ScrollView 
         style={styles.container}
         showsVerticalScrollIndicator={false}
@@ -719,5 +768,97 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#CCCCCC',
     lineHeight: 20,
+  },
+  // Inline Video Player Styles
+  videoPlayerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: '#000000',
+  },
+  videoPlayerBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPlayerGradient: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  videoPlayerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 50,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeIcon: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  videoPlayerTitle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginHorizontal: 15,
+    textAlign: 'center',
+  },
+  videoPlayerDuration: {
+    color: '#CCCCCC',
+    fontSize: 14,
+  },
+  videoPlayerCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPlayButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoPlayIcon: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    marginLeft: 4,
+  },
+  videoPlayerBottom: {
+    padding: 20,
+  },
+  videoProgressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  videoProgressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    marginRight: 15,
+  },
+  videoProgressFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+  },
+  videoTimeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
