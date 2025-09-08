@@ -111,6 +111,17 @@ export default function CourseDetailsScreen() {
     }
   };
 
+  const handlePlayVideo = (lecture: any) => {
+    router.push({
+      pathname: '/video-player',
+      params: { 
+        videoId: lecture.id || '1',
+        type: 'course',
+        videoType: 'lecture'
+      }
+    });
+  };
+
   const renderOverview = () => (
     <View style={styles.tabContent}>
       <View style={styles.descriptionSection}>
@@ -159,7 +170,11 @@ export default function CourseDetailsScreen() {
           </View>
           
           {section.lectures.map((lecture, lectureIndex) => (
-            <TouchableOpacity key={lectureIndex} style={styles.lectureItem}>
+            <TouchableOpacity 
+              key={lectureIndex} 
+              style={styles.lectureItem}
+              onPress={() => handlePlayVideo(lecture)}
+            >
               <View style={styles.lectureIcon}>
                 <Text style={styles.lectureIconText}>
                   {lecture.type === 'video' ? '▶' : lecture.type === 'reading' ? '📖' : '❓'}

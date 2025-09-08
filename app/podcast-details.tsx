@@ -2,14 +2,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Image,
-  Dimensions,
-  Alert,
+    Alert,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -88,8 +87,14 @@ export default function PodcastDetailsScreen() {
   };
 
   const handlePlayVideo = (episode: any) => {
-    Alert.alert('Play Video', `Playing: ${episode.title}`);
-    // In real app, this would open video player
+    router.push({
+      pathname: '/video-player',
+      params: { 
+        videoId: episode.id || '1',
+        type: 'podcast',
+        videoType: episode.type || 'full-episode'
+      }
+    });
   };
 
   const renderOverview = () => (
