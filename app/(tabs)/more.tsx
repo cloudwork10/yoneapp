@@ -36,6 +36,13 @@ export default function MoreScreen() {
       icon: 'ℹ️',
       route: '/about'
     },
+    {
+      id: 5,
+      title: 'Test User Context',
+      description: 'Debug user data loading',
+      icon: '🔧',
+      route: '/test-user'
+    },
   ];
 
   // Add Dashboard only for admin users
@@ -68,6 +75,8 @@ export default function MoreScreen() {
       } else {
         Alert.alert('Access Denied', 'You need admin privileges to access the dashboard.');
       }
+    } else if (route === '/test-user') {
+      router.push('/test-user');
     } else {
       // For other routes, you can implement them later
       console.log(`Navigate to ${route}`);
