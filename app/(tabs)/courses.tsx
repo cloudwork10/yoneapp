@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   heroSafeArea: {
     flex: 1,
     justifyContent: 'flex-end',
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   heroBackground: {
     flex: 1,
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   heroContent: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: 20,
   },
   heroTitle: {
@@ -364,26 +364,24 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 12,
-    textAlign: 'left',
+    textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
-    maxWidth: '80%',
   },
   heroSubtitle: {
     fontSize: 18,
     color: '#CCCCCC',
     marginBottom: 25,
-    textAlign: 'left',
+    textAlign: 'center',
     lineHeight: 24,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
-    maxWidth: '85%',
   },
   heroStats: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     width: '100%',
     maxWidth: 400,
     gap: 30,
