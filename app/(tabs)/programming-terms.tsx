@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProgrammingTermsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,8 +64,9 @@ export default function ProgrammingTermsScreen() {
   );
 
   return (
-    <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+        <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.title}>Programming Terms</Text>
           <Text style={styles.subtitle}>Learn the language of coding</Text>
@@ -92,12 +94,17 @@ export default function ProgrammingTermsScreen() {
             </View>
           ))}
         </View>
-      </ScrollView>
-    </LinearGradient>
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
   container: {
     flex: 1,
   },

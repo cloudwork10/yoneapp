@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PodcastsScreen() {
   const podcasts = [
@@ -12,8 +13,9 @@ export default function PodcastsScreen() {
   ];
 
   return (
-    <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+        <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.title}>Video Podcasts</Text>
           <Text style={styles.subtitle}>Learn from industry experts</Text>
@@ -33,12 +35,17 @@ export default function PodcastsScreen() {
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
-    </LinearGradient>
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
   container: {
     flex: 1,
   },
