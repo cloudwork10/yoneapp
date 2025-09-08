@@ -2,16 +2,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
+    Dimensions,
     FlatList,
+    ImageBackground,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
-    Dimensions,
-    ImageBackground
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -337,12 +336,13 @@ const styles = StyleSheet.create({
   },
   // Hero Section Styles - Full Screen
   heroSection: {
-    height: 350,
+    height: 450,
     position: 'relative',
   },
   heroSafeArea: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: 40,
   },
   heroBackground: {
     flex: 1,
@@ -356,34 +356,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   heroContent: {
-    alignItems: 'center',
-    textAlign: 'center',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
   },
   heroTitle: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 10,
-    textAlign: 'center',
+    marginBottom: 12,
+    textAlign: 'left',
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
+    maxWidth: '80%',
   },
   heroSubtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#CCCCCC',
-    marginBottom: 30,
-    textAlign: 'center',
-    lineHeight: 22,
+    marginBottom: 25,
+    textAlign: 'left',
+    lineHeight: 24,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
+    maxWidth: '85%',
   },
   heroStats: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'flex-start',
     width: '100%',
-    maxWidth: 300,
+    maxWidth: 400,
+    gap: 30,
   },
   heroStatItem: {
     alignItems: 'center',
