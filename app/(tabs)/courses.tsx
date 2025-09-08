@@ -10,8 +10,11 @@ import {
   TextInput,
   FlatList,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width, height } = Dimensions.get('window');
 
 interface Course {
   id: string;
@@ -35,6 +38,33 @@ export default function CoursesScreen() {
   const [loading, setLoading] = useState(true);
 
   const categories = ['All', 'Programming', 'Design', 'Business', 'Marketing', 'Data Science'];
+
+  // Create a courses-themed background
+  const CoursesBackground = () => (
+    <View style={styles.backgroundContainer}>
+      <LinearGradient
+        colors={['#0a0a0a', '#1a1a1a', '#0f0f0f', '#000000']}
+        style={styles.backgroundGradient}
+      />
+      <View style={styles.codingOverlay}>
+        <Text style={styles.codeLine1}>// Available Courses</Text>
+        <Text style={styles.codeLine2}>const courses = [</Text>
+        <Text style={styles.codeLine3}>  'React Native',</Text>
+        <Text style={styles.codeLine4}>  'Node.js',</Text>
+        <Text style={styles.codeLine5}>  'MongoDB',</Text>
+        <Text style={styles.codeLine6}>  'JavaScript',</Text>
+        <Text style={styles.codeLine7}>  'TypeScript'</Text>
+        <Text style={styles.codeLine8}>];</Text>
+        <Text style={styles.codeLine9}>// Start your learning journey today!</Text>
+      </View>
+      {/* Add some geometric shapes for visual interest */}
+      <View style={styles.geometricShapes}>
+        <View style={[styles.shape, styles.shape1]} />
+        <View style={[styles.shape, styles.shape2]} />
+        <View style={[styles.shape, styles.shape3]} />
+      </View>
+    </View>
+  );
 
   // Sample courses data
   const sampleCourses: Course[] = [
@@ -226,9 +256,11 @@ export default function CoursesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      {/* Full-screen background */}
+      <CoursesBackground />
+      
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Courses</Text>
@@ -291,18 +323,132 @@ export default function CoursesScreen() {
           contentContainerStyle={styles.coursesList}
         />
         </ScrollView>
-      </LinearGradient>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#000000',
   },
-  container: {
+  // Background styles
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+  },
+  backgroundGradient: {
     flex: 1,
+  },
+  codingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 20,
+    justifyContent: 'center',
+    opacity: 0.08,
+  },
+  codeLine1: {
+    fontSize: 14,
+    color: '#666666',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+  },
+  codeLine2: {
+    fontSize: 16,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 6,
+  },
+  codeLine3: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+    marginLeft: 20,
+  },
+  codeLine4: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+    marginLeft: 20,
+  },
+  codeLine5: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+    marginLeft: 20,
+  },
+  codeLine6: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 4,
+    marginLeft: 20,
+  },
+  codeLine7: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+    marginLeft: 20,
+  },
+  codeLine8: {
+    fontSize: 16,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+  },
+  codeLine9: {
+    fontSize: 12,
+    color: '#666666',
+    fontFamily: 'monospace',
+    marginTop: 20,
+  },
+  geometricShapes: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  shape: {
+    position: 'absolute',
+    opacity: 0.05,
+  },
+  shape1: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#E50914',
+    borderRadius: 40,
+    top: '15%',
+    right: '15%',
+    transform: [{ rotate: '45deg' }],
+  },
+  shape2: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#00ff00',
+    top: '70%',
+    left: '10%',
+    transform: [{ rotate: '30deg' }],
+  },
+  shape3: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#0066ff',
+    borderRadius: 15,
+    top: '40%',
+    right: '25%',
+    transform: [{ rotate: '-30deg' }],
   },
   loadingContainer: {
     flex: 1,
