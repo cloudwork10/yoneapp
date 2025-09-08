@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   },
   searchSectionGradient: {
     paddingVertical: 10,
-    marginTop: -50,
+    marginTop: -120,
   },
   searchSection: {
     backgroundColor: 'transparent',
