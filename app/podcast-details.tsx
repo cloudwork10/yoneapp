@@ -37,7 +37,7 @@ interface Podcast {
 
 export default function PodcastDetailsScreen() {
   const { podcastId } = useLocalSearchParams();
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'episodes' | 'reviews'>('overview');
+  const [selectedTab, setSelectedTab] = useState<'overview' | 'episodes'>('episodes');
   const [subscribed, setSubscribed] = useState(false);
 
   // Sample podcast data - in real app, fetch from API
@@ -129,7 +129,7 @@ export default function PodcastDetailsScreen() {
     <View style={styles.tabContent}>
       <View style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>Choose Your Video</Text>
-        <Text style={styles.episodesSubtitle}>Select between introduction or full episode</Text>
+        <Text style={styles.episodesSubtitle}>Pick what you want to watch</Text>
       </View>
 
       <View style={styles.videoSelectionContainer}>
@@ -170,11 +170,11 @@ export default function PodcastDetailsScreen() {
                   styles.videoType,
                   episode.type === 'intro' && styles.introType
                 ]}>
-                  {episode.type === 'intro' ? 'Introduction' : 'Full Episode'}
+                  {episode.type === 'intro' ? 'Quick Intro' : 'Full Episode'}
                 </Text>
                 {episode.type === 'full-episode' && (
                   <View style={styles.recommendedBadge}>
-                    <Text style={styles.recommendedText}>Recommended</Text>
+                    <Text style={styles.recommendedText}>Best Choice</Text>
                   </View>
                 )}
               </View>
@@ -187,59 +187,6 @@ export default function PodcastDetailsScreen() {
     </View>
   );
 
-  const renderReviews = () => (
-    <View style={styles.tabContent}>
-      <View style={styles.reviewsHeader}>
-        <Text style={styles.ratingNumber}>{podcast.rating}</Text>
-        <View style={styles.ratingStars}>
-          {[1, 2, 3, 4, 5].map((star) => (
-            <Text key={star} style={styles.star}>⭐</Text>
-          ))}
-        </View>
-        <Text style={styles.ratingCount}>({podcast.listeners} listeners)</Text>
-      </View>
-
-      <View style={styles.reviewCard}>
-        <View style={styles.reviewHeader}>
-          <View style={styles.reviewerAvatar}>
-            <Text style={styles.reviewerInitials}>JS</Text>
-          </View>
-          <View style={styles.reviewerInfo}>
-            <Text style={styles.reviewerName}>Jane Smith</Text>
-            <View style={styles.reviewRating}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Text key={star} style={styles.star}>⭐</Text>
-              ))}
-            </View>
-          </View>
-        </View>
-        <Text style={styles.reviewText}>
-          "Amazing podcast! Sarah explains complex AI concepts in such an accessible way. 
-          The video format makes it even better - I can see the code examples and demos clearly."
-        </Text>
-      </View>
-
-      <View style={styles.reviewCard}>
-        <View style={styles.reviewHeader}>
-          <View style={styles.reviewerAvatar}>
-            <Text style={styles.reviewerInitials}>MJ</Text>
-          </View>
-          <View style={styles.reviewerInfo}>
-            <Text style={styles.reviewerName}>Mike Johnson</Text>
-            <View style={styles.reviewRating}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Text key={star} style={styles.star}>⭐</Text>
-              ))}
-            </View>
-          </View>
-        </View>
-        <Text style={styles.reviewText}>
-          "Perfect for developers looking to integrate AI into their mobile apps. 
-          The practical examples and real-world case studies are incredibly valuable."
-        </Text>
-      </View>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -312,13 +259,7 @@ export default function PodcastDetailsScreen() {
             style={[styles.tab, selectedTab === 'episodes' && styles.activeTab]} 
             onPress={() => setSelectedTab('episodes')}
           >
-            <Text style={[styles.tabText, selectedTab === 'episodes' && styles.activeTabText]}>Episodes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, selectedTab === 'reviews' && styles.activeTab]} 
-            onPress={() => setSelectedTab('reviews')}
-          >
-            <Text style={[styles.tabText, selectedTab === 'reviews' && styles.activeTabText]}>Reviews</Text>
+            <Text style={[styles.tabText, selectedTab === 'episodes' && styles.activeTabText]}>Watch</Text>
           </TouchableOpacity>
         </View>
 
@@ -335,7 +276,6 @@ export default function PodcastDetailsScreen() {
         >
           {selectedTab === 'overview' && renderOverview()}
           {selectedTab === 'episodes' && renderEpisodes()}
-          {selectedTab === 'reviews' && renderReviews()}
         </ScrollView>
       </ScrollView>
     </SafeAreaView>
@@ -688,71 +628,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   videoDescription: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    lineHeight: 20,
-  },
-  reviewsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  ratingNumber: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#E50914',
-    marginRight: 10,
-  },
-  ratingStars: {
-    flexDirection: 'row',
-    marginRight: 10,
-  },
-  star: {
-    fontSize: 16,
-    marginRight: 2,
-  },
-  ratingCount: {
-    fontSize: 14,
-    color: '#CCCCCC',
-  },
-  reviewCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  reviewerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E50914',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  reviewerInitials: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  reviewerInfo: {
-    flex: 1,
-  },
-  reviewerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  reviewRating: {
-    flexDirection: 'row',
-  },
-  reviewText: {
     fontSize: 14,
     color: '#CCCCCC',
     lineHeight: 20,
