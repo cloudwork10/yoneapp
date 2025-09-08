@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
@@ -19,20 +19,25 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient 
-        colors={['#000000', '#1a1a1a', '#2d2d2d', '#1a1a1a', '#000000']} 
-        locations={[0, 0.3, 0.5, 0.7, 1]}
-        style={styles.container}
+      <ImageBackground
+        source={{
+          uri: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2025&q=80'
+        }}
+        style={styles.backgroundImage}
+        resizeMode="cover"
       >
-        {/* Netflix-style background elements */}
-        <View style={styles.backgroundElements}>
+        {/* Dark overlay for better text readability */}
+        <LinearGradient 
+          colors={['rgba(0, 0, 0, 0.7)', 'rgba(0, 0, 0, 0.8)', 'rgba(0, 0, 0, 0.9)']} 
+          locations={[0, 0.5, 1]}
+          style={styles.overlay}
+        >
+          {/* Netflix-style accent overlay */}
           <LinearGradient
-            colors={['rgba(229, 9, 20, 0.15)', 'rgba(0, 0, 0, 0.8)', 'transparent']}
-            locations={[0, 0.6, 1]}
-            style={styles.gradientOverlay}
+            colors={['rgba(229, 9, 20, 0.2)', 'transparent', 'transparent']}
+            locations={[0, 0.3, 1]}
+            style={styles.accentOverlay}
           />
-          <View style={styles.netflixPattern} />
-        </View>
         
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
@@ -95,7 +100,8 @@ export default function HomeScreen() {
           </View>
         </View>
         </ScrollView>
-      </LinearGradient>
+        </LinearGradient>
+      </ImageBackground>
     </SafeAreaView>
   );
 }
@@ -105,33 +111,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  container: {
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
     flex: 1,
     position: 'relative',
   },
-  backgroundElements: {
+  accentOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
+    height: '50%',
     zIndex: 0,
-  },
-  gradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '70%',
-  },
-  netflixPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    opacity: 0.05,
   },
   scrollView: {
     flex: 1,
