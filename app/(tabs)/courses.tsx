@@ -312,6 +312,7 @@ export default function CoursesScreen() {
             {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''} found
           </Text>
         </View>
+        </View>
 
         {/* Courses List */}
         <FlatList
