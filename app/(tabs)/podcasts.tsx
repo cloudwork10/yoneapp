@@ -1,14 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  TextInput,
-  ImageBackground,
-  Dimensions 
+import {
+    Dimensions,
+    ImageBackground,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -109,8 +110,18 @@ export default function PodcastsScreen() {
     return matchesSearch && matchesCategory;
   });
 
+  const handlePodcastPress = (podcastId: string) => {
+    router.push({
+      pathname: '/podcast-details',
+      params: { podcastId }
+    });
+  };
+
   const renderPodcast = ({ item: podcast }) => (
-    <TouchableOpacity style={styles.podcastCard}>
+    <TouchableOpacity 
+      style={styles.podcastCard}
+      onPress={() => handlePodcastPress(podcast.id)}
+    >
       <View style={styles.podcastThumbnail}>
         <LinearGradient
           colors={['#E50914', '#B81D13']}
