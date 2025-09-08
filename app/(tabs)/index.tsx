@@ -49,33 +49,11 @@ export default function HomeScreen() {
         }}
         onLoad={() => console.log('Local image loaded successfully')}
       >
-        {/* Lighter overlay to see the image better */}
+        {/* Very light overlay for text readability */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.4)']}
+          colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.15)']}
           style={styles.overlayGradient}
         />
-        
-        {/* Coding overlay for theme */}
-        <View style={styles.codingOverlay}>
-          <Text style={styles.codeLine1}>const developer = {`{`}</Text>
-          <Text style={styles.codeLine2}>  skills: ['React', 'Node.js', 'MongoDB'],</Text>
-          <Text style={styles.codeLine3}>  passion: 'Learning & Teaching',</Text>
-          <Text style={styles.codeLine4}>  goal: 'Build Amazing Apps'</Text>
-          <Text style={styles.codeLine5}>{`};`}</Text>
-          <Text style={styles.codeLine6}>// Welcome to YONE Learning Platform</Text>
-          <Text style={styles.codeLine7}>function startLearning() {`{`}</Text>
-          <Text style={styles.codeLine8}>  return 'Success!';</Text>
-          <Text style={styles.codeLine9}>{`}`}</Text>
-        </View>
-        
-        {/* Add some geometric shapes for visual interest */}
-        <View style={styles.geometricShapes}>
-          <View style={[styles.shape, styles.shape1]} />
-          <View style={[styles.shape, styles.shape2]} />
-          <View style={[styles.shape, styles.shape3]} />
-          <View style={[styles.shape, styles.shape4]} />
-          <View style={[styles.shape, styles.shape5]} />
-        </View>
       </ImageBackground>
     </Animated.View>
   );
