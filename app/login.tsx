@@ -17,6 +17,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -103,19 +104,29 @@ export default function LoginScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
-                placeholderTextColor="#666"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="none"
-                passwordRules=""
-                autoComplete="off"
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#666"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="none"
+                  passwordRules=""
+                  autoComplete="off"
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Text style={styles.eyeIcon}>
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <TouchableOpacity
@@ -189,6 +200,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  eyeButton: {
+    padding: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eyeIcon: {
+    fontSize: 20,
+    color: '#FFFFFF',
   },
   loginButton: {
     backgroundColor: '#E50914',
