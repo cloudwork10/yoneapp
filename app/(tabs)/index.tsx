@@ -1,7 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ImageBackground, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const featuredCourses = [
@@ -17,30 +19,47 @@ export default function HomeScreen() {
     { label: 'Certificates', value: '15+' },
   ];
 
+  // Create a coding-themed background image using a gradient overlay
+  const CodingBackground = () => (
+    <View style={styles.backgroundContainer}>
+      <LinearGradient
+        colors={['#000000', '#1a1a1a', '#000000']}
+        style={styles.backgroundGradient}
+      />
+      <View style={styles.codingOverlay}>
+        <Text style={styles.codeLine1}>const developer = {`{`}</Text>
+        <Text style={styles.codeLine2}>  skills: ['React', 'Node.js', 'MongoDB'],</Text>
+        <Text style={styles.codeLine3}>  passion: 'Learning & Teaching',</Text>
+        <Text style={styles.codeLine4}>  goal: 'Build Amazing Apps'</Text>
+        <Text style={styles.codeLine5}>{`};`}</Text>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient 
-        colors={['#000000', '#1a1a1a', '#2d2d2d', '#1a1a1a', '#000000']} 
-        locations={[0, 0.3, 0.5, 0.7, 1]}
-        style={styles.container}
-      >
-        {/* Netflix-style background elements */}
-        <View style={styles.backgroundElements}>
-          <LinearGradient
-            colors={['rgba(229, 9, 20, 0.15)', 'rgba(0, 0, 0, 0.8)', 'transparent']}
-            locations={[0, 0.6, 1]}
-            style={styles.gradientOverlay}
-          />
-          <View style={styles.netflixPattern} />
+      <View style={styles.container}>
+        {/* Netflix-style Hero Section */}
+        <View style={styles.heroSection}>
+          <CodingBackground />
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTitle}>Welcome to YONE</Text>
+            <Text style={styles.heroSubtitle}>Master coding with our comprehensive courses</Text>
+            <View style={styles.heroButtons}>
+              <TouchableOpacity style={styles.playButton}>
+                <Text style={styles.playButtonText}>▶ Start Learning</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.infoButton}>
+                <Text style={styles.infoButtonText}>ℹ More Info</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        
+
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.greeting}>Welcome back!</Text>
-            <Text style={styles.subtitle}>Continue your learning journey</Text>
-          </View>
-          <View style={styles.netflixAccent} />
+          <Text style={styles.greeting}>Continue Learning</Text>
+          <Text style={styles.subtitle}>Pick up where you left off</Text>
         </View>
 
         <View style={styles.statsContainer}>
@@ -95,7 +114,7 @@ export default function HomeScreen() {
           </View>
         </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 }
@@ -107,69 +126,136 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  // Netflix-style Hero Section
+  heroSection: {
+    height: height * 0.6,
     position: 'relative',
   },
-  backgroundElements: {
+  backgroundContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 0,
   },
-  gradientOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '70%',
-  },
-  netflixPattern: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
-    opacity: 0.05,
-  },
-  scrollView: {
+  backgroundGradient: {
     flex: 1,
+  },
+  codingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: 20,
-    zIndex: 1,
+    justifyContent: 'center',
+    opacity: 0.1,
   },
-  header: {
-    marginBottom: 30,
-    position: 'relative',
+  codeLine1: {
+    fontSize: 16,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 8,
   },
-  headerContent: {
-    zIndex: 2,
+  codeLine2: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 6,
+    marginLeft: 20,
   },
-  greeting: {
+  codeLine3: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 6,
+    marginLeft: 20,
+  },
+  codeLine4: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 8,
+    marginLeft: 20,
+  },
+  codeLine5: {
+    fontSize: 16,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+  },
+  heroContent: {
+    position: 'absolute',
+    bottom: 60,
+    left: 20,
+    right: 20,
+    zIndex: 10,
+  },
+  heroTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 2 },
+    textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
   },
-  subtitle: {
+  heroSubtitle: {
     fontSize: 18,
-    color: '#CCCCCC',
+    color: '#FFFFFF',
+    marginBottom: 20,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  netflixAccent: {
-    position: 'absolute',
-    top: -10,
-    right: -20,
-    width: 100,
-    height: 4,
-    backgroundColor: '#E50914',
-    borderRadius: 2,
-    opacity: 0.8,
+  heroButtons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  playButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  playButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  infoButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  scrollView: {
+    flex: 1,
+    padding: 20,
+  },
+  header: {
+    marginBottom: 30,
+  },
+  greeting: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#CCCCCC',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -177,19 +263,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   statCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 15,
     alignItems: 'center',
     flex: 1,
     marginHorizontal: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
   statValue: {
     fontSize: 20,
@@ -216,28 +295,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   courseCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    padding: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 15,
     marginRight: 15,
-    width: 220,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    width: 200,
   },
   courseImage: {
-    height: 120,
-    backgroundColor: 'rgba(229, 9, 20, 0.3)',
-    borderRadius: 12,
+    height: 100,
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.2)',
+    marginBottom: 10,
   },
   courseImageText: {
     fontSize: 32,
@@ -274,18 +344,11 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   actionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
     width: '47%',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
   actionIcon: {
     fontSize: 32,
