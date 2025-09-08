@@ -28,9 +28,10 @@ interface Podcast {
   episodes: {
     title: string;
     duration: string;
-    type: 'intro' | 'full-episode' | 'bonus';
+    type: 'intro' | 'full-episode';
     isCompleted: boolean;
     videoUrl?: string;
+    description: string;
   }[];
 }
 
@@ -59,25 +60,20 @@ export default function PodcastDetailsScreen() {
     ],
     episodes: [
       { 
-        title: 'Podcast Introduction & Overview', 
+        title: 'Podcast Introduction', 
         duration: '5 min', 
         type: 'intro', 
         isCompleted: true,
-        videoUrl: 'https://example.com/intro-video'
+        videoUrl: 'https://example.com/intro-video',
+        description: 'Get introduced to the podcast and learn what to expect in this episode'
       },
       { 
-        title: 'Full Episode: AI in Mobile Development', 
+        title: 'Full Episode', 
         duration: '45 min', 
         type: 'full-episode', 
         isCompleted: false,
-        videoUrl: 'https://example.com/full-episode'
-      },
-      { 
-        title: 'Bonus: Q&A Session', 
-        duration: '15 min', 
-        type: 'bonus', 
-        isCompleted: false,
-        videoUrl: 'https://example.com/bonus-qa'
+        videoUrl: 'https://example.com/full-episode',
+        description: 'Complete episode with in-depth discussion about AI in mobile development'
       }
     ]
   };
@@ -132,54 +128,62 @@ export default function PodcastDetailsScreen() {
   const renderEpisodes = () => (
     <View style={styles.tabContent}>
       <View style={styles.episodesHeader}>
-        <Text style={styles.episodesTitle}>Podcast Episodes</Text>
-        <Text style={styles.episodesSubtitle}>{podcast.episodes.length} episodes available</Text>
+        <Text style={styles.episodesTitle}>Choose Your Video</Text>
+        <Text style={styles.episodesSubtitle}>Select between introduction or full episode</Text>
       </View>
 
-      {podcast.episodes.map((episode, index) => (
-        <TouchableOpacity 
-          key={index} 
-          style={styles.episodeCard}
-          onPress={() => handlePlayVideo(episode)}
-        >
-          <View style={styles.episodeThumbnail}>
-            <LinearGradient
-              colors={['#E50914', '#B81D13']}
-              style={styles.episodeThumbnailGradient}
-            >
-              <Text style={styles.episodeThumbnailIcon}>
-                {episode.type === 'intro' ? '🎬' : episode.type === 'full-episode' ? '🎙️' : '🎁'}
-              </Text>
-            </LinearGradient>
-            <View style={styles.playButtonOverlay}>
-              <Text style={styles.playIcon}>▶</Text>
-            </View>
-            <View style={styles.episodeDurationBadge}>
-              <Text style={styles.episodeDurationText}>{episode.duration}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.episodeInfo}>
-            <View style={styles.episodeHeader}>
-              <Text style={styles.episodeType}>
-                {episode.type === 'intro' ? 'Introduction' : 
-                 episode.type === 'full-episode' ? 'Full Episode' : 'Bonus Content'}
-              </Text>
+      <View style={styles.videoSelectionContainer}>
+        {podcast.episodes.map((episode, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={[
+              styles.videoOptionCard,
+              episode.type === 'full-episode' && styles.fullEpisodeCard
+            ]}
+            onPress={() => handlePlayVideo(episode)}
+          >
+            <View style={styles.videoThumbnail}>
+              <LinearGradient
+                colors={episode.type === 'intro' ? ['#4CAF50', '#45A049'] : ['#E50914', '#B81D13']}
+                style={styles.videoThumbnailGradient}
+              >
+                <Text style={styles.videoThumbnailIcon}>
+                  {episode.type === 'intro' ? '🎬' : '🎙️'}
+                </Text>
+              </LinearGradient>
+              <View style={styles.playButtonOverlay}>
+                <Text style={styles.playIcon}>▶</Text>
+              </View>
+              <View style={styles.videoDurationBadge}>
+                <Text style={styles.videoDurationText}>{episode.duration}</Text>
+              </View>
               {episode.isCompleted && (
                 <View style={styles.completedBadge}>
                   <Text style={styles.completedText}>✓</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.episodeTitle}>{episode.title}</Text>
-            <Text style={styles.episodeDescription}>
-              {episode.type === 'intro' ? 'Get introduced to the podcast and learn what to expect' :
-               episode.type === 'full-episode' ? 'Complete episode with in-depth discussion and insights' :
-               'Additional content and Q&A session'}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ))}
+            
+            <View style={styles.videoInfo}>
+              <View style={styles.videoHeader}>
+                <Text style={[
+                  styles.videoType,
+                  episode.type === 'intro' && styles.introType
+                ]}>
+                  {episode.type === 'intro' ? 'Introduction' : 'Full Episode'}
+                </Text>
+                {episode.type === 'full-episode' && (
+                  <View style={styles.recommendedBadge}>
+                    <Text style={styles.recommendedText}>Recommended</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.videoTitle}>{episode.title}</Text>
+              <Text style={styles.videoDescription}>{episode.description}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 
@@ -559,101 +563,131 @@ const styles = StyleSheet.create({
   },
   episodesHeader: {
     marginBottom: 20,
+    alignItems: 'center',
   },
   episodesTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 5,
+    textAlign: 'center',
   },
   episodesSubtitle: {
     fontSize: 14,
     color: '#CCCCCC',
+    textAlign: 'center',
   },
-  episodeCard: {
+  videoSelectionContainer: {
+    gap: 20,
+  },
+  videoOptionCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    marginBottom: 15,
+    borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  episodeThumbnail: {
-    height: 150,
+  fullEpisodeCard: {
+    borderColor: 'rgba(229, 9, 20, 0.5)',
+    backgroundColor: 'rgba(229, 9, 20, 0.05)',
+  },
+  videoThumbnail: {
+    height: 200,
     position: 'relative',
   },
-  episodeThumbnailGradient: {
+  videoThumbnailGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  episodeThumbnailIcon: {
-    fontSize: 40,
+  videoThumbnailIcon: {
+    fontSize: 50,
   },
   playButtonOverlay: {
     position: 'absolute',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -20 }, { translateY: -20 }],
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    transform: [{ translateX: -25 }, { translateY: -25 }],
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   playIcon: {
     color: '#FFFFFF',
-    fontSize: 16,
-    marginLeft: 2,
+    fontSize: 20,
+    marginLeft: 3,
   },
-  episodeDurationBadge: {
+  videoDurationBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 15,
+    right: 15,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 15,
   },
-  episodeDurationText: {
+  videoDurationText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
-  episodeInfo: {
-    padding: 15,
-  },
-  episodeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  episodeType: {
-    fontSize: 12,
-    color: '#E50914',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
   completedBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    position: 'absolute',
+    top: 15,
+    left: 15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: '#4CAF50',
     justifyContent: 'center',
     alignItems: 'center',
   },
   completedText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: 'bold',
   },
-  episodeTitle: {
-    fontSize: 16,
+  videoInfo: {
+    padding: 20,
+  },
+  videoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  videoType: {
+    fontSize: 14,
+    color: '#E50914',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  introType: {
+    color: '#4CAF50',
+  },
+  recommendedBadge: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  recommendedText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  videoTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
   },
-  episodeDescription: {
+  videoDescription: {
     fontSize: 14,
     color: '#CCCCCC',
     lineHeight: 20,
