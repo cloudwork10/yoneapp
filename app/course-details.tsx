@@ -114,14 +114,40 @@ export default function CourseDetailsScreen() {
 
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [showControls, setShowControls] = useState(true);
 
   const handlePlayVideo = (lecture: any) => {
     setSelectedVideo(lecture);
     setIsPlaying(true);
+    setCurrentTime(0);
+    setShowControls(true);
+  };
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+    if (isPlaying) {
+      Alert.alert('Video Paused', `${selectedVideo.title} is now paused`);
+    } else {
+      Alert.alert('Video Playing', `${selectedVideo.title} is now playing`);
+    }
+  };
+
+  const handleCloseVideo = () => {
+    setSelectedVideo(null);
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setShowControls(false);
+  };
+
+  const handleSeek = (position: number) => {
+    setCurrentTime(position);
   };
 
   const renderInlineVideoPlayer = () => {
     if (!selectedVideo) return null;
+
+    const progressPercentage = (currentTime / 100) * 100; // Simulate progress
 
     return (
       <View style={styles.videoPlayerContainer}>
@@ -131,35 +157,81 @@ export default function CourseDetailsScreen() {
           resizeMode="cover"
         >
           <LinearGradient
-            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+            colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
             style={styles.videoPlayerGradient}
           >
+            {/* Header Controls */}
             <View style={styles.videoPlayerHeader}>
               <TouchableOpacity 
                 style={styles.closeButton} 
-                onPress={() => setSelectedVideo(null)}
+                onPress={handleCloseVideo}
               >
                 <Text style={styles.closeIcon}>✕</Text>
               </TouchableOpacity>
-              <Text style={styles.videoPlayerTitle}>{selectedVideo.title}</Text>
-              <Text style={styles.videoPlayerDuration}>{selectedVideo.duration}</Text>
-            </View>
-
-            <View style={styles.videoPlayerCenter}>
+              <View style={styles.videoPlayerInfo}>
+                <Text style={styles.videoPlayerTitle} numberOfLines={1}>{selectedVideo.title}</Text>
+                <Text style={styles.videoPlayerDuration}>{selectedVideo.duration}</Text>
+              </View>
               <TouchableOpacity 
-                style={styles.videoPlayButton} 
-                onPress={() => setIsPlaying(!isPlaying)}
+                style={styles.fullscreenButton}
+                onPress={() => Alert.alert('Fullscreen', 'Fullscreen mode activated')}
               >
-                <Text style={styles.videoPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+                <Text style={styles.fullscreenIcon}>⤢</Text>
               </TouchableOpacity>
             </View>
 
+            {/* Center Play Button */}
+            <TouchableOpacity 
+              style={styles.videoPlayerCenter}
+              onPress={handlePlayPause}
+              activeOpacity={0.8}
+            >
+              <View style={styles.videoPlayButton}>
+                <Text style={styles.videoPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+              </View>
+              {!isPlaying && (
+                <Text style={styles.playHint}>Tap to play</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Bottom Controls */}
             <View style={styles.videoPlayerBottom}>
               <View style={styles.videoProgressContainer}>
-                <View style={styles.videoProgressBar}>
-                  <View style={[styles.videoProgressFill, { width: '25%' }]} />
-                </View>
-                <Text style={styles.videoTimeText}>2:15 / {selectedVideo.duration}</Text>
+                <TouchableOpacity 
+                  style={styles.videoProgressBar}
+                  onPress={() => handleSeek(25)}
+                >
+                  <View style={[styles.videoProgressFill, { width: `${progressPercentage}%` }]} />
+                  <View style={styles.videoProgressThumb} />
+                </TouchableOpacity>
+                <Text style={styles.videoTimeText}>
+                  {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {selectedVideo.duration}
+                </Text>
+              </View>
+              
+              <View style={styles.videoControlsRow}>
+                <TouchableOpacity 
+                  style={styles.controlButton}
+                  onPress={() => handleSeek(Math.max(0, currentTime - 10))}
+                >
+                  <Text style={styles.controlIcon}>⏪</Text>
+                  <Text style={styles.controlText}>10s</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.controlButton}
+                  onPress={handlePlayPause}
+                >
+                  <Text style={styles.controlIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.controlButton}
+                  onPress={() => handleSeek(Math.min(100, currentTime + 10))}
+                >
+                  <Text style={styles.controlIcon}>⏩</Text>
+                  <Text style={styles.controlText}>10s</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </LinearGradient>
@@ -798,7 +870,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -807,17 +879,33 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
-  videoPlayerTitle: {
+  videoPlayerInfo: {
     flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 15,
+  },
+  videoPlayerTitle: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
-    marginHorizontal: 15,
     textAlign: 'center',
   },
   videoPlayerDuration: {
     color: '#CCCCCC',
-    fontSize: 14,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  fullscreenButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenIcon: {
+    color: '#FFFFFF',
+    fontSize: 18,
   },
   videoPlayerCenter: {
     flex: 1,
@@ -825,17 +913,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   videoPlayButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: 'rgba(229, 9, 20, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   videoPlayIcon: {
     color: '#FFFFFF',
-    fontSize: 32,
+    fontSize: 40,
     marginLeft: 4,
+  },
+  playHint: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginTop: 15,
+    opacity: 0.8,
   },
   videoPlayerBottom: {
     padding: 20,
@@ -843,22 +942,56 @@ const styles = StyleSheet.create({
   videoProgressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 20,
   },
   videoProgressBar: {
     flex: 1,
-    height: 4,
+    height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
+    borderRadius: 3,
     marginRight: 15,
+    position: 'relative',
   },
   videoProgressFill: {
     height: '100%',
     backgroundColor: '#E50914',
-    borderRadius: 2,
+    borderRadius: 3,
+  },
+  videoProgressThumb: {
+    position: 'absolute',
+    right: -6,
+    top: -3,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E50914',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   videoTimeText: {
     color: '#FFFFFF',
     fontSize: 12,
+    fontWeight: '600',
+    minWidth: 80,
+  },
+  videoControlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 30,
+  },
+  controlButton: {
+    alignItems: 'center',
+    padding: 10,
+  },
+  controlIcon: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  controlText: {
+    color: '#CCCCCC',
+    fontSize: 10,
     fontWeight: '600',
   },
 });
