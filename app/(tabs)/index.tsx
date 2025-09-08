@@ -41,20 +41,17 @@ export default function HomeScreen() {
     >
       {/* Real Image Background */}
       <ImageBackground
-        source={{
-          uri: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'
-        }}
+        source={require('../../assets/images/react-logo.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
         onError={(error) => {
-          console.log('Remote image failed to load:', error);
+          console.log('Local image failed to load:', error);
         }}
-        onLoad={() => console.log('Remote image loaded successfully')}
-        defaultSource={require('../../assets/images/react-logo.png')}
+        onLoad={() => console.log('Local image loaded successfully')}
       >
-        {/* Dark overlay for better text readability */}
+        {/* Lighter overlay to see the image better */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.4)']}
           style={styles.overlayGradient}
         />
         
@@ -255,7 +252,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     padding: 20,
     justifyContent: 'center',
-    opacity: 0.15,
+    opacity: 0.05,
   },
   codeLine1: {
     fontSize: 16,
@@ -323,7 +320,7 @@ const styles = StyleSheet.create({
   },
   shape: {
     position: 'absolute',
-    opacity: 0.2,
+    opacity: 0.1,
   },
   shape1: {
     width: 100,
