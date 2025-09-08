@@ -39,17 +39,28 @@ export default function HomeScreen() {
         },
       ]}
     >
-      {/* Real background image */}
+      {/* Real background image with fallback */}
       <ImageBackground
         source={{
-          uri: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'
+          uri: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1920&h=1080&fit=crop&crop=center'
         }}
         style={styles.backgroundImage}
         resizeMode="cover"
+        onError={(error) => {
+          console.log('Remote image failed to load:', error);
+          // Fallback to local image or gradient
+        }}
+        onLoad={() => console.log('Remote image loaded successfully')}
       >
+        {/* Fallback gradient in case image doesn't load */}
+        <LinearGradient
+          colors={['#0a0a0a', '#1a1a1a', '#0f0f0f', '#000000']}
+          style={styles.fallbackGradient}
+        />
+        
         {/* Dark overlay for better text readability */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.8)']}
+          colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
           style={styles.overlayGradient}
         />
         
@@ -231,6 +242,14 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    backgroundColor: '#000000', // Fallback color
+  },
+  fallbackGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   overlayGradient: {
     position: 'absolute',
