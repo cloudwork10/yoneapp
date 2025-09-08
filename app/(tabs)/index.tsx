@@ -39,29 +39,18 @@ export default function HomeScreen() {
         },
       ]}
     >
-      {/* Real background image with fallback */}
-      <ImageBackground
-        source={{
-          uri: 'https://picsum.photos/1920/1080?random=1'
-        }}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-        onError={(error) => {
-          console.log('Remote image failed to load:', error);
-        }}
-        onLoad={() => console.log('Remote image loaded successfully')}
-        defaultSource={require('../../assets/images/react-logo.png')}
-      >
-        {/* Fallback gradient in case image doesn't load */}
+      {/* Background with gradient and visual elements */}
+      <View style={styles.backgroundImage}>
+        {/* Main gradient background */}
         <LinearGradient
-          colors={['#0a0a0a', '#1a1a1a', '#0f0f0f', '#000000']}
-          style={styles.fallbackGradient}
+          colors={['#1a1a2e', '#16213e', '#0f3460', '#000000']}
+          style={styles.mainGradient}
         />
         
-        {/* Dark overlay for better text readability */}
+        {/* Secondary gradient for depth */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.6)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
-          style={styles.overlayGradient}
+          colors={['rgba(229, 9, 20, 0.1)', 'rgba(0, 255, 0, 0.05)', 'rgba(0, 102, 255, 0.1)']}
+          style={styles.secondaryGradient}
         />
         
         {/* Coding overlay for theme */}
@@ -82,8 +71,16 @@ export default function HomeScreen() {
           <View style={[styles.shape, styles.shape1]} />
           <View style={[styles.shape, styles.shape2]} />
           <View style={[styles.shape, styles.shape3]} />
+          <View style={[styles.shape, styles.shape4]} />
+          <View style={[styles.shape, styles.shape5]} />
         </View>
-      </ImageBackground>
+        
+        {/* Dark overlay for better text readability */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)']}
+          style={styles.overlayGradient}
+        />
+      </View>
     </Animated.View>
   );
 
@@ -244,7 +241,14 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#000000', // Fallback color
   },
-  fallbackGradient: {
+  mainGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  secondaryGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -361,6 +365,23 @@ const styles = StyleSheet.create({
     top: '40%',
     right: '20%',
     transform: [{ rotate: '-30deg' }],
+  },
+  shape4: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#ff6b6b',
+    borderRadius: 30,
+    top: '75%',
+    right: '40%',
+    transform: [{ rotate: '60deg' }],
+  },
+  shape5: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#4ecdc4',
+    top: '25%',
+    left: '25%',
+    transform: [{ rotate: '45deg' }],
   },
   heroContent: {
     paddingHorizontal: 20,
