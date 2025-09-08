@@ -418,6 +418,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingVertical: 20,
     paddingHorizontal: 20,
+    marginBottom: -10,
   },
   loadingContainer: {
     flex: 1,
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
   },
   coursesContainer: {
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 0,
     paddingBottom: 100,
   },
   courseCard: {
