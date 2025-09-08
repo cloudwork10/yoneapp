@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     Alert,
@@ -8,9 +9,12 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
+    Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
 
 interface Course {
   id: string;
@@ -34,6 +38,13 @@ export default function CoursesScreen() {
   const [loading, setLoading] = useState(true);
 
   const categories = ['All', 'Programming', 'Design', 'Business', 'Marketing', 'Data Science'];
+
+  const handleCoursePress = (course: Course) => {
+    router.push({
+      pathname: '/course-details',
+      params: { courseId: course.id }
+    });
+  };
 
   // Sample courses data
   const sampleCourses: Course[] = [
@@ -170,44 +181,48 @@ export default function CoursesScreen() {
       style={styles.courseCard}
       onPress={() => handleCoursePress(item)}
     >
-      <View style={styles.courseHeader}>
-        <Text style={styles.courseThumbnail}>{item.thumbnail}</Text>
-        <View style={styles.courseInfo}>
-          <Text style={styles.courseTitle}>{item.title}</Text>
-          <Text style={styles.courseInstructor}>by {item.instructor}</Text>
+      <View style={styles.courseImageContainer}>
+        <LinearGradient
+          colors={['#E50914', '#FF6B6B', '#FF8E53']}
+          style={styles.courseImageGradient}
+        >
+          <Text style={styles.courseThumbnail}>{item.thumbnail}</Text>
+        </LinearGradient>
+        <View style={styles.courseOverlay}>
+          <View style={styles.playButton}>
+            <Text style={styles.playIcon}>▶</Text>
+          </View>
+        </View>
+        <View style={styles.durationBadge}>
+          <Text style={styles.durationText}>{item.duration}</Text>
         </View>
       </View>
       
-      <Text style={styles.courseDescription} numberOfLines={2}>
-        {item.description}
-      </Text>
-      
-      <View style={styles.courseStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statIcon}>⭐</Text>
-          <Text style={styles.statText}>{item.rating}</Text>
+      <View style={styles.courseContent}>
+        <Text style={styles.courseTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.courseInstructor}>by {item.instructor}</Text>
+        
+        <View style={styles.courseStats}>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>⭐</Text>
+            <Text style={styles.statText}>{item.rating}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>👥</Text>
+            <Text style={styles.statText}>{item.students.toLocaleString()}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>📚</Text>
+            <Text style={styles.statText}>{item.level}</Text>
+          </View>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statIcon}>👥</Text>
-          <Text style={styles.statText}>{item.students.toLocaleString()}</Text>
+        
+        <View style={styles.courseFooter}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{item.category}</Text>
+          </View>
+          <Text style={styles.price}>{item.price}</Text>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statIcon}>⏱️</Text>
-          <Text style={styles.statText}>{item.duration}</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statIcon}>📚</Text>
-          <Text style={styles.statText}>{item.level}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.courseFooter}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{item.category}</Text>
-        </View>
-        <TouchableOpacity style={styles.enrollButton}>
-          <Text style={styles.enrollButtonText}>Enroll Free</Text>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -393,24 +408,70 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   courseCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(229, 9, 20, 0.2)',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  courseHeader: {
-    flexDirection: 'row',
+  courseImageContainer: {
+    position: 'relative',
+    height: 200,
+  },
+  courseImageGradient: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
   },
   courseThumbnail: {
-    fontSize: 32,
-    marginRight: 15,
+    fontSize: 48,
+    color: '#FFFFFF',
   },
-  courseInfo: {
-    flex: 1,
+  courseOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  playButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playIcon: {
+    fontSize: 24,
+    color: '#E50914',
+    marginLeft: 3,
+  },
+  durationBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  durationText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  courseContent: {
+    padding: 15,
   },
   courseTitle: {
     fontSize: 18,
@@ -450,6 +511,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 10,
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E50914',
   },
   categoryBadge: {
     backgroundColor: 'rgba(229, 9, 20, 0.2)',
