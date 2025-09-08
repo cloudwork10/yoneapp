@@ -37,22 +37,30 @@ export function UserProvider({ children }: UserProviderProps) {
 
   const loadUserFromStorage = async () => {
     try {
+      console.log('UserContext: Loading user from storage...');
       const userData = await AsyncStorage.getItem('user');
+      console.log('UserContext: Raw user data from storage:', userData);
       if (userData) {
         const parsedUser = JSON.parse(userData);
+        console.log('UserContext: Parsed user data:', parsedUser);
         setUser(parsedUser);
+      } else {
+        console.log('UserContext: No user data found in storage');
       }
     } catch (error) {
       console.error('Error loading user from storage:', error);
     } finally {
+      console.log('UserContext: Setting isLoading to false');
       setIsLoading(false);
     }
   };
 
   const login = async (userData: User) => {
     try {
+      console.log('UserContext: Login called with user data:', userData);
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
+      console.log('UserContext: User data saved to storage');
     } catch (error) {
       console.error('Error saving user to storage:', error);
     }

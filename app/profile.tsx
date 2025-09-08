@@ -5,7 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useUser } from '@/contexts/UserContext';
 
 export default function ProfileScreen() {
-  const { user, logout, isAdmin } = useUser();
+  const { user, logout, isAdmin, isLoading } = useUser();
   const [userStats, setUserStats] = useState({
     coursesCompleted: 0,
     totalHours: 0,
@@ -20,7 +20,11 @@ export default function ProfileScreen() {
       totalHours: 45,
       currentStreak: 7,
     });
-  }, []);
+    
+    // Debug: Log user data
+    console.log('Profile Screen - User:', user);
+    console.log('Profile Screen - IsLoading:', isLoading);
+  }, [user, isLoading]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -52,8 +56,8 @@ export default function ProfileScreen() {
     });
   };
 
-  // Show loading or redirect if no user
-  if (!user) {
+  // Show loading while user data is being loaded
+  if (isLoading) {
     return (
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -61,6 +65,14 @@ export default function ProfileScreen() {
         </View>
       </LinearGradient>
     );
+  }
+
+  // Redirect to login if no user is found
+  if (!user) {
+    Alert.alert('Session Expired', 'Please login again.', [
+      { text: 'OK', onPress: () => router.replace('/login') }
+    ]);
+    return null;
   }
 
   const stats = [
