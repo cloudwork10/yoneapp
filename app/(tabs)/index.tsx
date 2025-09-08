@@ -1,7 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const featuredCourses = [
@@ -19,8 +21,35 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
-        <ScrollView style={styles.scrollView}>
+      <View style={styles.container}>
+        {/* Netflix-style Background */}
+        <View style={styles.backgroundContainer}>
+          <LinearGradient
+            colors={['#000000', '#1a0a0a', '#2d1b1b', '#000000']}
+            style={styles.backgroundGradient}
+          />
+          
+          {/* Floating geometric shapes */}
+          <View style={styles.floatingShapes}>
+            <View style={[styles.shape, styles.shape1]} />
+            <View style={[styles.shape, styles.shape2]} />
+            <View style={[styles.shape, styles.shape3]} />
+            <View style={[styles.shape, styles.shape4]} />
+            <View style={[styles.shape, styles.shape5]} />
+          </View>
+          
+          {/* Subtle grid pattern */}
+          <View style={styles.gridPattern}>
+            {Array.from({ length: 20 }).map((_, i) => (
+              <View key={i} style={[styles.gridLine, { 
+                top: (i * height / 20) + 'px',
+                opacity: 0.03 + (i % 3) * 0.01
+              }]} />
+            ))}
+          </View>
+        </View>
+
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.greeting}>Welcome back!</Text>
           <Text style={styles.subtitle}>Continue your learning journey</Text>
@@ -78,7 +107,7 @@ export default function HomeScreen() {
           </View>
         </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 }
@@ -90,6 +119,91 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    position: 'relative',
+  },
+  // Netflix-style Background
+  backgroundContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
+  },
+  backgroundGradient: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  // Floating geometric shapes
+  floatingShapes: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  shape: {
+    position: 'absolute',
+    opacity: 0.08,
+  },
+  shape1: {
+    width: 120,
+    height: 120,
+    backgroundColor: '#E50914',
+    borderRadius: 60,
+    top: '15%',
+    right: '10%',
+    transform: [{ rotate: '45deg' }],
+  },
+  shape2: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#FF6B6B',
+    top: '60%',
+    left: '15%',
+    transform: [{ rotate: '30deg' }],
+  },
+  shape3: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#FF8E53',
+    borderRadius: 20,
+    top: '40%',
+    right: '20%',
+    transform: [{ rotate: '-30deg' }],
+  },
+  shape4: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#E50914',
+    borderRadius: 30,
+    top: '75%',
+    right: '40%',
+    transform: [{ rotate: '60deg' }],
+  },
+  shape5: {
+    width: 90,
+    height: 90,
+    backgroundColor: '#FF4757',
+    top: '25%',
+    left: '25%',
+    transform: [{ rotate: '45deg' }],
+  },
+  // Grid pattern
+  gridPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  gridLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: '#E50914',
   },
   scrollView: {
     flex: 1,
@@ -114,12 +228,14 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   statCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 12,
     padding: 15,
     alignItems: 'center',
     flex: 1,
     marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
   },
   statValue: {
     fontSize: 20,
@@ -146,11 +262,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   courseCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 12,
     padding: 15,
     marginRight: 15,
     width: 200,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.2)',
   },
   courseImage: {
     height: 100,
@@ -195,11 +313,13 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   actionCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     width: '47%',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
   },
   actionIcon: {
     fontSize: 32,
