@@ -11,6 +11,7 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Course {
   id: string;
@@ -214,17 +215,20 @@ export default function CoursesScreen() {
 
   if (loading) {
     return (
-      <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading courses...</Text>
-        </View>
-      </LinearGradient>
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading courses...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
     );
   }
 
   return (
-    <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Courses</Text>
@@ -286,12 +290,17 @@ export default function CoursesScreen() {
           scrollEnabled={false}
           contentContainerStyle={styles.coursesList}
         />
-      </ScrollView>
-    </LinearGradient>
+        </ScrollView>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
   container: {
     flex: 1,
   },
