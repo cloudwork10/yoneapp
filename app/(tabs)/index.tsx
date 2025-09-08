@@ -1,11 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ImageBackground, Dimensions } from 'react-native';
+import React, { useRef } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ImageBackground, Dimensions, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
+  const scrollY = useRef(new Animated.Value(0)).current;
+  
   const featuredCourses = [
     { id: 1, title: 'React Native Fundamentals', instructor: 'John Doe', rating: 4.8, students: 1250 },
     { id: 2, title: 'Node.js Backend Development', instructor: 'Jane Smith', rating: 4.9, students: 980 },
@@ -19,11 +21,26 @@ export default function HomeScreen() {
     { label: 'Certificates', value: '15+' },
   ];
 
-  // Create a coding-themed background image using a gradient overlay
+  // Create a coding-themed background image with parallax effect
   const CodingBackground = () => (
-    <View style={styles.backgroundContainer}>
+    <Animated.View 
+      style={[
+        styles.backgroundContainer,
+        {
+          transform: [
+            {
+              translateY: scrollY.interpolate({
+                inputRange: [0, height * 0.6],
+                outputRange: [0, -height * 0.3],
+                extrapolate: 'clamp',
+              }),
+            },
+          ],
+        },
+      ]}
+    >
       <LinearGradient
-        colors={['#000000', '#1a1a1a', '#000000']}
+        colors={['#0a0a0a', '#1a1a1a', '#0f0f0f', '#000000']}
         style={styles.backgroundGradient}
       />
       <View style={styles.codingOverlay}>
@@ -32,17 +49,47 @@ export default function HomeScreen() {
         <Text style={styles.codeLine3}>  passion: 'Learning & Teaching',</Text>
         <Text style={styles.codeLine4}>  goal: 'Build Amazing Apps'</Text>
         <Text style={styles.codeLine5}>{`};`}</Text>
+        <Text style={styles.codeLine6}>// Welcome to YONE Learning Platform</Text>
+        <Text style={styles.codeLine7}>function startLearning() {`{`}</Text>
+        <Text style={styles.codeLine8}>  return 'Success!';</Text>
+        <Text style={styles.codeLine9}>{`}`}</Text>
       </View>
-    </View>
+      {/* Add some geometric shapes for visual interest */}
+      <View style={styles.geometricShapes}>
+        <View style={[styles.shape, styles.shape1]} />
+        <View style={[styles.shape, styles.shape2]} />
+        <View style={[styles.shape, styles.shape3]} />
+      </View>
+    </Animated.View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Netflix-style Hero Section */}
+        {/* Netflix-style Hero Section with Parallax */}
         <View style={styles.heroSection}>
           <CodingBackground />
-          <View style={styles.heroContent}>
+          <Animated.View 
+            style={[
+              styles.heroContent,
+              {
+                opacity: scrollY.interpolate({
+                  inputRange: [0, height * 0.3],
+                  outputRange: [1, 0],
+                  extrapolate: 'clamp',
+                }),
+                transform: [
+                  {
+                    translateY: scrollY.interpolate({
+                      inputRange: [0, height * 0.6],
+                      outputRange: [0, -50],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
             <Text style={styles.heroTitle}>Welcome to YONE</Text>
             <Text style={styles.heroSubtitle}>Master coding with our comprehensive courses</Text>
             <View style={styles.heroButtons}>
@@ -53,10 +100,18 @@ export default function HomeScreen() {
                 <Text style={styles.infoButtonText}>ℹ More Info</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <Animated.ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        >
         <View style={styles.header}>
           <Text style={styles.greeting}>Continue Learning</Text>
           <Text style={styles.subtitle}>Pick up where you left off</Text>
@@ -113,7 +168,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -183,6 +238,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#00ff00',
     fontFamily: 'monospace',
+  },
+  codeLine6: {
+    fontSize: 12,
+    color: '#666666',
+    fontFamily: 'monospace',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  codeLine7: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 6,
+  },
+  codeLine8: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+    marginBottom: 6,
+    marginLeft: 20,
+  },
+  codeLine9: {
+    fontSize: 14,
+    color: '#00ff00',
+    fontFamily: 'monospace',
+  },
+  geometricShapes: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  shape: {
+    position: 'absolute',
+    opacity: 0.1,
+  },
+  shape1: {
+    width: 100,
+    height: 100,
+    backgroundColor: '#E50914',
+    borderRadius: 50,
+    top: '20%',
+    right: '10%',
+    transform: [{ rotate: '45deg' }],
+  },
+  shape2: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#00ff00',
+    top: '60%',
+    left: '15%',
+    transform: [{ rotate: '30deg' }],
+  },
+  shape3: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#0066ff',
+    borderRadius: 10,
+    top: '40%',
+    right: '20%',
+    transform: [{ rotate: '-30deg' }],
   },
   heroContent: {
     position: 'absolute',
