@@ -42,15 +42,15 @@ export default function HomeScreen() {
       {/* Real background image with fallback */}
       <ImageBackground
         source={{
-          uri: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1920&h=1080&fit=crop&crop=center'
+          uri: 'https://picsum.photos/1920/1080?random=1'
         }}
         style={styles.backgroundImage}
         resizeMode="cover"
         onError={(error) => {
           console.log('Remote image failed to load:', error);
-          // Fallback to local image or gradient
         }}
         onLoad={() => console.log('Remote image loaded successfully')}
+        defaultSource={require('../../assets/images/react-logo.png')}
       >
         {/* Fallback gradient in case image doesn't load */}
         <LinearGradient
