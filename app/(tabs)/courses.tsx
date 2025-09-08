@@ -161,20 +161,6 @@ export default function CoursesScreen() {
     setFilteredCourses(filtered);
   };
 
-  const handleCoursePress = (course: Course) => {
-    Alert.alert(
-      course.title,
-      `Instructor: ${course.instructor}\nDuration: ${course.duration}\nLevel: ${course.level}\nRating: ${course.rating} ⭐\nStudents: ${course.students.toLocaleString()}\n\n${course.description}`,
-      [
-        { text: 'Close', style: 'cancel' },
-        { text: 'Enroll', onPress: () => enrollInCourse(course) }
-      ]
-    );
-  };
-
-  const enrollInCourse = (course: Course) => {
-    Alert.alert('Success!', `You have successfully enrolled in "${course.title}"!`);
-  };
 
   const renderCourse = ({ item }: { item: Course }) => (
     <TouchableOpacity
