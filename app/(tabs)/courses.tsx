@@ -234,10 +234,10 @@ export default function CoursesScreen() {
           style={styles.heroBackground}
           resizeMode="cover"
         >
-          <LinearGradient
-            colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
-            style={styles.heroGradient}
-          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.9)', 'rgba(0,0,0,1)']}
+              style={styles.heroGradient}
+            >
             <SafeAreaView style={styles.heroSafeArea}>
               <View style={styles.heroContent}>
                 <Text style={styles.heroTitle}>Master New Skills</Text>
@@ -263,7 +263,11 @@ export default function CoursesScreen() {
       </View>
 
         {/* Search and Filter Section */}
-        <View style={styles.searchSection}>
+        <LinearGradient
+          colors={['rgba(0,0,0,0.8)', 'rgba(0,0,0,0.4)', 'transparent']}
+          style={styles.searchSectionGradient}
+        >
+          <View style={styles.searchSection}>
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <TextInput
@@ -310,7 +314,8 @@ export default function CoursesScreen() {
               {filteredCourses.length} course{filteredCourses.length !== 1 ? 's' : ''} found
             </Text>
           </View>
-        </View>
+          </View>
+        </LinearGradient>
 
         {/* Courses List */}
         <FlatList
@@ -336,7 +341,7 @@ const styles = StyleSheet.create({
   },
   // Hero Section Styles - Full Screen
   heroSection: {
-    height: 450,
+    height: 550,
     position: 'relative',
   },
   heroSafeArea: {
@@ -400,6 +405,9 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  searchSectionGradient: {
+    paddingVertical: 20,
   },
   searchSection: {
     backgroundColor: 'transparent',
