@@ -226,7 +226,13 @@ export default function CoursesScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      bounces={true}
+      scrollEventThrottle={16}
+      decelerationRate="fast"
+    >
       {/* Hero Section with Background - Full Screen */}
       <View style={styles.heroSection}>
         <ImageBackground
@@ -318,15 +324,14 @@ export default function CoursesScreen() {
         </LinearGradient>
 
         {/* Courses List */}
-        <FlatList
-          data={filteredCourses}
-          renderItem={renderCourse}
-          keyExtractor={(item) => item.id}
-          style={styles.scrollView}
-          contentContainerStyle={styles.coursesList}
-          showsVerticalScrollIndicator={false}
-        />
-      </View>
+        <View style={styles.coursesContainer}>
+          {filteredCourses.map((course) => (
+            <View key={course.id}>
+              {renderCourse({ item: course, index: 0 })}
+            </View>
+          ))}
+        </View>
+    </ScrollView>
   );
 }
 
@@ -426,7 +431,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: 'transparent',
   },
   header: {
     padding: 20,
@@ -500,9 +505,9 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     fontSize: 14,
   },
-  coursesList: {
+  coursesContainer: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 100,
   },
   courseCard: {
