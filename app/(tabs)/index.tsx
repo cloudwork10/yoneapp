@@ -64,25 +64,38 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Netflix-style Hero Section with Parallax */}
+    <View style={styles.container}>
+      {/* Full-screen background that starts from top */}
+      <CodingBackground />
+      
+      <Animated.ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        contentContainerStyle={styles.scrollContent}
+        bounces={true}
+        alwaysBounceVertical={true}
+      >
+        {/* Hero Section Content */}
         <View style={styles.heroSection}>
-          <CodingBackground />
           <Animated.View 
             style={[
               styles.heroContent,
               {
                 opacity: scrollY.interpolate({
-                  inputRange: [0, height * 0.3],
-                  outputRange: [1, 0],
+                  inputRange: [0, height * 0.4],
+                  outputRange: [1, 0.3],
                   extrapolate: 'clamp',
                 }),
                 transform: [
                   {
                     translateY: scrollY.interpolate({
-                      inputRange: [0, height * 0.6],
-                      outputRange: [0, -50],
+                      inputRange: [0, height * 0.8],
+                      outputRange: [0, -100],
                       extrapolate: 'clamp',
                     }),
                   },
@@ -103,15 +116,8 @@ export default function HomeScreen() {
           </Animated.View>
         </View>
 
-        <Animated.ScrollView 
-          style={styles.scrollView} 
-          showsVerticalScrollIndicator={false}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
-          scrollEventThrottle={16}
-        >
+        {/* Content Section */}
+        <View style={styles.contentSection}>
         <View style={styles.header}>
           <Text style={styles.greeting}>Continue Learning</Text>
           <Text style={styles.subtitle}>Pick up where you left off</Text>
@@ -168,31 +174,45 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </View>
         </Animated.ScrollView>
-      </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#000000',
   },
-  container: {
-    flex: 1,
-  },
-  // Netflix-style Hero Section
-  heroSection: {
-    height: height * 0.6,
-    position: 'relative',
-  },
+  // Full-screen background that starts from top
   backgroundContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: -1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  // Hero Section
+  heroSection: {
+    height: height * 0.8,
+    justifyContent: 'flex-end',
+    paddingBottom: 100,
+  },
+  contentSection: {
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 30,
+    paddingHorizontal: 20,
+    minHeight: height * 0.6,
   },
   backgroundGradient: {
     flex: 1,
@@ -302,10 +322,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-30deg' }],
   },
   heroContent: {
-    position: 'absolute',
-    bottom: 60,
-    left: 20,
-    right: 20,
+    paddingHorizontal: 20,
     zIndex: 10,
   },
   heroTitle: {
@@ -356,10 +373,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-  },
-  scrollView: {
-    flex: 1,
-    padding: 20,
   },
   header: {
     marginBottom: 30,
