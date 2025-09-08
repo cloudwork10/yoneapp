@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   searchSection: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'transparent',
     paddingVertical: 20,
     paddingHorizontal: 20,
   },
@@ -440,11 +440,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 20,
     marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 12,
     paddingHorizontal: 15,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(229, 9, 20, 0.3)',
   },
   searchInput: {
     flex: 1,
