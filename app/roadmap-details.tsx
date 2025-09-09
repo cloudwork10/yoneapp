@@ -603,7 +603,7 @@ export default function RoadmapDetailsScreen() {
                       </View>
                     </Animated.View>
                   )}
-                </TouchableOpacity>
+                </View>
               </View>
 
               {/* Roadmap Info */}
