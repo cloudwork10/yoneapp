@@ -503,6 +503,14 @@ export default function RoadmapDetailsScreen() {
               onPlaybackStatusUpdate={onPlaybackStatusUpdate}
               useNativeControls={true}
             />
+            
+            {/* Easy Close Button */}
+            <TouchableOpacity 
+              style={styles.easyCloseButton}
+              onPress={exitFullscreen}
+            >
+              <Text style={styles.easyCloseText}>✕</Text>
+            </TouchableOpacity>
           </View>
           
         </View>
@@ -1224,6 +1232,25 @@ const styles = StyleSheet.create({
   },
   safariSpacer: {
     width: 60,
+  },
+  // Easy Close Button
+  easyCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 12,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  easyCloseText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   roadmapInfo: {
     paddingBottom: 20,
