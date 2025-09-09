@@ -371,12 +371,16 @@ export default function RoadmapDetailsScreen() {
                     style={styles.doubleTapLeft}
                     onPress={() => handleDoubleTapSeek('left')}
                     activeOpacity={1}
-                  />
+                  >
+                    <View />
+                  </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.doubleTapRight}
                     onPress={() => handleDoubleTapSeek('right')}
                     activeOpacity={1}
-                  />
+                  >
+                    <View />
+                  </TouchableOpacity>
 
                   {/* Double Tap Seek Indicator */}
                   {showDoubleTapSeek && (
