@@ -103,7 +103,7 @@ export default function RoadmapDetailsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Hero Section */}
+        {/* Hero Section - Udemy Style */}
         <View style={styles.heroSection}>
           <ImageBackground
             source={{ uri: roadmap.backgroundImage }}
@@ -111,29 +111,61 @@ export default function RoadmapDetailsScreen() {
             resizeMode="cover"
           >
             <LinearGradient
-              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+              colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
               style={styles.heroGradient}
             >
-              {/* Back Button */}
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
-                <Text style={styles.backButtonText}>← Back</Text>
-              </TouchableOpacity>
+              {/* Header Bar */}
+              <View style={styles.headerBar}>
+                <TouchableOpacity 
+                  style={styles.backButton}
+                  onPress={() => router.back()}
+                >
+                  <Text style={styles.backButtonText}>←</Text>
+                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                  <TouchableOpacity style={styles.headerButton}>
+                    <Text style={styles.headerButtonText}>📤</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.headerButton}>
+                    <Text style={styles.headerButtonText}>❤️</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-              {/* Roadmap Info - Better positioned */}
-              <View style={styles.roadmapInfoFixed}>
-                <Text style={styles.roadmapTitleFixed}>{roadmap.title}</Text>
-                <Text style={styles.roadmapDescriptionFixed}>{roadmap.description}</Text>
-                <View style={styles.roadmapMetaFixed}>
-                  <View style={styles.metaItemFixed}>
-                    <Text style={styles.metaIconFixed}>⏱️</Text>
-                    <Text style={styles.metaTextFixed}>{roadmap.duration}</Text>
+              {/* Hero Content */}
+              <View style={styles.heroContent}>
+                <View style={styles.badgeContainer}>
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>ROADMAP</Text>
                   </View>
-                  <View style={styles.metaItemFixed}>
-                    <Text style={styles.metaIconFixed}>📊</Text>
-                    <Text style={styles.metaTextFixed}>{roadmap.level}</Text>
+                </View>
+                
+                <Text style={styles.heroTitle}>{roadmap.title}</Text>
+                <Text style={styles.heroDescription}>{roadmap.description}</Text>
+                
+                <View style={styles.heroMeta}>
+                  <View style={styles.metaItem}>
+                    <Text style={styles.metaIcon}>⭐</Text>
+                    <Text style={styles.metaText}>4.8 (2,847 ratings)</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Text style={styles.metaIcon}>👥</Text>
+                    <Text style={styles.metaText}>15,234 students</Text>
+                  </View>
+                </View>
+
+                <View style={styles.heroStats}>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>8</Text>
+                    <Text style={styles.statLabel}>Modules</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>2h</Text>
+                    <Text style={styles.statLabel}>Duration</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>Beginner</Text>
+                    <Text style={styles.statLabel}>Level</Text>
                   </View>
                 </View>
               </View>
@@ -141,37 +173,116 @@ export default function RoadmapDetailsScreen() {
           </ImageBackground>
         </View>
 
-        {/* Learning Path Steps */}
-        <View style={styles.stepsSection}>
-          <Text style={styles.sectionTitle}>Learning Path</Text>
-          <Text style={styles.sectionSubtitle}>
-            Follow these steps to master {roadmap.title}
-          </Text>
+        {/* Course Content Section */}
+        <View style={styles.contentSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>What you'll learn</Text>
+            <Text style={styles.sectionSubtitle}>Master these key concepts</Text>
+          </View>
+
+          <View style={styles.learningPoints}>
+            <View style={styles.learningPoint}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Build complete React Native applications</Text>
+            </View>
+            <View style={styles.learningPoint}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Master state management with Redux</Text>
+            </View>
+            <View style={styles.learningPoint}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Integrate APIs and handle data</Text>
+            </View>
+            <View style={styles.learningPoint}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Deploy apps to app stores</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Curriculum Section */}
+        <View style={styles.curriculumSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Curriculum</Text>
+            <Text style={styles.sectionSubtitle}>8 modules • 2 hours total</Text>
+          </View>
 
           {roadmap.steps.map((step, index) => (
-            <View key={step.id} style={styles.stepCard}>
-              <View style={styles.stepHeader}>
-                <TouchableOpacity
-                  style={styles.stepCompletionButton}
-                  onPress={() => toggleStepCompletion(step.id)}
-                >
-                  <Text style={styles.stepCompletionIcon}>○</Text>
+            <View key={step.id} style={styles.moduleCard}>
+              <View style={styles.moduleHeader}>
+                <View style={styles.moduleNumber}>
+                  <Text style={styles.moduleNumberText}>{index + 1}</Text>
+                </View>
+                <View style={styles.moduleInfo}>
+                  <Text style={styles.moduleTitle}>{step.title}</Text>
+                  <Text style={styles.moduleDescription}>{step.description}</Text>
+                  <View style={styles.moduleMeta}>
+                    <Text style={styles.moduleDuration}>⏱️ {step.duration}</Text>
+                    <Text style={styles.moduleLessons}>📚 {step.topics.length} lessons</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.expandButton}>
+                  <Text style={styles.expandIcon}>▼</Text>
                 </TouchableOpacity>
-                <Text style={styles.stepTitle}>{`${index + 1}. ${step.title}`}</Text>
               </View>
-              <Text style={styles.stepDescription}>{step.description}</Text>
-              <View style={styles.stepMeta}>
-                <Text style={styles.stepDuration}>⏱️ {step.duration}</Text>
-              </View>
-              <View style={styles.topicsContainer}>
+              
+              <View style={styles.lessonsList}>
                 {step.topics.map((topic, topicIndex) => (
-                  <Text key={topicIndex} style={styles.topicText}>
-                    • {topic}
-                  </Text>
+                  <View key={topicIndex} style={styles.lessonItem}>
+                    <View style={styles.lessonIcon}>
+                      <Text style={styles.lessonIconText}>▶</Text>
+                    </View>
+                    <Text style={styles.lessonTitle}>{topic}</Text>
+                    <Text style={styles.lessonDuration}>5:30</Text>
+                  </View>
                 ))}
               </View>
             </View>
           ))}
+        </View>
+
+        {/* Instructor Section */}
+        <View style={styles.instructorSection}>
+          <Text style={styles.sectionTitle}>Your Instructor</Text>
+          <View style={styles.instructorCard}>
+            <View style={styles.instructorAvatar}>
+              <Text style={styles.avatarText}>JD</Text>
+            </View>
+            <View style={styles.instructorInfo}>
+              <Text style={styles.instructorName}>John Developer</Text>
+              <Text style={styles.instructorTitle}>Senior React Native Developer</Text>
+              <Text style={styles.instructorBio}>
+                With 8+ years of experience in mobile development, John has built apps used by millions of users worldwide.
+              </Text>
+              <View style={styles.instructorStats}>
+                <View style={styles.instructorStat}>
+                  <Text style={styles.instructorStatNumber}>4.8</Text>
+                  <Text style={styles.instructorStatLabel}>Instructor Rating</Text>
+                </View>
+                <View style={styles.instructorStat}>
+                  <Text style={styles.instructorStatNumber}>15,234</Text>
+                  <Text style={styles.instructorStatLabel}>Students</Text>
+                </View>
+                <View style={styles.instructorStat}>
+                  <Text style={styles.instructorStatNumber}>8</Text>
+                  <Text style={styles.instructorStatLabel}>Courses</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* CTA Section */}
+        <View style={styles.ctaSection}>
+          <View style={styles.ctaCard}>
+            <Text style={styles.ctaTitle}>Ready to start your journey?</Text>
+            <Text style={styles.ctaDescription}>
+              Join thousands of students who have already mastered React Native development
+            </Text>
+            <TouchableOpacity style={styles.ctaButton}>
+              <Text style={styles.ctaButtonText}>Start Learning Now</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -181,13 +292,14 @@ export default function RoadmapDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#FFFFFF',
   },
   scrollView: {
     flex: 1,
   },
+  // Hero Section - Udemy Style
   heroSection: {
-    height: height * 0.6,
+    height: height * 0.7,
     position: 'relative',
   },
   heroBackground: {
@@ -199,44 +311,84 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
   },
+  headerBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+  },
   backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    left: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  roadmapInfo: {
-    paddingBottom: 20,
-  },
-  roadmapTitle: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
   },
-  roadmapDescription: {
-    fontSize: 16,
-    color: '#CCCCCC',
-    lineHeight: 24,
+  headerActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerButtonText: {
+    fontSize: 18,
+  },
+  heroContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: 30,
+  },
+  badgeContainer: {
     marginBottom: 15,
   },
-  roadmapMeta: {
+  badge: {
+    backgroundColor: '#A435F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    lineHeight: 38,
+  },
+  heroDescription: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    lineHeight: 26,
+    marginBottom: 20,
+    opacity: 0.9,
+  },
+  heroMeta: {
     flexDirection: 'row',
     gap: 20,
+    marginBottom: 20,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   metaIcon: {
     fontSize: 16,
@@ -244,127 +396,265 @@ const styles = StyleSheet.create({
   metaText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  // Fixed positioning for better layout
-  roadmapInfoFixed: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-    paddingBottom: 20,
+  heroStats: {
+    flexDirection: 'row',
+    gap: 30,
   },
-  roadmapTitleFixed: {
-    fontSize: 32,
+  statItem: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 12,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    marginBottom: 4,
   },
-  roadmapDescriptionFixed: {
-    fontSize: 18,
+  statLabel: {
+    fontSize: 12,
     color: '#FFFFFF',
-    lineHeight: 26,
-    marginBottom: 20,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    opacity: 0.8,
   },
-  roadmapMetaFixed: {
-    flexDirection: 'row',
-    gap: 25,
-  },
-  metaItemFixed: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  metaIconFixed: {
-    fontSize: 18,
-  },
-  metaTextFixed: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  stepsSection: {
+  // Content Sections
+  contentSection: {
     padding: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  curriculumSection: {
+    padding: 20,
+    backgroundColor: '#F8F9FA',
+  },
+  instructorSection: {
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  ctaSection: {
+    padding: 20,
+    backgroundColor: '#F8F9FA',
+  },
+  sectionHeader: {
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#1C1D1F',
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 16,
-    color: '#CCCCCC',
-    marginBottom: 20,
-    lineHeight: 22,
+    color: '#6A6F73',
   },
-  stepCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
+  // Learning Points
+  learningPoints: {
+    gap: 12,
   },
-  stepHeader: {
+  learningPoint: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    gap: 12,
   },
-  stepCompletionButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#E50914',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  stepCompletionIcon: {
-    color: '#E50914',
+  learningIcon: {
     fontSize: 16,
-    fontWeight: 'bold',
+    marginTop: 2,
   },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  learningText: {
+    fontSize: 16,
+    color: '#1C1D1F',
+    lineHeight: 24,
     flex: 1,
   },
-  stepDescription: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    lineHeight: 20,
+  // Module Cards
+  moduleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
     marginBottom: 12,
-    marginLeft: 40,
+    borderWidth: 1,
+    borderColor: '#D1D7DC',
+    overflow: 'hidden',
   },
-  stepMeta: {
+  moduleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    marginLeft: 40,
+    padding: 16,
+    gap: 12,
   },
-  stepDuration: {
-    fontSize: 12,
-    color: '#E50914',
-    fontWeight: '600',
+  moduleNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#A435F0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  topicsContainer: {
-    marginLeft: 40,
-  },
-  topicText: {
+  moduleNumberText: {
+    color: '#FFFFFF',
     fontSize: 14,
-    color: '#CCCCCC',
+    fontWeight: 'bold',
+  },
+  moduleInfo: {
+    flex: 1,
+  },
+  moduleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1C1D1F',
     marginBottom: 4,
-    lineHeight: 18,
+  },
+  moduleDescription: {
+    fontSize: 14,
+    color: '#6A6F73',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  moduleMeta: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  moduleDuration: {
+    fontSize: 12,
+    color: '#6A6F73',
+  },
+  moduleLessons: {
+    fontSize: 12,
+    color: '#6A6F73',
+  },
+  expandButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F7F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  expandIcon: {
+    fontSize: 12,
+    color: '#6A6F73',
+  },
+  // Lessons List
+  lessonsList: {
+    borderTopWidth: 1,
+    borderTopColor: '#D1D7DC',
+    padding: 16,
+    paddingTop: 12,
+  },
+  lessonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 12,
+  },
+  lessonIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F7F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lessonIconText: {
+    fontSize: 10,
+    color: '#6A6F73',
+  },
+  lessonTitle: {
+    fontSize: 14,
+    color: '#1C1D1F',
+    flex: 1,
+  },
+  lessonDuration: {
+    fontSize: 12,
+    color: '#6A6F73',
+  },
+  // Instructor Section
+  instructorCard: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  instructorAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#A435F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  instructorInfo: {
+    flex: 1,
+  },
+  instructorName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1C1D1F',
+    marginBottom: 4,
+  },
+  instructorTitle: {
+    fontSize: 16,
+    color: '#6A6F73',
+    marginBottom: 12,
+  },
+  instructorBio: {
+    fontSize: 14,
+    color: '#1C1D1F',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  instructorStats: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  instructorStat: {
+    alignItems: 'center',
+  },
+  instructorStatNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1C1D1F',
+    marginBottom: 2,
+  },
+  instructorStatLabel: {
+    fontSize: 12,
+    color: '#6A6F73',
+  },
+  // CTA Section
+  ctaCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#D1D7DC',
+  },
+  ctaTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1C1D1F',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  ctaDescription: {
+    fontSize: 16,
+    color: '#6A6F73',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  ctaButton: {
+    backgroundColor: '#A435F0',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 8,
+    minWidth: 200,
+  },
+  ctaButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
