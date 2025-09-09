@@ -22,22 +22,40 @@ interface Course {
   id: string;
   title: string;
   instructor: string;
+  instructorImage: string;
   rating: number;
   students: number;
   price: string;
   duration: string;
   level: string;
+  language: string;
+  lastUpdated: string;
   description: string;
   whatYouWillLearn: string[];
-  curriculum: {
-    section: string;
-    lectures: {
+  requirements: string[];
+  sections: Array<{
+    id: string;
+    title: string;
+    duration: string;
+    lectures: Array<{
+      id: string;
       title: string;
       duration: string;
-      type: 'video' | 'reading' | 'quiz';
+      type: 'video' | 'reading' | 'quiz' | 'assignment';
       isCompleted: boolean;
-    }[];
-  }[];
+      isLocked: boolean;
+      videoUrl?: string;
+      content?: string;
+      tasks?: Array<{
+        id: string;
+        title: string;
+        description: string;
+        type: 'quiz' | 'assignment' | 'project';
+        points: number;
+        isCompleted: boolean;
+      }>;
+    }>;
+  }>;
 }
 
 export default function CourseDetailsScreen() {
@@ -50,11 +68,14 @@ export default function CourseDetailsScreen() {
     id: courseId as string || '1',
     title: 'Complete React Native Development Course',
     instructor: 'John Doe',
+    instructorImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80',
     rating: 4.8,
     students: 1250,
     price: 'Free',
     duration: '12 hours',
     level: 'Beginner to Advanced',
+    language: 'English',
+    lastUpdated: 'December 2024',
     description: 'Learn React Native from scratch and build real-world mobile applications. This comprehensive course covers everything from basic concepts to advanced topics like navigation, state management, and app deployment.',
     whatYouWillLearn: [
       'Build cross-platform mobile apps with React Native',
@@ -64,42 +85,240 @@ export default function CourseDetailsScreen() {
       'Deploy apps to App Store and Google Play',
       'Use React Native best practices and patterns'
     ],
-    curriculum: [
+    requirements: [
+      'Basic knowledge of JavaScript',
+      'Understanding of React concepts',
+      'Node.js installed on your computer',
+      'Android Studio or Xcode for mobile development'
+    ],
+    sections: [
       {
-        section: 'Getting Started',
+        id: '1',
+        title: 'Getting Started with React Native',
+        duration: '2 hours',
         lectures: [
-          { title: 'Introduction to React Native', duration: '15 min', type: 'video', isCompleted: true, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
-          { title: 'Setting up Development Environment', duration: '20 min', type: 'video', isCompleted: true, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
-          { title: 'Your First React Native App', duration: '25 min', type: 'video', isCompleted: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-          { title: 'Understanding React Native Architecture', duration: '18 min', type: 'reading', isCompleted: false }
+          { 
+            id: '1-1',
+            title: 'Welcome to React Native Development', 
+            duration: '15 min', 
+            type: 'video', 
+            isCompleted: true,
+            isLocked: false,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+            tasks: [
+              {
+                id: 'task-1-1',
+                title: 'Introduction Quiz',
+                description: 'Test your understanding of React Native basics',
+                type: 'quiz',
+                points: 10,
+                isCompleted: false
+              }
+            ]
+          },
+          { 
+            id: '1-2',
+            title: 'Setting up Development Environment', 
+            duration: '20 min', 
+            type: 'video', 
+            isCompleted: true,
+            isLocked: false,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'
+          },
+          { 
+            id: '1-3',
+            title: 'Your First React Native App', 
+            duration: '25 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: false,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+            tasks: [
+              {
+                id: 'task-1-3',
+                title: 'Build Your First App',
+                description: 'Create a simple Hello World app',
+                type: 'assignment',
+                points: 25,
+                isCompleted: false
+              }
+            ]
+          },
+          { 
+            id: '1-4',
+            title: 'Understanding React Native Architecture', 
+            duration: '18 min', 
+            type: 'reading', 
+            isCompleted: false,
+            isLocked: false,
+            content: 'Learn about the fundamental architecture of React Native and how it bridges JavaScript with native components.'
+          }
         ]
       },
       {
-        section: 'Core Concepts',
+        id: '2',
+        title: 'Core React Native Concepts',
+        duration: '3 hours',
         lectures: [
-          { title: 'Components and Props', duration: '22 min', type: 'video', isCompleted: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' },
-          { title: 'State and Lifecycle', duration: '28 min', type: 'video', isCompleted: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4' },
-          { title: 'Handling User Input', duration: '20 min', type: 'video', isCompleted: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' },
-          { title: 'Styling and Layout', duration: '30 min', type: 'video', isCompleted: false, videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4' },
-          { title: 'Quiz: Core Concepts', duration: '10 min', type: 'quiz', isCompleted: false }
+          { 
+            id: '2-1',
+            title: 'Components and Props Deep Dive', 
+            duration: '30 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+          },
+          { 
+            id: '2-2',
+            title: 'State Management Fundamentals', 
+            duration: '35 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+          },
+          { 
+            id: '2-3',
+            title: 'Handling User Input and Events', 
+            duration: '25 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4'
+          },
+          { 
+            id: '2-4',
+            title: 'Styling and Layout', 
+            duration: '40 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4'
+          },
+          { 
+            id: '2-5',
+            title: 'Core Concepts Quiz', 
+            duration: '10 min', 
+            type: 'quiz', 
+            isCompleted: false,
+            isLocked: true,
+            tasks: [
+              {
+                id: 'task-2-5',
+                title: 'Core Concepts Assessment',
+                description: 'Test your understanding of React Native core concepts',
+                type: 'quiz',
+                points: 50,
+                isCompleted: false
+              }
+            ]
+          }
         ]
       },
       {
-        section: 'Navigation and Routing',
+        id: '3',
+        title: 'Navigation and Routing',
+        duration: '2.5 hours',
         lectures: [
-          { title: 'React Navigation Setup', duration: '25 min', type: 'video', isCompleted: false },
-          { title: 'Stack Navigation', duration: '30 min', type: 'video', isCompleted: false },
-          { title: 'Tab Navigation', duration: '20 min', type: 'video', isCompleted: false },
-          { title: 'Drawer Navigation', duration: '25 min', type: 'video', isCompleted: false }
+          { 
+            id: '3-1',
+            title: 'React Navigation Setup', 
+            duration: '25 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+          },
+          { 
+            id: '3-2',
+            title: 'Stack Navigation', 
+            duration: '30 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4'
+          },
+          { 
+            id: '3-3',
+            title: 'Tab Navigation', 
+            duration: '20 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+          },
+          { 
+            id: '3-4',
+            title: 'Drawer Navigation', 
+            duration: '25 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4'
+          }
         ]
       },
       {
-        section: 'Advanced Topics',
+        id: '4',
+        title: 'Advanced React Native Development',
+        duration: '4 hours',
         lectures: [
-          { title: 'State Management with Redux', duration: '45 min', type: 'video', isCompleted: false },
-          { title: 'API Integration', duration: '35 min', type: 'video', isCompleted: false },
-          { title: 'Push Notifications', duration: '30 min', type: 'video', isCompleted: false },
-          { title: 'App Deployment', duration: '40 min', type: 'video', isCompleted: false }
+          { 
+            id: '4-1',
+            title: 'State Management with Redux', 
+            duration: '45 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4'
+          },
+          { 
+            id: '4-2',
+            title: 'API Integration and Data Fetching', 
+            duration: '35 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4'
+          },
+          { 
+            id: '4-3',
+            title: 'Push Notifications', 
+            duration: '30 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ZoomForYou.mp4'
+          },
+          { 
+            id: '4-4',
+            title: 'App Deployment', 
+            duration: '40 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+          },
+          { 
+            id: '4-5',
+            title: 'Final Project: Todo App', 
+            duration: '60 min', 
+            type: 'video', 
+            isCompleted: false,
+            isLocked: true,
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+            tasks: [
+              {
+                id: 'task-4-5',
+                title: 'Complete Todo App Project',
+                description: 'Build a full-featured todo application with all learned concepts',
+                type: 'project',
+                points: 100,
+                isCompleted: false
+              }
+            ]
+          }
         ]
       }
     ]
