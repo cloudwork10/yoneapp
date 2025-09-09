@@ -479,7 +479,7 @@ export default function RoadmapDetailsScreen() {
         </View>
       </ScrollView>
 
-                 {/* Fullscreen Video Modal with Custom Controls */}
+                 {/* Simple Fullscreen Video Modal */}
                  <Modal
                    visible={showFullscreenModal}
                    transparent={false}
@@ -487,77 +487,21 @@ export default function RoadmapDetailsScreen() {
                    supportedOrientations={['portrait', 'landscape']}
                    onRequestClose={exitFullscreen}
                  >
-                   <View style={styles.fullscreenContainer}>
+                   <View style={styles.simpleFullscreenContainer}>
                      <StatusBar hidden={true} />
 
-                     {/* Top Controls Bar */}
-                     <View style={styles.topControlsBar}>
-                       <TouchableOpacity
-                         style={styles.closeButton}
-                         onPress={exitFullscreen}
-                         activeOpacity={0.7}
-                       >
-                         <Text style={styles.closeButtonText}>✕</Text>
-                       </TouchableOpacity>
-                       
-                       <Text style={styles.videoTitle}>{roadmap.title}</Text>
-                       
-                       <View style={styles.spacer} />
-                     </View>
-
-                     {/* Video Player */}
-                     <View style={styles.videoPlayerContainer}>
-                       <Video
-                         ref={videoRef}
-                         source={{ uri: roadmap.videoUrl }}
-                         style={styles.fullscreenVideo}
-                         resizeMode={ResizeMode.CONTAIN}
-                         shouldPlay={isPlaying}
-                         isLooping={false}
-                         volume={1.0}
-                         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                         useNativeControls={false}
-                       />
-
-                       {/* Custom Video Controls Overlay */}
-                       <View style={styles.videoControlsOverlay}>
-                         {/* Play/Pause Button */}
-                         <TouchableOpacity
-                           style={styles.playPauseButton}
-                           onPress={() => setIsPlaying(!isPlaying)}
-                           activeOpacity={0.7}
-                         >
-                           <Text style={styles.playPauseIcon}>
-                             {isPlaying ? '⏸️' : '▶️'}
-                           </Text>
-                         </TouchableOpacity>
-
-                         {/* Progress Bar */}
-                         <View style={styles.progressContainer}>
-                           <View style={styles.progressBar}>
-                             <View style={[styles.progressFill, { width: '50%' }]} />
-                           </View>
-                         </View>
-
-                         {/* Volume Control */}
-                         <TouchableOpacity
-                           style={styles.volumeButton}
-                           onPress={() => console.log('Volume toggle')}
-                           activeOpacity={0.7}
-                         >
-                           <Text style={styles.volumeIcon}>🔊</Text>
-                         </TouchableOpacity>
-
-                         {/* Fullscreen Toggle */}
-                         <TouchableOpacity
-                           style={styles.fullscreenButton}
-                           onPress={exitFullscreen}
-                           activeOpacity={0.7}
-                         >
-                           <Text style={styles.fullscreenIcon}>⤢</Text>
-                         </TouchableOpacity>
-                       </View>
-                     </View>
+                     {/* Simple Video Player */}
+                     <Video
+                       ref={videoRef}
+                       source={{ uri: roadmap.videoUrl }}
+                       style={styles.simpleFullscreenVideo}
+                       resizeMode={ResizeMode.CONTAIN}
+                       shouldPlay={true}
+                       isLooping={false}
+                       volume={1.0}
+                       onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+                       useNativeControls={true}
+                     />
 
                    </View>
                  </Modal>
@@ -1226,121 +1170,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Fullscreen Video Styles with Custom Controls
-  fullscreenContainer: {
+  // Simple Fullscreen Video Styles
+  simpleFullscreenContainer: {
     flex: 1,
     backgroundColor: '#000000',
   },
-  topControlsBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 20 : 10,
-    zIndex: 1000,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  videoTitle: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 15,
-  },
-  spacer: {
-    width: 40,
-  },
-  videoPlayerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullscreenVideo: {
+  simpleFullscreenVideo: {
     width: '100%',
     height: '100%',
-  },
-  videoControlsOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-  },
-  playPauseButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  playPauseIcon: {
-    fontSize: 24,
-  },
-  progressContainer: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
-    marginRight: 15,
-  },
-  progressBar: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#E50914',
-    borderRadius: 2,
-  },
-  volumeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  volumeIcon: {
-    fontSize: 20,
-  },
-  fullscreenButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullscreenIcon: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   safariControls: {
     position: 'absolute',
