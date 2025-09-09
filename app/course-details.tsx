@@ -121,7 +121,7 @@ export default function CourseDetailsScreen() {
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFloating, setIsFloating] = useState(false);
-  const [floatingPosition, setFloatingPosition] = useState({ x: width - 120, y: height - 200 });
+  const [floatingPosition, setFloatingPosition] = useState({ x: width - 150, y: height - 250 });
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -211,9 +211,11 @@ export default function CourseDetailsScreen() {
   const handleFloatingToggle = () => {
     setIsFloating(!isFloating);
     if (!isFloating) {
+      // Position more centered
+      setFloatingPosition({ x: width / 2 - 75, y: height / 2 - 75 });
       // Animate to floating position
       Animated.spring(floatingAnim, {
-        toValue: { x: width - 120, y: height - 200 },
+        toValue: { x: width / 2 - 75, y: height / 2 - 75 },
         useNativeDriver: true
       }).start();
     }
@@ -1239,10 +1241,10 @@ const styles = StyleSheet.create({
   // Small Inline Video Player Styles
   smallVideoContainer: {
     position: 'absolute',
-    top: 100,
-    left: 20,
-    right: 20,
-    height: 200,
+    top: 50,
+    left: 10,
+    right: 10,
+    height: 300,
     zIndex: 1000,
     borderRadius: 12,
     overflow: 'hidden',
@@ -1490,10 +1492,10 @@ const styles = StyleSheet.create({
   // Floating Video Player Styles
   floatingVideoContainer: {
     position: 'absolute',
-    width: 120,
-    height: 120,
+    width: 150,
+    height: 150,
     zIndex: 2000,
-    borderRadius: 60,
+    borderRadius: 75,
     overflow: 'hidden',
     shadowColor: '#E50914',
     shadowOffset: { width: 0, height: 8 },
