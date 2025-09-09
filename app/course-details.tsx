@@ -118,10 +118,13 @@ export default function CourseDetailsScreen() {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFloating, setIsFloating] = useState(false);
   const [floatingPosition, setFloatingPosition] = useState({ x: width - 120, y: height - 200 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -521,7 +524,7 @@ export default function CourseDetailsScreen() {
       );
     }
 
-    // Creative small inline mode
+    // Creative small inline mode with real video
     return (
       <Animated.View 
         style={[
@@ -540,77 +543,123 @@ export default function CourseDetailsScreen() {
           }
         ]}
       >
-        <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+        {/* Real Video Player */}
+        <Video
+          source={{ uri: selectedVideo.videoUrl }}
           style={styles.smallVideoBackground}
+          paused={!isPlaying}
           resizeMode="cover"
-        >
-          <LinearGradient
-            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
-            style={styles.smallVideoGradient}
-          >
-            {/* Small Video Header */}
-            <View style={styles.smallVideoHeader}>
-              <TouchableOpacity 
-                style={styles.smallCloseButton} 
-                onPress={handleCloseVideo}
-              >
-                <Text style={styles.smallCloseIcon}>✕</Text>
-              </TouchableOpacity>
-              <View style={styles.smallVideoInfo}>
-                <Text style={styles.smallVideoTitle} numberOfLines={1}>{selectedVideo.title}</Text>
-                <Text style={styles.smallVideoDuration}>{selectedVideo.duration}</Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.smallFullscreenButton}
-                onPress={handleFullscreenToggle}
-              >
-                <Text style={styles.smallFullscreenIcon}>⤢</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.floatingToggleButton}
-                onPress={handleFloatingToggle}
-              >
-                <Text style={styles.floatingToggleIcon}>🎈</Text>
-              </TouchableOpacity>
-            </View>
+          onLoad={(data) => {
+            setDuration(data.duration);
+            setIsLoading(false);
+          }}
+          onProgress={(data) => {
+            setCurrentTime(data.currentTime);
+          }}
+          onError={(error) => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+          onLoadStart={() => setIsLoading(true)}
+          onEnd={() => setIsPlaying(false)}
+        />
 
-            {/* Creative Small Video Center Play Button */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+          style={styles.smallVideoGradient}
+        >
+          {/* Small Video Header */}
+          <View style={styles.smallVideoHeader}>
             <TouchableOpacity 
-              style={styles.smallVideoCenter}
-              onPress={handlePlayPause}
-              activeOpacity={0.8}
+              style={styles.smallCloseButton} 
+              onPress={handleCloseVideo}
             >
+              <Text style={styles.smallCloseIcon}>✕</Text>
+            </TouchableOpacity>
+            <View style={styles.smallVideoInfo}>
+              <Text style={styles.smallVideoTitle} numberOfLines={1}>{selectedVideo.title}</Text>
+              <Text style={styles.smallVideoDuration}>{selectedVideo.duration}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.smallFullscreenButton}
+              onPress={handleFullscreenToggle}
+            >
+              <Text style={styles.smallFullscreenIcon}>⤢</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.floatingToggleButton}
+              onPress={handleFloatingToggle}
+            >
+              <Text style={styles.floatingToggleIcon}>🎈</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Creative Small Video Center Play Button */}
+          <TouchableOpacity 
+            style={styles.smallVideoCenter}
+            onPress={handlePlayPause}
+            activeOpacity={0.8}
+          >
+            <Animated.View 
+              style={[
+                styles.smallPlayButton,
+                {
+                  transform: [
+                    { scale: pulseAnim }
+                  ]
+                }
+              ]}
+            >
+              <Text style={styles.smallPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+            </Animated.View>
+          </TouchableOpacity>
+
+          {/* Small Video Bottom Controls */}
+          <View style={styles.smallVideoBottom}>
+            <View style={styles.smallProgressContainer}>
+              <TouchableOpacity 
+                style={styles.smallProgressBar}
+                onPress={(event) => {
+                  const { locationX } = event.nativeEvent;
+                  const progress = locationX / (width - 40);
+                  const newTime = progress * duration;
+                  setCurrentTime(newTime);
+                }}
+              >
+                <View style={[styles.smallProgressFill, { width: `${(currentTime / duration) * 100}%` }]} />
+              </TouchableOpacity>
+              <Text style={styles.smallTimeText}>
+                {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <View style={styles.smallLoadingContainer}>
               <Animated.View 
                 style={[
-                  styles.smallPlayButton,
+                  styles.smallLoadingSpinner,
                   {
                     transform: [
-                      { scale: pulseAnim }
+                      { rotate: rotateAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg']
+                      })}
                     ]
                   }
                 ]}
-              >
-                <Text style={styles.smallPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-              </Animated.View>
-            </TouchableOpacity>
-
-            {/* Small Video Bottom Controls */}
-            <View style={styles.smallVideoBottom}>
-              <View style={styles.smallProgressContainer}>
-                <TouchableOpacity 
-                  style={styles.smallProgressBar}
-                  onPress={() => handleSeek(25)}
-                >
-                  <View style={[styles.smallProgressFill, { width: `${progressPercentage}%` }]} />
-                </TouchableOpacity>
-                <Text style={styles.smallTimeText}>
-                  {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {selectedVideo.duration}
-                </Text>
-              </View>
+              />
             </View>
-          </LinearGradient>
-        </ImageBackground>
+          )}
+
+          {/* Error Message */}
+          {hasError && (
+            <View style={styles.smallErrorContainer}>
+              <Text style={styles.smallErrorIcon}>⚠️</Text>
+            </View>
+          )}
+        </LinearGradient>
       </Animated.View>
     );
   };
@@ -1777,5 +1826,29 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  
+  // Small Video Loading & Error Styles
+  smallLoadingContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -25 }, { translateY: -25 }],
+  },
+  smallLoadingSpinner: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+    borderTopColor: '#E50914',
+  },
+  smallErrorContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
+  smallErrorIcon: {
+    fontSize: 20,
   },
 });
