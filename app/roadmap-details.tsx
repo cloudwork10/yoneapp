@@ -479,34 +479,43 @@ export default function RoadmapDetailsScreen() {
         </View>
       </ScrollView>
 
-      {/* Safari-like Fullscreen Video Modal */}
-      <Modal
-        visible={showFullscreenModal}
-        transparent={false}
-        animationType="slide"
-        supportedOrientations={['portrait', 'landscape']}
-        onRequestClose={exitFullscreen}
-      >
-        <View style={styles.safariFullscreenContainer}>
-          <StatusBar hidden={true} />
-          
-          {/* Safari-like Video Player */}
-          <View style={styles.safariVideoContainer}>
-            <Video
-              ref={videoRef}
-              source={{ uri: roadmap.videoUrl }}
-              style={styles.safariVideo}
-              resizeMode={ResizeMode.CONTAIN}
-              shouldPlay={true}
-              isLooping={false}
-              volume={1.0}
-              onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-              useNativeControls={true}
-            />
-          </View>
-          
-        </View>
-      </Modal>
+                 {/* Safari-like Fullscreen Video Modal */}
+                 <Modal
+                   visible={showFullscreenModal}
+                   transparent={false}
+                   animationType="slide"
+                   supportedOrientations={['portrait', 'landscape']}
+                   onRequestClose={exitFullscreen}
+                 >
+                   <View style={styles.safariFullscreenContainer}>
+                     <StatusBar hidden={true} />
+
+                     {/* Close Button */}
+                     <TouchableOpacity
+                       style={styles.closeButton}
+                       onPress={exitFullscreen}
+                       activeOpacity={0.7}
+                     >
+                       <Text style={styles.closeButtonText}>✕</Text>
+                     </TouchableOpacity>
+
+                     {/* Safari-like Video Player */}
+                     <View style={styles.safariVideoContainer}>
+                       <Video
+                         ref={videoRef}
+                         source={{ uri: roadmap.videoUrl }}
+                         style={styles.safariVideo}
+                         resizeMode={ResizeMode.CONTAIN}
+                         shouldPlay={true}
+                         isLooping={false}
+                         volume={1.0}
+                         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+                         useNativeControls={true}
+                       />
+                     </View>
+
+                   </View>
+                 </Modal>
     </SafeAreaView>
   );
 }
@@ -1176,6 +1185,23 @@ const styles = StyleSheet.create({
   safariFullscreenContainer: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   safariVideoContainer: {
     flex: 1,
