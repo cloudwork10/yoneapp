@@ -490,15 +490,6 @@ export default function RoadmapDetailsScreen() {
                    <View style={styles.safariFullscreenContainer}>
                      <StatusBar hidden={true} />
 
-                     {/* Close Button */}
-                     <TouchableOpacity
-                       style={styles.closeButton}
-                       onPress={exitFullscreen}
-                       activeOpacity={0.7}
-                     >
-                       <Text style={styles.closeButtonText}>✕</Text>
-                     </TouchableOpacity>
-
                      {/* Safari-like Video Player */}
                      <View style={styles.safariVideoContainer}>
                        <Video
@@ -1185,23 +1176,6 @@ const styles = StyleSheet.create({
   safariFullscreenContainer: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   safariVideoContainer: {
     flex: 1,
