@@ -490,26 +490,14 @@ export default function RoadmapDetailsScreen() {
                    <View style={styles.simpleFullscreenContainer}>
                      <StatusBar hidden={true} />
 
-                     {/* Top Controls Bar */}
-                     <View style={styles.topControlsBar}>
-                       <TouchableOpacity
-                         style={styles.closeButton}
-                         onPress={exitFullscreen}
-                         activeOpacity={0.7}
-                       >
-                         <Text style={styles.closeButtonText}>✕</Text>
-                       </TouchableOpacity>
-                       
-                       <Text style={styles.videoTitle}>{roadmap.title}</Text>
-                       
-                       <TouchableOpacity
-                         style={styles.settingsButton}
-                         onPress={() => setShowSettings(!showSettings)}
-                         activeOpacity={0.7}
-                       >
-                         <Text style={styles.settingsIcon}>⚙️</Text>
-                       </TouchableOpacity>
-                     </View>
+                     {/* Simple Close Button */}
+                     <TouchableOpacity
+                       style={styles.closeButton}
+                       onPress={exitFullscreen}
+                       activeOpacity={0.7}
+                     >
+                       <Text style={styles.closeButtonText}>✕</Text>
+                     </TouchableOpacity>
 
                      {/* Video Player */}
                      <Video
@@ -517,125 +505,14 @@ export default function RoadmapDetailsScreen() {
                        source={{ uri: roadmap.videoUrl }}
                        style={styles.simpleFullscreenVideo}
                        resizeMode={ResizeMode.CONTAIN}
-                       shouldPlay={isPlaying}
+                       shouldPlay={true}
                        isLooping={false}
                        volume={1.0}
                        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                       useNativeControls={false}
+                       useNativeControls={true}
                      />
 
-                     {/* Custom Video Controls */}
-                     <View style={styles.videoControlsOverlay}>
-                       {/* Play/Pause Button */}
-                       <TouchableOpacity
-                         style={styles.playPauseButton}
-                         onPress={() => setIsPlaying(!isPlaying)}
-                         activeOpacity={0.7}
-                       >
-                         <Text style={styles.playPauseIcon}>
-                           {isPlaying ? '⏸️' : '▶️'}
-                         </Text>
-                       </TouchableOpacity>
 
-                       {/* Progress Bar */}
-                       <View style={styles.progressContainer}>
-                         <View style={styles.progressBar}>
-                           <View style={[styles.progressFill, { width: '50%' }]} />
-                         </View>
-                       </View>
-
-                       {/* Volume Control */}
-                       <TouchableOpacity
-                         style={styles.volumeButton}
-                         onPress={() => console.log('Volume toggle')}
-                         activeOpacity={0.7}
-                       >
-                         <Text style={styles.volumeIcon}>🔊</Text>
-                       </TouchableOpacity>
-
-                       {/* Fullscreen Toggle */}
-                       <TouchableOpacity
-                         style={styles.fullscreenButton}
-                         onPress={exitFullscreen}
-                         activeOpacity={0.7}
-                       >
-                         <Text style={styles.fullscreenIcon}>⤢</Text>
-                       </TouchableOpacity>
-                     </View>
-
-                     {/* Settings Panel */}
-                     {showSettings && (
-                       <View style={styles.settingsPanel}>
-                         <Text style={styles.settingsTitle}>Video Settings</Text>
-                         
-                         {/* Playback Speed */}
-                         <View style={styles.settingRow}>
-                           <Text style={styles.settingLabel}>Playback Speed</Text>
-                           <View style={styles.speedButtons}>
-                             {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
-                               <TouchableOpacity
-                                 key={speed}
-                                 style={[
-                                   styles.speedButton,
-                                   speed === 1.0 && styles.speedButtonActive
-                                 ]}
-                                 onPress={() => console.log(`Speed: ${speed}x`)}
-                               >
-                                 <Text style={[
-                                   styles.speedButtonText,
-                                   speed === 1.0 && styles.speedButtonTextActive
-                                 ]}>
-                                   {speed}x
-                                 </Text>
-                               </TouchableOpacity>
-                             ))}
-                           </View>
-                         </View>
-
-                         {/* Quality Settings */}
-                         <View style={styles.settingRow}>
-                           <Text style={styles.settingLabel}>Video Quality</Text>
-                           <View style={styles.qualityButtons}>
-                             {['Auto', '1080p', '720p', '480p', '360p'].map((quality) => (
-                               <TouchableOpacity
-                                 key={quality}
-                                 style={[
-                                   styles.qualityButton,
-                                   quality === 'Auto' && styles.qualityButtonActive
-                                 ]}
-                                 onPress={() => console.log(`Quality: ${quality}`)}
-                               >
-                                 <Text style={[
-                                   styles.qualityButtonText,
-                                   quality === 'Auto' && styles.qualityButtonTextActive
-                                 ]}>
-                                   {quality}
-                                 </Text>
-                               </TouchableOpacity>
-                             ))}
-                           </View>
-                         </View>
-
-                         {/* Audio Settings */}
-                         <View style={styles.settingRow}>
-                           <Text style={styles.settingLabel}>Audio</Text>
-                           <View style={styles.audioButtons}>
-                             <TouchableOpacity
-                               style={styles.audioButton}
-                               onPress={() => console.log('Mute/Unmute')}
-                             >
-                               <Text style={styles.audioButtonText}>🔊</Text>
-                             </TouchableOpacity>
-                             <TouchableOpacity
-                               style={styles.audioButton}
-                               onPress={() => console.log('Subtitles')}
-                             >
-                               <Text style={styles.audioButtonText}>📝</Text>
-                             </TouchableOpacity>
-                           </View>
-                         </View>
-                       </View>
-                     )}
 
                    </View>
                  </Modal>
@@ -1323,12 +1200,16 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   closeButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    right: 20,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
   },
   closeButtonText: {
     color: '#FFFFFF',
