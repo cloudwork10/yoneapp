@@ -501,8 +501,16 @@ export default function RoadmapDetailsScreen() {
               isLooping={false}
               volume={1.0}
               onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-              useNativeControls={true}
+              useNativeControls={false}
             />
+            
+            {/* Easy Close Button */}
+            <TouchableOpacity 
+              style={styles.easyCloseButton}
+              onPress={exitFullscreen}
+            >
+              <Text style={styles.easyCloseText}>✕</Text>
+            </TouchableOpacity>
           </View>
           
         </View>
