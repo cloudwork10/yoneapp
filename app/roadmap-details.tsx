@@ -15,7 +15,9 @@ import {
     PanResponder,
     GestureResponderEvent,
     PanResponderGestureState,
-    StatusBar
+    StatusBar,
+    Modal,
+    Platform
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -40,6 +42,8 @@ export default function RoadmapDetailsScreen() {
   const [showDoubleTapSeek, setShowDoubleTapSeek] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragType, setDragType] = useState<'none' | 'volume' | 'brightness' | 'seek'>('none');
+  const [showFullscreenModal, setShowFullscreenModal] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
   
   const videoRef = useRef<Video>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
@@ -48,6 +52,7 @@ export default function RoadmapDetailsScreen() {
   const volumeAnim = useRef(new Animated.Value(1)).current;
   const brightnessAnim = useRef(new Animated.Value(1)).current;
   const doubleTapAnim = useRef(new Animated.Value(0)).current;
+  const fullscreenAnim = useRef(new Animated.Value(0)).current;
 
   // Sample roadmap data
   const roadmap = {
@@ -165,7 +170,41 @@ export default function RoadmapDetailsScreen() {
   };
 
   const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
+    if (isFullscreen) {
+      // Exit fullscreen
+      Animated.timing(fullscreenAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowFullscreenModal(false);
+        setIsFullscreen(false);
+        setIsLandscape(false);
+      });
+    } else {
+      // Enter fullscreen
+      setShowFullscreenModal(true);
+      setIsFullscreen(true);
+      setIsLandscape(true);
+      
+      Animated.timing(fullscreenAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  const exitFullscreen = () => {
+    Animated.timing(fullscreenAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowFullscreenModal(false);
+      setIsFullscreen(false);
+      setIsLandscape(false);
+    });
   };
 
   const handleVolumeChange = async (newVolume: number) => {
@@ -673,6 +712,255 @@ export default function RoadmapDetailsScreen() {
           ))}
         </View>
       </ScrollView>
+
+      {/* Fullscreen Video Modal */}
+      <Modal
+        visible={showFullscreenModal}
+        transparent={false}
+        animationType="none"
+        supportedOrientations={['portrait', 'landscape']}
+        onRequestClose={exitFullscreen}
+      >
+        <View style={styles.fullscreenContainer}>
+          <StatusBar hidden={true} />
+          
+          {/* Fullscreen Video */}
+          <View style={styles.fullscreenVideoContainer}>
+            <Video
+              ref={videoRef}
+              source={{ uri: roadmap.videoUrl }}
+              style={styles.fullscreenVideo}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={isPlaying}
+              isLooping={false}
+              volume={volume}
+              onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            />
+            
+            {/* Fullscreen Controls Overlay */}
+            <View 
+              style={styles.fullscreenOverlay}
+              {...panResponder.panHandlers}
+            >
+              {/* Double Tap Seek Areas for Fullscreen */}
+              <TouchableOpacity 
+                style={styles.fullscreenDoubleTapLeft}
+                onPress={() => handleDoubleTapSeek('left')}
+                activeOpacity={1}
+              >
+                <View />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.fullscreenDoubleTapRight}
+                onPress={() => handleDoubleTapSeek('right')}
+                activeOpacity={1}
+              >
+                <View />
+              </TouchableOpacity>
+
+              {/* Double Tap Seek Indicator */}
+              {showDoubleTapSeek && (
+                <Animated.View 
+                  style={[
+                    styles.fullscreenDoubleTapIndicator,
+                    {
+                      left: doubleTapSeek < 0 ? 50 : width - 100,
+                      opacity: doubleTapAnim,
+                      transform: [{
+                        scale: doubleTapAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.5, 1.2],
+                        })
+                      }]
+                    }
+                  ]}
+                >
+                  <Text style={styles.doubleTapText}>
+                    {doubleTapSeek < 0 ? '⏪ -10s' : '⏩ +10s'}
+                  </Text>
+                </Animated.View>
+              )}
+
+              {/* Gesture Indicators */}
+              {isDragging && (
+                <>
+                  {dragType === 'volume' && (
+                    <View style={styles.fullscreenVolumeIndicator}>
+                      <Text style={styles.indicatorIcon}>🔊</Text>
+                      <Text style={styles.indicatorText}>{Math.round(volume * 100)}%</Text>
+                    </View>
+                  )}
+                  {dragType === 'brightness' && (
+                    <View style={styles.fullscreenBrightnessIndicator}>
+                      <Text style={styles.indicatorIcon}>☀️</Text>
+                      <Text style={styles.indicatorText}>{Math.round(brightness * 100)}%</Text>
+                    </View>
+                  )}
+                  {dragType === 'seek' && showSeekPreview && (
+                    <View style={styles.fullscreenSeekPreview}>
+                      <Text style={styles.seekPreviewText}>
+                        {formatTime(seekPreviewTime)}
+                      </Text>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Fullscreen Controls */}
+              {showControls && !isLoading && !hasError && (
+                <Animated.View style={[styles.fullscreenControlsContainer, { opacity: fadeAnim }]}>
+                  {/* Top Controls */}
+                  <View style={styles.fullscreenTopControls}>
+                    <TouchableOpacity 
+                      style={styles.fullscreenExitButton}
+                      onPress={exitFullscreen}
+                    >
+                      <Text style={styles.controlButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Center Play Button */}
+                  <View style={styles.fullscreenCenterControls}>
+                    <TouchableOpacity 
+                      style={styles.fullscreenBigPlayButton}
+                      onPress={togglePlayPause}
+                    >
+                      <Text style={styles.bigPlayButtonText}>
+                        {isPlaying ? '⏸' : '▶'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Bottom Controls */}
+                  <View style={styles.fullscreenBottomControls}>
+                    {/* Progress Bar */}
+                    <View style={styles.fullscreenProgressContainer}>
+                      <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                      <View style={styles.progressBar}>
+                        <View 
+                          style={[
+                            styles.progressFill, 
+                            { width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }
+                          ]} 
+                        />
+                        <TouchableOpacity
+                          style={[
+                            styles.progressThumb,
+                            { left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }
+                          ]}
+                          onPress={() => {
+                            const newPosition = (currentTime / duration) * duration;
+                            handleSeek(newPosition);
+                          }}
+                        />
+                      </View>
+                      <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                    </View>
+
+                    {/* Advanced Controls Row */}
+                    <View style={styles.fullscreenAdvancedControlsRow}>
+                      {/* Playback Speed */}
+                      <TouchableOpacity 
+                        style={styles.speedButton}
+                        onPress={() => {
+                          const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+                          const currentIndex = speeds.indexOf(playbackRate);
+                          const nextIndex = (currentIndex + 1) % speeds.length;
+                          handlePlaybackRateChange(speeds[nextIndex]);
+                        }}
+                      >
+                        <Text style={styles.speedButtonText}>{playbackRate}x</Text>
+                      </TouchableOpacity>
+
+                      {/* Volume Control */}
+                      <View style={styles.volumeContainer}>
+                        <Text style={styles.volumeIcon}>
+                          {volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'}
+                        </Text>
+                        <View style={styles.volumeBar}>
+                          <View 
+                            style={[
+                              styles.volumeFill, 
+                              { width: `${volume * 100}%` }
+                            ]} 
+                          />
+                          <TouchableOpacity
+                            style={[
+                              styles.volumeThumb,
+                              { left: `${volume * 100}%` }
+                            ]}
+                            onPress={() => {
+                              const newVolume = volume > 0.5 ? 0 : 1;
+                              handleVolumeChange(newVolume);
+                            }}
+                          />
+                        </View>
+                      </View>
+
+                      {/* Settings Button */}
+                      <TouchableOpacity 
+                        style={styles.settingsButton}
+                        onPress={() => setShowSettings(!showSettings)}
+                      >
+                        <Text style={styles.settingsButtonText}>⚙️</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Settings Panel */}
+                    {showSettings && (
+                      <View style={styles.settingsPanel}>
+                        <Text style={styles.settingsTitle}>Video Settings</Text>
+                        
+                        {/* Playback Speed Options */}
+                        <View style={styles.settingsSection}>
+                          <Text style={styles.settingsLabel}>Playback Speed</Text>
+                          <View style={styles.speedOptions}>
+                            {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+                              <TouchableOpacity
+                                key={speed}
+                                style={[
+                                  styles.speedOption,
+                                  playbackRate === speed && styles.speedOptionActive
+                                ]}
+                                onPress={() => handlePlaybackRateChange(speed)}
+                              >
+                                <Text style={[
+                                  styles.speedOptionText,
+                                  playbackRate === speed && styles.speedOptionTextActive
+                                ]}>
+                                  {speed}x
+                                </Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+
+                        {/* Quality Options */}
+                        <View style={styles.settingsSection}>
+                          <Text style={styles.settingsLabel}>Quality</Text>
+                          <View style={styles.qualityOptions}>
+                            {['Auto', '1080p', '720p', '480p', '360p'].map((quality) => (
+                              <TouchableOpacity
+                                key={quality}
+                                style={styles.qualityOption}
+                                onPress={() => {
+                                  console.log(`Quality changed to: ${quality}`);
+                                }}
+                              >
+                                <Text style={styles.qualityOptionText}>{quality}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </Animated.View>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1063,6 +1351,147 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  // Fullscreen Modal Styles
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  fullscreenVideoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenVideo: {
+    width: '100%',
+    height: '100%',
+  },
+  fullscreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenDoubleTapLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '50%',
+    zIndex: 1,
+  },
+  fullscreenDoubleTapRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '50%',
+    zIndex: 1,
+  },
+  fullscreenDoubleTapIndicator: {
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: -25 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    zIndex: 10,
+  },
+  fullscreenVolumeIndicator: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -30 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  fullscreenBrightnessIndicator: {
+    position: 'absolute',
+    left: 20,
+    top: '50%',
+    transform: [{ translateY: -30 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  fullscreenSeekPreview: {
+    position: 'absolute',
+    bottom: 100,
+    left: '50%',
+    transform: [{ translateX: -50 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 5,
+    zIndex: 10,
+  },
+  fullscreenControlsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  fullscreenTopControls: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+  },
+  fullscreenExitButton: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 12,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenCenterControls: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenBigPlayButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(229, 9, 20, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fullscreenBottomControls: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 20,
+    borderRadius: 10,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  fullscreenProgressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  fullscreenAdvancedControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
   },
   roadmapInfo: {
     paddingBottom: 20,
