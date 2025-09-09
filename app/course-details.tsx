@@ -15,7 +15,6 @@ import {
   PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Video from 'react-native-video';
 
 const { width, height } = Dimensions.get('window');
 
@@ -338,26 +337,12 @@ export default function CourseDetailsScreen() {
             }
           ]}
         >
-          {/* Real Video Player */}
-          <Video
-            source={{ uri: selectedVideo.videoUrl }}
-            style={styles.cinemaVideo}
-            paused={!isPlaying}
-            resizeMode="contain"
-            onLoad={(data) => {
-              setDuration(data.duration);
-              setIsLoading(false);
-            }}
-            onProgress={(data) => {
-              setCurrentTime(data.currentTime);
-            }}
-            onError={(error) => {
-              setHasError(true);
-              setIsLoading(false);
-            }}
-            onLoadStart={() => setIsLoading(true)}
-            onEnd={() => setIsPlaying(false)}
-          />
+        {/* Video Player - Fallback for now */}
+        <ImageBackground
+          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+          style={styles.cinemaVideo}
+          resizeMode="cover"
+        />
 
           {/* Cinema-style overlay */}
           <LinearGradient
@@ -543,25 +528,11 @@ export default function CourseDetailsScreen() {
           }
         ]}
       >
-        {/* Real Video Player */}
-        <Video
-          source={{ uri: selectedVideo.videoUrl }}
+        {/* Video Player - Fallback for now */}
+        <ImageBackground
+          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
           style={styles.smallVideoBackground}
-          paused={!isPlaying}
           resizeMode="cover"
-          onLoad={(data) => {
-            setDuration(data.duration);
-            setIsLoading(false);
-          }}
-          onProgress={(data) => {
-            setCurrentTime(data.currentTime);
-          }}
-          onError={(error) => {
-            setHasError(true);
-            setIsLoading(false);
-          }}
-          onLoadStart={() => setIsLoading(true)}
-          onEnd={() => setIsPlaying(false)}
         />
 
         <LinearGradient
