@@ -501,26 +501,8 @@ export default function RoadmapDetailsScreen() {
               isLooping={false}
               volume={1.0}
               onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-              useNativeControls={false}
+              useNativeControls={true}
             />
-            
-            {/* Easy Close Button */}
-            <TouchableOpacity 
-              style={styles.easyCloseButton}
-              onPress={exitFullscreen}
-            >
-              <Text style={styles.easyCloseText}>✕</Text>
-            </TouchableOpacity>
-
-            {/* Simple Play/Pause Button */}
-            <TouchableOpacity 
-              style={styles.simplePlayPauseButton}
-              onPress={togglePlayPause}
-            >
-              <Text style={styles.simplePlayPauseText}>
-                {isPlaying ? '⏸' : '▶'}
-              </Text>
-            </TouchableOpacity>
           </View>
           
         </View>
