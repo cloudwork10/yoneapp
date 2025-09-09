@@ -1059,6 +1059,28 @@ export default function CourseDetailsScreen() {
 
   const renderOverview = () => (
     <View style={styles.tabContent}>
+      {/* Course Information */}
+      <View style={styles.courseInfoSection}>
+        <View style={styles.courseMeta}>
+          <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Level</Text>
+            <Text style={styles.metaValue}>{course.level}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Language</Text>
+            <Text style={styles.metaValue}>{course.language}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Duration</Text>
+            <Text style={styles.metaValue}>{course.duration}</Text>
+          </View>
+          <View style={styles.metaItem}>
+            <Text style={styles.metaLabel}>Updated</Text>
+            <Text style={styles.metaValue}>{course.lastUpdated}</Text>
+          </View>
+        </View>
+      </View>
+
       <View style={styles.descriptionSection}>
         <Text style={styles.sectionTitle}>About This Course</Text>
         <Text style={styles.description}>{course.description}</Text>
@@ -1074,16 +1096,30 @@ export default function CourseDetailsScreen() {
         ))}
       </View>
 
+      <View style={styles.requirementsSection}>
+        <Text style={styles.sectionTitle}>Requirements</Text>
+        {course.requirements.map((item, index) => (
+          <View key={index} style={styles.requirementItem}>
+            <Text style={styles.requirementBullet}>•</Text>
+            <Text style={styles.requirementText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+
       <View style={styles.instructorSection}>
         <Text style={styles.sectionTitle}>Instructor</Text>
         <View style={styles.instructorCard}>
-          <View style={styles.instructorAvatar}>
-            <Text style={styles.instructorInitials}>{course.instructor.split(' ').map(n => n[0]).join('')}</Text>
-          </View>
+          <Image 
+            source={{ uri: course.instructorImage }} 
+            style={styles.instructorAvatar}
+          />
           <View style={styles.instructorInfo}>
             <Text style={styles.instructorName}>{course.instructor}</Text>
-            <Text style={styles.instructorTitle}>Senior Mobile Developer</Text>
-            <Text style={styles.instructorStats}>5+ years experience • 10,000+ students</Text>
+            <Text style={styles.instructorTitle}>Senior React Native Developer</Text>
+            <View style={styles.instructorStats}>
+              <Text style={styles.instructorStat}>⭐ {course.rating}</Text>
+              <Text style={styles.instructorStat}>👥 {course.students.toLocaleString()} students</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -1094,36 +1130,72 @@ export default function CourseDetailsScreen() {
     <View style={styles.tabContent}>
       <View style={styles.curriculumHeader}>
         <Text style={styles.curriculumTitle}>Course Curriculum</Text>
-        <Text style={styles.curriculumSubtitle}>{course.curriculum.length} sections • {course.curriculum.reduce((total, section) => total + section.lectures.length, 0)} lectures</Text>
+        <Text style={styles.curriculumSubtitle}>{course.sections.length} sections • {course.sections.reduce((total, section) => total + section.lectures.length, 0)} lectures</Text>
       </View>
 
-      {course.curriculum.map((section, sectionIndex) => (
-        <View key={sectionIndex} style={styles.sectionCard}>
+      {course.sections.map((section, sectionIndex) => (
+        <View key={section.id} style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionName}>{section.section}</Text>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionName}>{section.title}</Text>
+              <Text style={styles.sectionDuration}>{section.duration}</Text>
+            </View>
             <Text style={styles.sectionCount}>{section.lectures.length} lectures</Text>
           </View>
           
           {section.lectures.map((lecture, lectureIndex) => (
             <TouchableOpacity 
-              key={lectureIndex} 
-              style={styles.lectureItem}
-              onPress={() => handlePlayVideo(lecture)}
+              key={lecture.id} 
+              style={[
+                styles.lectureItem,
+                lecture.isLocked && styles.lockedLectureItem
+              ]}
+              onPress={() => !lecture.isLocked && handlePlayVideo(lecture)}
+              disabled={lecture.isLocked}
             >
               <View style={styles.lectureIcon}>
                 <Text style={styles.lectureIconText}>
-                  {lecture.type === 'video' ? '▶' : lecture.type === 'reading' ? '📖' : '❓'}
+                  {lecture.type === 'video' ? '▶' : 
+                   lecture.type === 'reading' ? '📖' : 
+                   lecture.type === 'quiz' ? '❓' : 
+                   lecture.type === 'assignment' ? '📝' : '▶'}
                 </Text>
               </View>
               <View style={styles.lectureInfo}>
-                <Text style={styles.lectureTitle}>{lecture.title}</Text>
+                <Text style={[
+                  styles.lectureTitle,
+                  lecture.isLocked && styles.lockedLectureTitle
+                ]}>
+                  {lecture.title}
+                </Text>
                 <Text style={styles.lectureDuration}>{lecture.duration}</Text>
+                {lecture.tasks && lecture.tasks.length > 0 && (
+                  <View style={styles.tasksContainer}>
+                    {lecture.tasks.map((task, taskIndex) => (
+                      <View key={task.id} style={styles.taskItem}>
+                        <Text style={styles.taskIcon}>
+                          {task.type === 'quiz' ? '❓' : 
+                           task.type === 'assignment' ? '📝' : 
+                           task.type === 'project' ? '🚀' : '📋'}
+                        </Text>
+                        <Text style={styles.taskTitle}>{task.title}</Text>
+                        <Text style={styles.taskPoints}>{task.points} pts</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
-              {lecture.isCompleted && (
-                <View style={styles.completedBadge}>
-                  <Text style={styles.completedText}>✓</Text>
-                </View>
-              )}
+              <View style={styles.lectureStatus}>
+                {lecture.isLocked ? (
+                  <Text style={styles.lockIcon}>🔒</Text>
+                ) : lecture.isCompleted ? (
+                  <View style={styles.completedBadge}>
+                    <Text style={styles.completedText}>✓</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.playIcon}>▶</Text>
+                )}
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -2327,5 +2399,126 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#E50914',
     borderRadius: 2,
+  },
+  
+  // New Course Info Styles
+  courseInfoSection: {
+    marginBottom: 20,
+  },
+  courseMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  metaItem: {
+    width: '48%',
+    backgroundColor: '#1a1a1a',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  metaLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 5,
+  },
+  metaValue: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  
+  // Requirements Section
+  requirementsSection: {
+    marginBottom: 20,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  requirementBullet: {
+    color: '#E50914',
+    fontSize: 16,
+    marginRight: 10,
+    marginTop: 2,
+  },
+  requirementText: {
+    flex: 1,
+    color: '#CCCCCC',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  
+  // Updated Instructor Styles
+  instructorStats: {
+    flexDirection: 'row',
+    marginTop: 5,
+  },
+  instructorStat: {
+    color: '#888',
+    fontSize: 12,
+    marginRight: 15,
+  },
+  
+  // Updated Curriculum Styles
+  sectionTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionDuration: {
+    color: '#E50914',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  
+  // Lecture Styles
+  lockedLectureItem: {
+    opacity: 0.6,
+  },
+  lockedLectureTitle: {
+    color: '#666',
+  },
+  lectureStatus: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 30,
+  },
+  lockIcon: {
+    fontSize: 16,
+    color: '#666',
+  },
+  playIcon: {
+    fontSize: 16,
+    color: '#E50914',
+  },
+  
+  // Task Styles
+  tasksContainer: {
+    marginTop: 8,
+    paddingLeft: 10,
+  },
+  taskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+    backgroundColor: 'rgba(229, 9, 20, 0.1)',
+    padding: 8,
+    borderRadius: 6,
+  },
+  taskIcon: {
+    fontSize: 12,
+    marginRight: 8,
+  },
+  taskTitle: {
+    flex: 1,
+    color: '#CCCCCC',
+    fontSize: 12,
+  },
+  taskPoints: {
+    color: '#E50914',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });
