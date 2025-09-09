@@ -91,6 +91,7 @@ export default function PodcastDetailsScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handlePlayVideo = (episode: any) => {
     setSelectedVideo(episode);
@@ -121,94 +122,160 @@ export default function PodcastDetailsScreen() {
     setCurrentTime(position);
   };
 
+  const handleFullscreenToggle = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
   const renderInlineVideoPlayer = () => {
     if (!selectedVideo) return null;
 
     const progressPercentage = (currentTime / 100) * 100; // Simulate progress
 
+    if (isFullscreen) {
+      // Fullscreen mode
+      return (
+        <View style={styles.fullscreenVideoContainer}>
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+            style={styles.fullscreenVideoBackground}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
+              style={styles.fullscreenVideoGradient}
+            >
+              {/* Fullscreen Header */}
+              <View style={styles.fullscreenHeader}>
+                <TouchableOpacity 
+                  style={styles.closeButton} 
+                  onPress={handleCloseVideo}
+                >
+                  <Text style={styles.closeIcon}>✕</Text>
+                </TouchableOpacity>
+                <View style={styles.fullscreenVideoInfo}>
+                  <Text style={styles.fullscreenVideoTitle} numberOfLines={1}>{selectedVideo.title}</Text>
+                  <Text style={styles.fullscreenVideoDuration}>{selectedVideo.duration}</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.exitFullscreenButton}
+                  onPress={handleFullscreenToggle}
+                >
+                  <Text style={styles.exitFullscreenIcon}>⤓</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Fullscreen Center Play Button */}
+              <TouchableOpacity 
+                style={styles.fullscreenCenter}
+                onPress={handlePlayPause}
+                activeOpacity={0.8}
+              >
+                <View style={styles.fullscreenPlayButton}>
+                  <Text style={styles.fullscreenPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Fullscreen Bottom Controls */}
+              <View style={styles.fullscreenBottom}>
+                <View style={styles.fullscreenProgressContainer}>
+                  <TouchableOpacity 
+                    style={styles.fullscreenProgressBar}
+                    onPress={() => handleSeek(25)}
+                  >
+                    <View style={[styles.fullscreenProgressFill, { width: `${progressPercentage}%` }]} />
+                    <View style={styles.fullscreenProgressThumb} />
+                  </TouchableOpacity>
+                  <Text style={styles.fullscreenTimeText}>
+                    {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {selectedVideo.duration}
+                  </Text>
+                </View>
+                
+                <View style={styles.fullscreenControlsRow}>
+                  <TouchableOpacity 
+                    style={styles.fullscreenControlButton}
+                    onPress={() => handleSeek(Math.max(0, currentTime - 10))}
+                  >
+                    <Text style={styles.fullscreenControlIcon}>⏪</Text>
+                    <Text style={styles.fullscreenControlText}>10s</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.fullscreenControlButton}
+                    onPress={handlePlayPause}
+                  >
+                    <Text style={styles.fullscreenControlIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.fullscreenControlButton}
+                    onPress={() => handleSeek(Math.min(100, currentTime + 10))}
+                  >
+                    <Text style={styles.fullscreenControlIcon}>⏩</Text>
+                    <Text style={styles.fullscreenControlText}>10s</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </View>
+      );
+    }
+
+    // Small inline mode
     return (
-      <View style={styles.videoPlayerContainer}>
+      <View style={styles.smallVideoContainer}>
         <ImageBackground
           source={{ uri: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
-          style={styles.videoPlayerBackground}
+          style={styles.smallVideoBackground}
           resizeMode="cover"
         >
           <LinearGradient
-            colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
-            style={styles.videoPlayerGradient}
+            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+            style={styles.smallVideoGradient}
           >
-            {/* Header Controls */}
-            <View style={styles.videoPlayerHeader}>
+            {/* Small Video Header */}
+            <View style={styles.smallVideoHeader}>
               <TouchableOpacity 
-                style={styles.closeButton} 
+                style={styles.smallCloseButton} 
                 onPress={handleCloseVideo}
               >
-                <Text style={styles.closeIcon}>✕</Text>
+                <Text style={styles.smallCloseIcon}>✕</Text>
               </TouchableOpacity>
-              <View style={styles.videoPlayerInfo}>
-                <Text style={styles.videoPlayerTitle} numberOfLines={1}>{selectedVideo.title}</Text>
-                <Text style={styles.videoPlayerDuration}>{selectedVideo.duration}</Text>
+              <View style={styles.smallVideoInfo}>
+                <Text style={styles.smallVideoTitle} numberOfLines={1}>{selectedVideo.title}</Text>
+                <Text style={styles.smallVideoDuration}>{selectedVideo.duration}</Text>
               </View>
               <TouchableOpacity 
-                style={styles.fullscreenButton}
-                onPress={() => Alert.alert('Fullscreen', 'Fullscreen mode activated')}
+                style={styles.smallFullscreenButton}
+                onPress={handleFullscreenToggle}
               >
-                <Text style={styles.fullscreenIcon}>⤢</Text>
+                <Text style={styles.smallFullscreenIcon}>⤢</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Center Play Button */}
+            {/* Small Video Center Play Button */}
             <TouchableOpacity 
-              style={styles.videoPlayerCenter}
+              style={styles.smallVideoCenter}
               onPress={handlePlayPause}
               activeOpacity={0.8}
             >
-              <View style={styles.videoPlayButton}>
-                <Text style={styles.videoPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+              <View style={styles.smallPlayButton}>
+                <Text style={styles.smallPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
               </View>
-              {!isPlaying && (
-                <Text style={styles.playHint}>Tap to play</Text>
-              )}
             </TouchableOpacity>
 
-            {/* Bottom Controls */}
-            <View style={styles.videoPlayerBottom}>
-              <View style={styles.videoProgressContainer}>
+            {/* Small Video Bottom Controls */}
+            <View style={styles.smallVideoBottom}>
+              <View style={styles.smallProgressContainer}>
                 <TouchableOpacity 
-                  style={styles.videoProgressBar}
+                  style={styles.smallProgressBar}
                   onPress={() => handleSeek(25)}
                 >
-                  <View style={[styles.videoProgressFill, { width: `${progressPercentage}%` }]} />
-                  <View style={styles.videoProgressThumb} />
+                  <View style={[styles.smallProgressFill, { width: `${progressPercentage}%` }]} />
                 </TouchableOpacity>
-                <Text style={styles.videoTimeText}>
+                <Text style={styles.smallTimeText}>
                   {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {selectedVideo.duration}
                 </Text>
-              </View>
-              
-              <View style={styles.videoControlsRow}>
-                <TouchableOpacity 
-                  style={styles.controlButton}
-                  onPress={() => handleSeek(Math.max(0, currentTime - 10))}
-                >
-                  <Text style={styles.controlIcon}>⏪</Text>
-                  <Text style={styles.controlText}>10s</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.controlButton}
-                  onPress={handlePlayPause}
-                >
-                  <Text style={styles.controlIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.controlButton}
-                  onPress={() => handleSeek(Math.min(100, currentTime + 10))}
-                >
-                  <Text style={styles.controlIcon}>⏩</Text>
-                  <Text style={styles.controlText}>10s</Text>
-                </TouchableOpacity>
               </View>
             </View>
           </LinearGradient>
@@ -760,8 +827,124 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     lineHeight: 20,
   },
-  // Inline Video Player Styles
-  videoPlayerContainer: {
+  // Small Inline Video Player Styles
+  smallVideoContainer: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    right: 20,
+    height: 200,
+    zIndex: 1000,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  smallVideoBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  smallVideoGradient: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  smallVideoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    paddingTop: 15,
+  },
+  smallCloseButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallCloseIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  smallVideoInfo: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  smallVideoTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  smallVideoDuration: {
+    color: '#CCCCCC',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  smallFullscreenButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallFullscreenIcon: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  smallVideoCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallPlayButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallPlayIcon: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    marginLeft: 2,
+  },
+  smallVideoBottom: {
+    padding: 10,
+  },
+  smallProgressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  smallProgressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  smallProgressFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+  },
+  smallTimeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+    minWidth: 60,
+  },
+  
+  // Fullscreen Video Player Styles
+  fullscreenVideoContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -770,51 +953,38 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     backgroundColor: '#000000',
   },
-  videoPlayerBackground: {
+  fullscreenVideoBackground: {
     width: '100%',
     height: '100%',
   },
-  videoPlayerGradient: {
+  fullscreenVideoGradient: {
     flex: 1,
     justifyContent: 'space-between',
   },
-  videoPlayerHeader: {
+  fullscreenHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
     paddingTop: 50,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeIcon: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  videoPlayerInfo: {
+  fullscreenVideoInfo: {
     flex: 1,
     alignItems: 'center',
     marginHorizontal: 15,
   },
-  videoPlayerTitle: {
+  fullscreenVideoTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  videoPlayerDuration: {
+  fullscreenVideoDuration: {
     color: '#CCCCCC',
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 2,
   },
-  fullscreenButton: {
+  exitFullscreenButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -822,16 +992,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullscreenIcon: {
+  exitFullscreenIcon: {
     color: '#FFFFFF',
     fontSize: 18,
   },
-  videoPlayerCenter: {
+  fullscreenCenter: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  videoPlayButton: {
+  fullscreenPlayButton: {
     width: 100,
     height: 100,
     borderRadius: 50,
@@ -844,26 +1014,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  videoPlayIcon: {
+  fullscreenPlayIcon: {
     color: '#FFFFFF',
     fontSize: 40,
     marginLeft: 4,
   },
-  playHint: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    marginTop: 15,
-    opacity: 0.8,
-  },
-  videoPlayerBottom: {
+  fullscreenBottom: {
     padding: 20,
   },
-  videoProgressContainer: {
+  fullscreenProgressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
   },
-  videoProgressBar: {
+  fullscreenProgressBar: {
     flex: 1,
     height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -871,12 +1035,12 @@ const styles = StyleSheet.create({
     marginRight: 15,
     position: 'relative',
   },
-  videoProgressFill: {
+  fullscreenProgressFill: {
     height: '100%',
     backgroundColor: '#E50914',
     borderRadius: 3,
   },
-  videoProgressThumb: {
+  fullscreenProgressThumb: {
     position: 'absolute',
     right: -6,
     top: -3,
@@ -887,28 +1051,28 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  videoTimeText: {
+  fullscreenTimeText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
     minWidth: 80,
   },
-  videoControlsRow: {
+  fullscreenControlsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 30,
   },
-  controlButton: {
+  fullscreenControlButton: {
     alignItems: 'center',
     padding: 10,
   },
-  controlIcon: {
+  fullscreenControlIcon: {
     color: '#FFFFFF',
     fontSize: 24,
     marginBottom: 4,
   },
-  controlText: {
+  fullscreenControlText: {
     color: '#CCCCCC',
     fontSize: 10,
     fontWeight: '600',
