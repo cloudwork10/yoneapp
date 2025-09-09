@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -11,6 +11,8 @@ import {
   Dimensions,
   Alert,
   ImageBackground,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -117,28 +119,68 @@ export default function CourseDetailsScreen() {
   const [currentTime, setCurrentTime] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFloating, setIsFloating] = useState(false);
+  const [floatingPosition, setFloatingPosition] = useState({ x: width - 120, y: height - 200 });
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const floatingAnim = useRef(new Animated.ValueXY({ x: width - 120, y: height - 200 })).current;
 
   const handlePlayVideo = (lecture: any) => {
     setSelectedVideo(lecture);
     setIsPlaying(true);
     setCurrentTime(0);
     setShowControls(true);
+    
+    // Start creative animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 100, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 1, duration: 600, useNativeDriver: true })
+    ]).start();
+    
+    startPulseAnimation();
   };
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
     if (isPlaying) {
-      Alert.alert('Video Paused', `${selectedVideo.title} is now paused`);
+      // Simulate pause with creative effect
+      stopPulseAnimation();
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 0.95, duration: 150, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, tension: 200, useNativeDriver: true })
+      ]).start();
+      Alert.alert('⏸️ Video Paused', `${selectedVideo.title} is now paused`);
     } else {
-      Alert.alert('Video Playing', `${selectedVideo.title} is now playing`);
+      // Simulate play with creative effect
+      startPulseAnimation();
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.05, duration: 150, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, tension: 200, useNativeDriver: true })
+      ]).start();
+      Alert.alert('▶️ Video Playing', `${selectedVideo.title} is now playing`);
     }
   };
 
   const handleCloseVideo = () => {
-    setSelectedVideo(null);
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setShowControls(false);
+    // Creative exit animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 0.8, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true })
+    ]).start(() => {
+      setSelectedVideo(null);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setShowControls(false);
+      setIsFloating(false);
+      stopPulseAnimation();
+    });
   };
 
   const handleSeek = (position: number) => {
@@ -147,17 +189,157 @@ export default function CourseDetailsScreen() {
 
   const handleFullscreenToggle = () => {
     setIsFullscreen(!isFullscreen);
+    if (!isFullscreen) {
+      // Animate to fullscreen
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
+        Animated.timing(rotateAnim, { toValue: 1, duration: 500, useNativeDriver: true })
+      ]).start();
+    } else {
+      // Animate back to small
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 0.8, duration: 300, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 0.9, useNativeDriver: true })
+      ]).start();
+    }
   };
+
+  const handleFloatingToggle = () => {
+    setIsFloating(!isFloating);
+    if (!isFloating) {
+      // Animate to floating position
+      Animated.spring(floatingAnim, {
+        toValue: { x: width - 120, y: height - 200 },
+        useNativeDriver: true
+      }).start();
+    }
+  };
+
+  const startPulseAnimation = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true })
+      ])
+    ).start();
+  };
+
+  const stopPulseAnimation = () => {
+    pulseAnim.stopAnimation();
+    Animated.timing(pulseAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+  };
+
+  // Pan responder for floating video
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (evt, gestureState) => {
+        if (isFloating) {
+          floatingAnim.setValue({
+            x: gestureState.moveX - 60,
+            y: gestureState.moveY - 60
+          });
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (isFloating) {
+          // Snap to edges
+          const snapX = gestureState.moveX < width / 2 ? 20 : width - 120;
+          Animated.spring(floatingAnim, {
+            toValue: { x: snapX, y: gestureState.moveY - 60 },
+            useNativeDriver: true
+          }).start();
+        }
+      }
+    })
+  ).current;
 
   const renderInlineVideoPlayer = () => {
     if (!selectedVideo) return null;
 
     const progressPercentage = (currentTime / 100) * 100; // Simulate progress
 
-    if (isFullscreen) {
-      // Fullscreen mode
+    if (isFloating) {
+      // Floating mode - draggable mini player
       return (
-        <View style={styles.fullscreenVideoContainer}>
+        <Animated.View 
+          style={[
+            styles.floatingVideoContainer,
+            {
+              transform: [
+                { translateX: floatingAnim.x },
+                { translateY: floatingAnim.y },
+                { scale: pulseAnim }
+              ],
+              opacity: fadeAnim
+            }
+          ]}
+          {...panResponder.panHandlers}
+        >
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+            style={styles.floatingVideoBackground}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['rgba(229,9,20,0.9)', 'rgba(0,0,0,0.8)']}
+              style={styles.floatingVideoGradient}
+            >
+              <TouchableOpacity 
+                style={styles.floatingPlayButton}
+                onPress={handlePlayPause}
+                activeOpacity={0.8}
+              >
+                <Animated.Text 
+                  style={[
+                    styles.floatingPlayIcon,
+                    { transform: [{ scale: pulseAnim }] }
+                  ]}
+                >
+                  {isPlaying ? '⏸' : '▶'}
+                </Animated.Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.floatingCloseButton}
+                onPress={handleCloseVideo}
+              >
+                <Text style={styles.floatingCloseIcon}>✕</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.floatingExpandButton}
+                onPress={handleFullscreenToggle}
+              >
+                <Text style={styles.floatingExpandIcon}>⤢</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </ImageBackground>
+        </Animated.View>
+      );
+    }
+
+    if (isFullscreen) {
+      // Fullscreen mode with creative effects
+      return (
+        <Animated.View 
+          style={[
+            styles.fullscreenVideoContainer,
+            {
+              opacity: fadeAnim,
+              transform: [
+                { scale: scaleAnim },
+                { 
+                  rotate: rotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg']
+                  })
+                }
+              ]
+            }
+          ]}
+        >
           <ImageBackground
             source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
             style={styles.fullscreenVideoBackground}
@@ -167,8 +349,45 @@ export default function CourseDetailsScreen() {
               colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
               style={styles.fullscreenVideoGradient}
             >
+              {/* Creative Particle Effect Background */}
+              <View style={styles.particleContainer}>
+                {[...Array(20)].map((_, i) => (
+                  <Animated.View
+                    key={i}
+                    style={[
+                      styles.particle,
+                      {
+                        left: Math.random() * width,
+                        top: Math.random() * height,
+                        opacity: fadeAnim,
+                        transform: [
+                          {
+                            rotate: rotateAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0deg', `${360 * (i + 1)}deg`]
+                            })
+                          }
+                        ]
+                      }
+                    ]}
+                  />
+                ))}
+              </View>
+
               {/* Fullscreen Header */}
-              <View style={styles.fullscreenHeader}>
+              <Animated.View 
+                style={[
+                  styles.fullscreenHeader,
+                  {
+                    transform: [
+                      { translateY: slideAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-100, 0]
+                      })}
+                    ]
+                  }
+                ]}
+              >
                 <TouchableOpacity 
                   style={styles.closeButton} 
                   onPress={handleCloseVideo}
@@ -185,21 +404,48 @@ export default function CourseDetailsScreen() {
                 >
                   <Text style={styles.exitFullscreenIcon}>⤓</Text>
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
 
-              {/* Fullscreen Center Play Button */}
+              {/* Creative Center Play Button */}
               <TouchableOpacity 
                 style={styles.fullscreenCenter}
                 onPress={handlePlayPause}
                 activeOpacity={0.8}
               >
-                <View style={styles.fullscreenPlayButton}>
+                <Animated.View 
+                  style={[
+                    styles.fullscreenPlayButton,
+                    {
+                      transform: [
+                        { scale: pulseAnim },
+                        { 
+                          rotate: rotateAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0deg', '360deg']
+                          })
+                        }
+                      ]
+                    }
+                  ]}
+                >
                   <Text style={styles.fullscreenPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-                </View>
+                </Animated.View>
               </TouchableOpacity>
 
               {/* Fullscreen Bottom Controls */}
-              <View style={styles.fullscreenBottom}>
+              <Animated.View 
+                style={[
+                  styles.fullscreenBottom,
+                  {
+                    transform: [
+                      { translateY: slideAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [100, 0]
+                      })}
+                    ]
+                  }
+                ]}
+              >
                 <View style={styles.fullscreenProgressContainer}>
                   <TouchableOpacity 
                     style={styles.fullscreenProgressBar}
@@ -237,16 +483,32 @@ export default function CourseDetailsScreen() {
                     <Text style={styles.fullscreenControlText}>10s</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </Animated.View>
             </LinearGradient>
           </ImageBackground>
-        </View>
+        </Animated.View>
       );
     }
 
-    // Small inline mode
+    // Creative small inline mode
     return (
-      <View style={styles.smallVideoContainer}>
+      <Animated.View 
+        style={[
+          styles.smallVideoContainer,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { scale: scaleAnim },
+              { 
+                translateY: slideAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [100, 0]
+                })
+              }
+            ]
+          }
+        ]}
+      >
         <ImageBackground
           source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
           style={styles.smallVideoBackground}
@@ -274,17 +536,32 @@ export default function CourseDetailsScreen() {
               >
                 <Text style={styles.smallFullscreenIcon}>⤢</Text>
               </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.floatingToggleButton}
+                onPress={handleFloatingToggle}
+              >
+                <Text style={styles.floatingToggleIcon}>🎈</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Small Video Center Play Button */}
+            {/* Creative Small Video Center Play Button */}
             <TouchableOpacity 
               style={styles.smallVideoCenter}
               onPress={handlePlayPause}
               activeOpacity={0.8}
             >
-              <View style={styles.smallPlayButton}>
+              <Animated.View 
+                style={[
+                  styles.smallPlayButton,
+                  {
+                    transform: [
+                      { scale: pulseAnim }
+                    ]
+                  }
+                ]}
+              >
                 <Text style={styles.smallPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-              </View>
+              </Animated.View>
             </TouchableOpacity>
 
             {/* Small Video Bottom Controls */}
@@ -303,7 +580,7 @@ export default function CourseDetailsScreen() {
             </View>
           </LinearGradient>
         </ImageBackground>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -1157,5 +1434,112 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     fontSize: 10,
     fontWeight: '600',
+  },
+  
+  // Floating Video Player Styles
+  floatingVideoContainer: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    zIndex: 2000,
+    borderRadius: 60,
+    overflow: 'hidden',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 15,
+  },
+  floatingVideoBackground: {
+    width: '100%',
+    height: '100%',
+  },
+  floatingVideoGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  floatingPlayButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  floatingPlayIcon: {
+    color: '#E50914',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  floatingCloseButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingCloseIcon: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  floatingExpandButton: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingExpandIcon: {
+    color: '#FFFFFF',
+    fontSize: 10,
+  },
+  floatingToggleButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(229, 9, 20, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 5,
+  },
+  floatingToggleIcon: {
+    fontSize: 16,
+  },
+  
+  // Particle Effects
+  particleContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  particle: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E50914',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
 });
