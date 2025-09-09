@@ -14,6 +14,7 @@ import {
     PanResponder
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Video from 'react-native-video';
 
 const { width, height } = Dimensions.get('window');
 
@@ -66,7 +67,7 @@ export default function PodcastDetailsScreen() {
         duration: '5 min', 
         type: 'intro', 
         isCompleted: true,
-        videoUrl: 'https://example.com/intro-video',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
         description: 'Get introduced to the podcast and learn what to expect in this episode'
       },
       { 
@@ -74,7 +75,7 @@ export default function PodcastDetailsScreen() {
         duration: '45 min', 
         type: 'full-episode', 
         isCompleted: false,
-        videoUrl: 'https://example.com/full-episode',
+        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
         description: 'Complete episode with in-depth discussion about AI in mobile development'
       }
     ]
@@ -92,10 +93,13 @@ export default function PodcastDetailsScreen() {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFloating, setIsFloating] = useState(false);
   const [floatingPosition, setFloatingPosition] = useState({ x: width - 120, y: height - 200 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -296,176 +300,206 @@ export default function PodcastDetailsScreen() {
     }
 
     if (isFullscreen) {
-      // Fullscreen mode with creative effects
+      // Completely different fullscreen mode - immersive cinema experience
       return (
         <Animated.View 
           style={[
-            styles.fullscreenVideoContainer,
+            styles.cinemaModeContainer,
             {
               opacity: fadeAnim,
               transform: [
-                { scale: scaleAnim },
-                { 
-                  rotate: rotateAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '360deg']
-                  })
-                }
+                { scale: scaleAnim }
               ]
             }
           ]}
         >
-          <ImageBackground
-            source={{ uri: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
-            style={styles.fullscreenVideoBackground}
-            resizeMode="cover"
+          {/* Real Video Player */}
+          <Video
+            source={{ uri: selectedVideo.videoUrl }}
+            style={styles.cinemaVideo}
+            paused={!isPlaying}
+            resizeMode="contain"
+            onLoad={(data) => {
+              setDuration(data.duration);
+              setIsLoading(false);
+            }}
+            onProgress={(data) => {
+              setCurrentTime(data.currentTime);
+            }}
+            onError={(error) => {
+              setHasError(true);
+              setIsLoading(false);
+            }}
+            onLoadStart={() => setIsLoading(true)}
+            onEnd={() => setIsPlaying(false)}
+          />
+
+          {/* Cinema-style overlay */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.1)', 'transparent', 'rgba(0,0,0,0.3)']}
+            style={styles.cinemaOverlay}
           >
-            <LinearGradient
-              colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.8)']}
-              style={styles.fullscreenVideoGradient}
+            {/* Top Cinema Bar */}
+            <Animated.View 
+              style={[
+                styles.cinemaTopBar,
+                {
+                  transform: [
+                    { translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-60, 0]
+                    })}
+                  ]
+                }
+              ]}
             >
-              {/* Creative Particle Effect Background */}
-              <View style={styles.particleContainer}>
-                {[...Array(20)].map((_, i) => (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.particle,
-                      {
-                        left: Math.random() * width,
-                        top: Math.random() * height,
-                        opacity: fadeAnim,
-                        transform: [
-                          {
-                            rotate: rotateAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['0deg', `${360 * (i + 1)}deg`]
-                            })
-                          }
-                        ]
-                      }
-                    ]}
-                  />
-                ))}
-              </View>
-
-              {/* Fullscreen Header */}
-              <Animated.View 
-                style={[
-                  styles.fullscreenHeader,
-                  {
-                    transform: [
-                      { translateY: slideAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-100, 0]
-                      })}
-                    ]
-                  }
-                ]}
-              >
-                <TouchableOpacity 
-                  style={styles.closeButton} 
-                  onPress={handleCloseVideo}
-                >
-                  <Text style={styles.closeIcon}>✕</Text>
-                </TouchableOpacity>
-                <View style={styles.fullscreenVideoInfo}>
-                  <Text style={styles.fullscreenVideoTitle} numberOfLines={1}>{selectedVideo.title}</Text>
-                  <Text style={styles.fullscreenVideoDuration}>{selectedVideo.duration}</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.exitFullscreenButton}
-                  onPress={handleFullscreenToggle}
-                >
-                  <Text style={styles.exitFullscreenIcon}>⤓</Text>
-                </TouchableOpacity>
-              </Animated.View>
-
-              {/* Creative Center Play Button */}
               <TouchableOpacity 
-                style={styles.fullscreenCenter}
-                onPress={handlePlayPause}
-                activeOpacity={0.8}
+                style={styles.cinemaCloseButton} 
+                onPress={handleCloseVideo}
               >
+                <Text style={styles.cinemaCloseIcon}>✕</Text>
+              </TouchableOpacity>
+              
+              <View style={styles.cinemaInfo}>
+                <Text style={styles.cinemaTitle}>{selectedVideo.title}</Text>
+                <Text style={styles.cinemaSubtitle}>{podcast.title}</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.cinemaExitButton}
+                onPress={handleFullscreenToggle}
+              >
+                <Text style={styles.cinemaExitIcon}>⤓</Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+            {/* Center Play/Pause Area */}
+            <TouchableOpacity 
+              style={styles.cinemaCenterArea}
+              onPress={handlePlayPause}
+              activeOpacity={1}
+            >
+              {!isPlaying && (
                 <Animated.View 
                   style={[
-                    styles.fullscreenPlayButton,
+                    styles.cinemaPlayButton,
                     {
                       transform: [
-                        { scale: pulseAnim },
-                        { 
-                          rotate: rotateAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0deg', '360deg']
-                          })
-                        }
+                        { scale: pulseAnim }
                       ]
                     }
                   ]}
                 >
-                  <Text style={styles.fullscreenPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+                  <Text style={styles.cinemaPlayIcon}>▶</Text>
                 </Animated.View>
-              </TouchableOpacity>
+              )}
+            </TouchableOpacity>
 
-              {/* Fullscreen Bottom Controls */}
-              <Animated.View 
-                style={[
-                  styles.fullscreenBottom,
-                  {
-                    transform: [
-                      { translateY: slideAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [100, 0]
-                      })}
-                    ]
-                  }
-                ]}
-              >
-                <View style={styles.fullscreenProgressContainer}>
-                  <TouchableOpacity 
-                    style={styles.fullscreenProgressBar}
-                    onPress={() => handleSeek(25)}
-                  >
-                    <View style={[styles.fullscreenProgressFill, { width: `${progressPercentage}%` }]} />
-                    <View style={styles.fullscreenProgressThumb} />
-                  </TouchableOpacity>
-                  <Text style={styles.fullscreenTimeText}>
-                    {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {selectedVideo.duration}
-                  </Text>
-                </View>
+            {/* Bottom Cinema Controls */}
+            <Animated.View 
+              style={[
+                styles.cinemaBottomBar,
+                {
+                  transform: [
+                    { translateY: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [100, 0]
+                    })}
+                  ]
+                }
+              ]}
+            >
+              {/* Progress Bar */}
+              <View style={styles.cinemaProgressContainer}>
+                <Text style={styles.cinemaTimeText}>
+                  {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')}
+                </Text>
+                <TouchableOpacity 
+                  style={styles.cinemaProgressBar}
+                  onPress={(event) => {
+                    const { locationX } = event.nativeEvent;
+                    const progress = locationX / (width - 100);
+                    const newTime = progress * duration;
+                    setCurrentTime(newTime);
+                  }}
+                >
+                  <View style={[styles.cinemaProgressFill, { width: `${(currentTime / duration) * 100}%` }]} />
+                  <View style={styles.cinemaProgressThumb} />
+                </TouchableOpacity>
+                <Text style={styles.cinemaTimeText}>
+                  {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
+                </Text>
+              </View>
+
+              {/* Control Buttons */}
+              <View style={styles.cinemaControlsRow}>
+                <TouchableOpacity 
+                  style={styles.cinemaControlButton}
+                  onPress={() => setCurrentTime(Math.max(0, currentTime - 10))}
+                >
+                  <Text style={styles.cinemaControlIcon}>⏪</Text>
+                  <Text style={styles.cinemaControlText}>10s</Text>
+                </TouchableOpacity>
                 
-                <View style={styles.fullscreenControlsRow}>
-                  <TouchableOpacity 
-                    style={styles.fullscreenControlButton}
-                    onPress={() => handleSeek(Math.max(0, currentTime - 10))}
-                  >
-                    <Text style={styles.fullscreenControlIcon}>⏪</Text>
-                    <Text style={styles.fullscreenControlText}>10s</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.fullscreenControlButton}
-                    onPress={handlePlayPause}
-                  >
-                    <Text style={styles.fullscreenControlIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.fullscreenControlButton}
-                    onPress={() => handleSeek(Math.min(100, currentTime + 10))}
-                  >
-                    <Text style={styles.fullscreenControlIcon}>⏩</Text>
-                    <Text style={styles.fullscreenControlText}>10s</Text>
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
-            </LinearGradient>
-          </ImageBackground>
+                <TouchableOpacity 
+                  style={styles.cinemaControlButton}
+                  onPress={handlePlayPause}
+                >
+                  <Text style={styles.cinemaControlIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.cinemaControlButton}
+                  onPress={() => setCurrentTime(Math.min(duration, currentTime + 10))}
+                >
+                  <Text style={styles.cinemaControlIcon}>⏩</Text>
+                  <Text style={styles.cinemaControlText}>10s</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+
+            {/* Loading Indicator */}
+            {isLoading && (
+              <View style={styles.cinemaLoadingContainer}>
+                <Animated.View 
+                  style={[
+                    styles.cinemaLoadingSpinner,
+                    {
+                      transform: [
+                        { rotate: rotateAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg']
+                        })}
+                      ]
+                    }
+                  ]}
+                />
+                <Text style={styles.cinemaLoadingText}>Loading...</Text>
+              </View>
+            )}
+
+            {/* Error Message */}
+            {hasError && (
+              <View style={styles.cinemaErrorContainer}>
+                <Text style={styles.cinemaErrorIcon}>⚠️</Text>
+                <Text style={styles.cinemaErrorText}>Video failed to load</Text>
+                <TouchableOpacity 
+                  style={styles.cinemaRetryButton}
+                  onPress={() => {
+                    setHasError(false);
+                    setIsLoading(true);
+                  }}
+                >
+                  <Text style={styles.cinemaRetryText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </LinearGradient>
         </Animated.View>
       );
     }
 
-    // Creative small inline mode
+    // Creative small inline mode with real video
     return (
       <Animated.View 
         style={[
@@ -484,77 +518,123 @@ export default function PodcastDetailsScreen() {
           }
         ]}
       >
-        <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+        {/* Real Video Player */}
+        <Video
+          source={{ uri: selectedVideo.videoUrl }}
           style={styles.smallVideoBackground}
+          paused={!isPlaying}
           resizeMode="cover"
-        >
-          <LinearGradient
-            colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
-            style={styles.smallVideoGradient}
-          >
-            {/* Small Video Header */}
-            <View style={styles.smallVideoHeader}>
-              <TouchableOpacity 
-                style={styles.smallCloseButton} 
-                onPress={handleCloseVideo}
-              >
-                <Text style={styles.smallCloseIcon}>✕</Text>
-              </TouchableOpacity>
-              <View style={styles.smallVideoInfo}>
-                <Text style={styles.smallVideoTitle} numberOfLines={1}>{selectedVideo.title}</Text>
-                <Text style={styles.smallVideoDuration}>{selectedVideo.duration}</Text>
-              </View>
-              <TouchableOpacity 
-                style={styles.smallFullscreenButton}
-                onPress={handleFullscreenToggle}
-              >
-                <Text style={styles.smallFullscreenIcon}>⤢</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.floatingToggleButton}
-                onPress={handleFloatingToggle}
-              >
-                <Text style={styles.floatingToggleIcon}>🎈</Text>
-              </TouchableOpacity>
-            </View>
+          onLoad={(data) => {
+            setDuration(data.duration);
+            setIsLoading(false);
+          }}
+          onProgress={(data) => {
+            setCurrentTime(data.currentTime);
+          }}
+          onError={(error) => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+          onLoadStart={() => setIsLoading(true)}
+          onEnd={() => setIsPlaying(false)}
+        />
 
-            {/* Creative Small Video Center Play Button */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+          style={styles.smallVideoGradient}
+        >
+          {/* Small Video Header */}
+          <View style={styles.smallVideoHeader}>
             <TouchableOpacity 
-              style={styles.smallVideoCenter}
-              onPress={handlePlayPause}
-              activeOpacity={0.8}
+              style={styles.smallCloseButton} 
+              onPress={handleCloseVideo}
             >
+              <Text style={styles.smallCloseIcon}>✕</Text>
+            </TouchableOpacity>
+            <View style={styles.smallVideoInfo}>
+              <Text style={styles.smallVideoTitle} numberOfLines={1}>{selectedVideo.title}</Text>
+              <Text style={styles.smallVideoDuration}>{selectedVideo.duration}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.smallFullscreenButton}
+              onPress={handleFullscreenToggle}
+            >
+              <Text style={styles.smallFullscreenIcon}>⤢</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.floatingToggleButton}
+              onPress={handleFloatingToggle}
+            >
+              <Text style={styles.floatingToggleIcon}>🎈</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Creative Small Video Center Play Button */}
+          <TouchableOpacity 
+            style={styles.smallVideoCenter}
+            onPress={handlePlayPause}
+            activeOpacity={0.8}
+          >
+            <Animated.View 
+              style={[
+                styles.smallPlayButton,
+                {
+                  transform: [
+                    { scale: pulseAnim }
+                  ]
+                }
+              ]}
+            >
+              <Text style={styles.smallPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+            </Animated.View>
+          </TouchableOpacity>
+
+          {/* Small Video Bottom Controls */}
+          <View style={styles.smallVideoBottom}>
+            <View style={styles.smallProgressContainer}>
+              <TouchableOpacity 
+                style={styles.smallProgressBar}
+                onPress={(event) => {
+                  const { locationX } = event.nativeEvent;
+                  const progress = locationX / (width - 40);
+                  const newTime = progress * duration;
+                  setCurrentTime(newTime);
+                }}
+              >
+                <View style={[styles.smallProgressFill, { width: `${(currentTime / duration) * 100}%` }]} />
+              </TouchableOpacity>
+              <Text style={styles.smallTimeText}>
+                {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
+              </Text>
+            </View>
+          </View>
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <View style={styles.smallLoadingContainer}>
               <Animated.View 
                 style={[
-                  styles.smallPlayButton,
+                  styles.smallLoadingSpinner,
                   {
                     transform: [
-                      { scale: pulseAnim }
+                      { rotate: rotateAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg']
+                      })}
                     ]
                   }
                 ]}
-              >
-                <Text style={styles.smallPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
-              </Animated.View>
-            </TouchableOpacity>
-
-            {/* Small Video Bottom Controls */}
-            <View style={styles.smallVideoBottom}>
-              <View style={styles.smallProgressContainer}>
-                <TouchableOpacity 
-                  style={styles.smallProgressBar}
-                  onPress={() => handleSeek(25)}
-                >
-                  <View style={[styles.smallProgressFill, { width: `${progressPercentage}%` }]} />
-                </TouchableOpacity>
-                <Text style={styles.smallTimeText}>
-                  {Math.floor(currentTime / 60)}:{(currentTime % 60).toString().padStart(2, '0')} / {selectedVideo.duration}
-                </Text>
-              </View>
+              />
             </View>
-          </LinearGradient>
-        </ImageBackground>
+          )}
+
+          {/* Error Message */}
+          {hasError && (
+            <View style={styles.smallErrorContainer}>
+              <Text style={styles.smallErrorIcon}>⚠️</Text>
+            </View>
+          )}
+        </LinearGradient>
       </Animated.View>
     );
   };
@@ -1458,5 +1538,234 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
+  },
+  
+  // Cinema Mode Styles
+  cinemaModeContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: '#000000',
+  },
+  cinemaVideo: {
+    width: '100%',
+    height: '100%',
+  },
+  cinemaOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'space-between',
+  },
+  cinemaTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 50,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  cinemaCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cinemaCloseIcon: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  cinemaInfo: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 15,
+  },
+  cinemaTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  cinemaSubtitle: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  cinemaExitButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cinemaExitIcon: {
+    color: '#FFFFFF',
+    fontSize: 18,
+  },
+  cinemaCenterArea: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cinemaPlayButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  cinemaPlayIcon: {
+    color: '#FFFFFF',
+    fontSize: 40,
+    marginLeft: 4,
+  },
+  cinemaBottomBar: {
+    padding: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  cinemaProgressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  cinemaTimeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    minWidth: 50,
+  },
+  cinemaProgressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 3,
+    marginHorizontal: 15,
+    position: 'relative',
+  },
+  cinemaProgressFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: 3,
+  },
+  cinemaProgressThumb: {
+    position: 'absolute',
+    right: -6,
+    top: -3,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E50914',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  cinemaControlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 30,
+  },
+  cinemaControlButton: {
+    alignItems: 'center',
+    padding: 10,
+  },
+  cinemaControlIcon: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  cinemaControlText: {
+    color: '#CCCCCC',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  cinemaLoadingContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    alignItems: 'center',
+  },
+  cinemaLoadingSpinner: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 3,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+    borderTopColor: '#E50914',
+  },
+  cinemaLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginTop: 10,
+  },
+  cinemaErrorContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 20,
+    borderRadius: 10,
+  },
+  cinemaErrorIcon: {
+    fontSize: 30,
+    marginBottom: 10,
+  },
+  cinemaErrorText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginBottom: 15,
+  },
+  cinemaRetryButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  cinemaRetryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  
+  // Small Video Loading & Error Styles
+  smallLoadingContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -25 }, { translateY: -25 }],
+  },
+  smallLoadingSpinner: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+    borderTopColor: '#E50914',
+  },
+  smallErrorContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
+  smallErrorIcon: {
+    fontSize: 20,
   },
 });
