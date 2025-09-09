@@ -1,19 +1,22 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  TouchableOpacity, 
-  SafeAreaView,
-  ImageBackground,
-  Dimensions,
-  PanResponder,
-  Animated
-} from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    Animated,
+    Dimensions,
+    ImageBackground,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    PanResponder,
+    GestureResponderEvent,
+    PanResponderGestureState,
+    StatusBar
+} from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,10 +31,23 @@ export default function RoadmapDetailsScreen() {
   const [volume, setVolume] = useState(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1.0);
+  const [showSettings, setShowSettings] = useState(false);
+  const [brightness, setBrightness] = useState(1.0);
+  const [showSeekPreview, setShowSeekPreview] = useState(false);
+  const [seekPreviewTime, setSeekPreviewTime] = useState(0);
+  const [doubleTapSeek, setDoubleTapSeek] = useState(0);
+  const [showDoubleTapSeek, setShowDoubleTapSeek] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragType, setDragType] = useState<'none' | 'volume' | 'brightness' | 'seek'>('none');
   
   const videoRef = useRef<Video>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const seekAnim = useRef(new Animated.Value(0)).current;
+  const volumeAnim = useRef(new Animated.Value(1)).current;
+  const brightnessAnim = useRef(new Animated.Value(1)).current;
+  const doubleTapAnim = useRef(new Animated.Value(0)).current;
 
   // Sample roadmap data
   const roadmap = {
@@ -159,6 +175,106 @@ export default function RoadmapDetailsScreen() {
     }
   };
 
+  const handlePlaybackRateChange = async (rate: number) => {
+    setPlaybackRate(rate);
+    if (videoRef.current) {
+      await videoRef.current.setRateAsync(rate, true);
+    }
+  };
+
+  const handleDoubleTapSeek = (direction: 'left' | 'right') => {
+    const seekAmount = direction === 'left' ? -10000 : 10000; // 10 seconds
+    const newTime = Math.max(0, Math.min(duration, currentTime + seekAmount));
+    
+    setDoubleTapSeek(seekAmount);
+    setShowDoubleTapSeek(true);
+    
+    Animated.sequence([
+      Animated.timing(doubleTapAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(doubleTapAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
+    handleSeek(newTime);
+    
+    setTimeout(() => {
+      setShowDoubleTapSeek(false);
+    }, 1000);
+  };
+
+  const handleGestureStart = (gestureState: PanResponderGestureState) => {
+    setIsDragging(true);
+    setShowControls(true);
+    
+    // Determine gesture type based on position
+    const { x0, y0 } = gestureState;
+    const screenWidth = width;
+    const screenHeight = height;
+    
+    if (x0 < screenWidth * 0.3) {
+      setDragType('brightness');
+    } else if (x0 > screenWidth * 0.7) {
+      setDragType('volume');
+    } else {
+      setDragType('seek');
+    }
+  };
+
+  const handleGestureMove = (gestureState: PanResponderGestureState) => {
+    if (!isDragging) return;
+    
+    const { dy, dx } = gestureState;
+    const screenHeight = height;
+    const screenWidth = width;
+    
+    switch (dragType) {
+      case 'volume':
+        const newVolume = Math.max(0, Math.min(1, volume - (dy / screenHeight)));
+        setVolume(newVolume);
+        handleVolumeChange(newVolume);
+        break;
+        
+      case 'brightness':
+        const newBrightness = Math.max(0.1, Math.min(1, brightness - (dy / screenHeight)));
+        setBrightness(newBrightness);
+        break;
+        
+      case 'seek':
+        const seekProgress = (dx / screenWidth) * duration;
+        const newSeekTime = Math.max(0, Math.min(duration, currentTime + seekProgress));
+        setSeekPreviewTime(newSeekTime);
+        setShowSeekPreview(true);
+        break;
+    }
+  };
+
+  const handleGestureEnd = () => {
+    setIsDragging(false);
+    setDragType('none');
+    setShowSeekPreview(false);
+    
+    if (dragType === 'seek' && showSeekPreview) {
+      handleSeek(seekPreviewTime);
+    }
+  };
+
+  // PanResponder for gesture controls
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (_, gestureState) => handleGestureStart(gestureState),
+    onPanResponderMove: (_, gestureState) => handleGestureMove(gestureState),
+    onPanResponderRelease: handleGestureEnd,
+    onPanResponderTerminate: handleGestureEnd,
+  });
+
   const formatTime = (milliseconds: number) => {
     const seconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -245,12 +361,70 @@ export default function RoadmapDetailsScreen() {
                   onPlaybackStatusUpdate={onPlaybackStatusUpdate}
                 />
                 
-                {/* Video Overlay with Controls */}
-                <TouchableOpacity 
+                {/* Video Overlay with Advanced Controls */}
+                <View 
                   style={styles.videoOverlay}
-                  onPress={handleVideoPress}
-                  activeOpacity={1}
+                  {...panResponder.panHandlers}
                 >
+                  {/* Double Tap Seek Areas */}
+                  <TouchableOpacity 
+                    style={styles.doubleTapLeft}
+                    onPress={() => handleDoubleTapSeek('left')}
+                    activeOpacity={1}
+                  />
+                  <TouchableOpacity 
+                    style={styles.doubleTapRight}
+                    onPress={() => handleDoubleTapSeek('right')}
+                    activeOpacity={1}
+                  />
+
+                  {/* Double Tap Seek Indicator */}
+                  {showDoubleTapSeek && (
+                    <Animated.View 
+                      style={[
+                        styles.doubleTapIndicator,
+                        {
+                          left: doubleTapSeek < 0 ? 50 : width - 100,
+                          opacity: doubleTapAnim,
+                          transform: [{
+                            scale: doubleTapAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0.5, 1.2],
+                            })
+                          }]
+                        }
+                      ]}
+                    >
+                      <Text style={styles.doubleTapText}>
+                        {doubleTapSeek < 0 ? '⏪ -10s' : '⏩ +10s'}
+                      </Text>
+                    </Animated.View>
+                  )}
+
+                  {/* Gesture Indicators */}
+                  {isDragging && (
+                    <>
+                      {dragType === 'volume' && (
+                        <View style={styles.volumeIndicator}>
+                          <Text style={styles.indicatorIcon}>🔊</Text>
+                          <Text style={styles.indicatorText}>{Math.round(volume * 100)}%</Text>
+                        </View>
+                      )}
+                      {dragType === 'brightness' && (
+                        <View style={styles.brightnessIndicator}>
+                          <Text style={styles.indicatorIcon}>☀️</Text>
+                          <Text style={styles.indicatorText}>{Math.round(brightness * 100)}%</Text>
+                        </View>
+                      )}
+                      {dragType === 'seek' && showSeekPreview && (
+                        <View style={styles.seekPreview}>
+                          <Text style={styles.seekPreviewText}>
+                            {formatTime(seekPreviewTime)}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  )}
                   {/* Loading Indicator */}
                   {isLoading && (
                     <View style={styles.loadingContainer}>
@@ -328,28 +502,104 @@ export default function RoadmapDetailsScreen() {
                           <Text style={styles.timeText}>{formatTime(duration)}</Text>
                         </View>
 
-                        {/* Volume Control */}
-                        <View style={styles.volumeContainer}>
-                          <Text style={styles.volumeIcon}>🔊</Text>
-                          <View style={styles.volumeBar}>
-                            <View 
-                              style={[
-                                styles.volumeFill, 
-                                { width: `${volume * 100}%` }
-                              ]} 
-                            />
-                            <TouchableOpacity
-                              style={[
-                                styles.volumeThumb,
-                                { left: `${volume * 100}%` }
-                              ]}
-                              onPress={() => {
-                                const newVolume = volume > 0.5 ? 0 : 1;
-                                handleVolumeChange(newVolume);
-                              }}
-                            />
+                        {/* Advanced Controls Row */}
+                        <View style={styles.advancedControlsRow}>
+                          {/* Playback Speed */}
+                          <TouchableOpacity 
+                            style={styles.speedButton}
+                            onPress={() => {
+                              const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+                              const currentIndex = speeds.indexOf(playbackRate);
+                              const nextIndex = (currentIndex + 1) % speeds.length;
+                              handlePlaybackRateChange(speeds[nextIndex]);
+                            }}
+                          >
+                            <Text style={styles.speedButtonText}>{playbackRate}x</Text>
+                          </TouchableOpacity>
+
+                          {/* Volume Control */}
+                          <View style={styles.volumeContainer}>
+                            <Text style={styles.volumeIcon}>
+                              {volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'}
+                            </Text>
+                            <View style={styles.volumeBar}>
+                              <View 
+                                style={[
+                                  styles.volumeFill, 
+                                  { width: `${volume * 100}%` }
+                                ]} 
+                              />
+                              <TouchableOpacity
+                                style={[
+                                  styles.volumeThumb,
+                                  { left: `${volume * 100}%` }
+                                ]}
+                                onPress={() => {
+                                  const newVolume = volume > 0.5 ? 0 : 1;
+                                  handleVolumeChange(newVolume);
+                                }}
+                              />
+                            </View>
                           </View>
+
+                          {/* Settings Button */}
+                          <TouchableOpacity 
+                            style={styles.settingsButton}
+                            onPress={() => setShowSettings(!showSettings)}
+                          >
+                            <Text style={styles.settingsButtonText}>⚙️</Text>
+                          </TouchableOpacity>
                         </View>
+
+                        {/* Settings Panel */}
+                        {showSettings && (
+                          <View style={styles.settingsPanel}>
+                            <Text style={styles.settingsTitle}>Video Settings</Text>
+                            
+                            {/* Playback Speed Options */}
+                            <View style={styles.settingsSection}>
+                              <Text style={styles.settingsLabel}>Playback Speed</Text>
+                              <View style={styles.speedOptions}>
+                                {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+                                  <TouchableOpacity
+                                    key={speed}
+                                    style={[
+                                      styles.speedOption,
+                                      playbackRate === speed && styles.speedOptionActive
+                                    ]}
+                                    onPress={() => handlePlaybackRateChange(speed)}
+                                  >
+                                    <Text style={[
+                                      styles.speedOptionText,
+                                      playbackRate === speed && styles.speedOptionTextActive
+                                    ]}>
+                                      {speed}x
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </View>
+
+                            {/* Quality Options */}
+                            <View style={styles.settingsSection}>
+                              <Text style={styles.settingsLabel}>Quality</Text>
+                              <View style={styles.qualityOptions}>
+                                {['Auto', '1080p', '720p', '480p', '360p'].map((quality) => (
+                                  <TouchableOpacity
+                                    key={quality}
+                                    style={styles.qualityOption}
+                                    onPress={() => {
+                                      // Handle quality change
+                                      console.log(`Quality changed to: ${quality}`);
+                                    }}
+                                  >
+                                    <Text style={styles.qualityOptionText}>{quality}</Text>
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
+                            </View>
+                          </View>
+                        )}
                       </View>
                     </Animated.View>
                   )}
@@ -639,6 +889,176 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#E50914',
     marginLeft: -8,
+  },
+  // Advanced Controls Styles
+  doubleTapLeft: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: '50%',
+    zIndex: 1,
+  },
+  doubleTapRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '50%',
+    zIndex: 1,
+  },
+  doubleTapIndicator: {
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: -25 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    zIndex: 10,
+  },
+  doubleTapText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  volumeIndicator: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -30 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  brightnessIndicator: {
+    position: 'absolute',
+    left: 20,
+    top: '50%',
+    transform: [{ translateY: -30 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  indicatorIcon: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+  indicatorText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  seekPreview: {
+    position: 'absolute',
+    bottom: 100,
+    left: '50%',
+    transform: [{ translateX: -50 }],
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 5,
+    zIndex: 10,
+  },
+  seekPreviewText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  advancedControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  speedButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  speedButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  settingsButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 8,
+    borderRadius: 15,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  settingsButtonText: {
+    fontSize: 16,
+  },
+  settingsPanel: {
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    marginTop: 15,
+    padding: 15,
+    borderRadius: 10,
+  },
+  settingsTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  settingsSection: {
+    marginBottom: 15,
+  },
+  settingsLabel: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  speedOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  speedOption: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  speedOptionActive: {
+    backgroundColor: '#E50914',
+  },
+  speedOptionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  speedOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  qualityOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  qualityOption: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  qualityOptionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   roadmapInfo: {
     paddingBottom: 20,
