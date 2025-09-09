@@ -389,6 +389,25 @@ export default function CourseDetailsScreen() {
     
     startPulseAnimation();
     startCreativeAnimations();
+    
+    // Netflix-style autoplay delay with simulated video progress
+    setTimeout(() => {
+      setIsPlaying(true);
+      setShowPreview(false);
+      
+      // Simulate video progress for Netflix-style experience
+      const progressInterval = setInterval(() => {
+        setCurrentTime(prev => {
+          const newTime = prev + 1;
+          if (newTime >= 300) { // 5 minutes simulation
+            clearInterval(progressInterval);
+            setIsPlaying(false);
+            return 0;
+          }
+          return newTime;
+        });
+      }, 1000);
+    }, 2000);
   };
 
   const onPlaybackStatusUpdate = (status: any) => {
