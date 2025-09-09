@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { Video, ResizeMode } from 'expo-av';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -345,6 +346,8 @@ export default function CourseDetailsScreen() {
   const [hasError, setHasError] = useState(false);
   const [isAutoplay, setIsAutoplay] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [videoStatus, setVideoStatus] = useState({});
+  const videoRef = useRef(null);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -366,6 +369,8 @@ export default function CourseDetailsScreen() {
     setSelectedVideo(lecture);
     setCurrentTime(0);
     setShowControls(true);
+    setIsLoading(true);
+    setHasError(false);
     
     // Netflix-style autoplay with preview
     setShowPreview(true);
@@ -384,6 +389,41 @@ export default function CourseDetailsScreen() {
     
     startPulseAnimation();
     startCreativeAnimations();
+  };
+
+  const onPlaybackStatusUpdate = (status: any) => {
+    setVideoStatus(status);
+    if (status.isLoaded) {
+      setDuration(status.durationMillis / 1000);
+      setCurrentTime(status.positionMillis / 1000);
+      setIsLoading(false);
+      if (status.didJustFinish) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      }
+    } else if (status.error) {
+      setHasError(true);
+      setIsLoading(false);
+    }
+  };
+
+  const togglePlayPause = async () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleSeek = async (time: number) => {
+    if (videoRef.current) {
+      await videoRef.current.setPositionAsync(time * 1000);
+      setCurrentTime(time);
+    }
+  };
     
     // Netflix-style autoplay delay with simulated video progress
     setTimeout(() => {
@@ -569,18 +609,24 @@ export default function CourseDetailsScreen() {
           ]}
           {...panResponder.panHandlers}
         >
-          <ImageBackground
-            source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+          <Video
+            ref={videoRef}
+            source={{ uri: selectedVideo.videoUrl }}
             style={styles.floatingVideoBackground}
-            resizeMode="cover"
+            resizeMode={ResizeMode.COVER}
+            shouldPlay={isPlaying}
+            isLooping={false}
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            onLoad={() => setIsLoading(false)}
+            onError={() => setHasError(true)}
+          />
+          <LinearGradient
+            colors={['rgba(229,9,20,0.9)', 'rgba(0,0,0,0.8)']}
+            style={styles.floatingVideoGradient}
           >
-            <LinearGradient
-              colors={['rgba(229,9,20,0.9)', 'rgba(0,0,0,0.8)']}
-              style={styles.floatingVideoGradient}
-            >
               <TouchableOpacity 
                 style={styles.floatingPlayButton}
-                onPress={handlePlayPause}
+                onPress={togglePlayPause}
                 activeOpacity={0.8}
               >
                 <Animated.Text 
@@ -626,11 +672,17 @@ export default function CourseDetailsScreen() {
             }
           ]}
         >
-        {/* Netflix-Style Cinema Video Player with Fallback */}
-        <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+        {/* Real Fullscreen Video Player */}
+        <Video
+          ref={videoRef}
+          source={{ uri: selectedVideo.videoUrl }}
           style={styles.cinemaVideo}
-          resizeMode="cover"
+          resizeMode={ResizeMode.COVER}
+          shouldPlay={isPlaying}
+          isLooping={false}
+          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+          onLoad={() => setIsLoading(false)}
+          onError={() => setHasError(true)}
         />
 
           {/* Cinema-style overlay */}
@@ -719,7 +771,7 @@ export default function CourseDetailsScreen() {
                     const { locationX } = event.nativeEvent;
                     const progress = locationX / (width - 100);
                     const newTime = progress * duration;
-                    setCurrentTime(newTime);
+                    handleSeek(newTime);
                   }}
                 >
                   <View style={[styles.cinemaProgressFill, { width: `${(currentTime / duration) * 100}%` }]} />
@@ -742,7 +794,7 @@ export default function CourseDetailsScreen() {
                 
                 <TouchableOpacity 
                   style={styles.cinemaControlButton}
-                  onPress={handlePlayPause}
+                  onPress={togglePlayPause}
                 >
                   <Text style={styles.cinemaControlIcon}>{isPlaying ? '⏸' : '▶'}</Text>
                 </TouchableOpacity>
@@ -859,11 +911,17 @@ export default function CourseDetailsScreen() {
             />
           ))}
         </Animated.View>
-        {/* Netflix-Style Video Player with Fallback */}
-        <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+        {/* Real Video Player */}
+        <Video
+          ref={videoRef}
+          source={{ uri: selectedVideo.videoUrl }}
           style={styles.smallVideoBackground}
-          resizeMode="cover"
+          resizeMode={ResizeMode.COVER}
+          shouldPlay={isPlaying}
+          isLooping={false}
+          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+          onLoad={() => setIsLoading(false)}
+          onError={() => setHasError(true)}
         />
 
         <LinearGradient
@@ -992,7 +1050,7 @@ export default function CourseDetailsScreen() {
                   const { locationX } = event.nativeEvent;
                   const progress = locationX / (width - 40);
                   const newTime = progress * duration;
-                  setCurrentTime(newTime);
+                  handleSeek(newTime);
                 }}
               >
                 <View style={[styles.smallProgressFill, { width: `${(currentTime / duration) * 100}%` }]} />
