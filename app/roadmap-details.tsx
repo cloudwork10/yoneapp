@@ -1,57 +1,21 @@
-import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import {
-    Animated,
-    Dimensions,
     ImageBackground,
-    Modal,
-    PanResponder,
-    PanResponderGestureState,
     Platform,
     SafeAreaView,
     ScrollView,
-    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
 
 export default function RoadmapDetailsScreen() {
   const router = useRouter();
   const { roadmapId } = useLocalSearchParams();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1.0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1.0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [brightness, setBrightness] = useState(1.0);
-  const [showSeekPreview, setShowSeekPreview] = useState(false);
-  const [seekPreviewTime, setSeekPreviewTime] = useState(0);
-  const [doubleTapSeek, setDoubleTapSeek] = useState(0);
-  const [showDoubleTapSeek, setShowDoubleTapSeek] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragType, setDragType] = useState<'none' | 'volume' | 'brightness' | 'seek'>('none');
-  const [showFullscreenModal, setShowFullscreenModal] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(false);
-  
-  const videoRef = useRef<Video>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const seekAnim = useRef(new Animated.Value(0)).current;
-  const volumeAnim = useRef(new Animated.Value(1)).current;
-  const brightnessAnim = useRef(new Animated.Value(1)).current;
-  const doubleTapAnim = useRef(new Animated.Value(0)).current;
-  const fullscreenAnim = useRef(new Animated.Value(0)).current;
 
   // Sample roadmap data
   const roadmap = {
@@ -60,7 +24,6 @@ export default function RoadmapDetailsScreen() {
     description: 'Complete guide to become a React Native developer from beginner to expert',
     duration: '2 hours',
     level: 'Beginner to Advanced',
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     backgroundImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
     steps: [
       {
@@ -405,34 +368,6 @@ export default function RoadmapDetailsScreen() {
           </ImageBackground>
         </View>
 
-        {/* Video Section - Below Hero Image */}
-        <View style={styles.videoSection}>
-          <Text style={styles.videoSectionTitle}>Watch Introduction</Text>
-          <TouchableOpacity 
-            style={styles.videoContainer}
-            onPress={toggleFullscreen}
-            activeOpacity={0.9}
-          >
-            <Video
-              ref={videoRef}
-              source={{ uri: roadmap.videoUrl }}
-              style={styles.video}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={false}
-              isLooping={false}
-              volume={1.0}
-              onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-            />
-            
-            {/* Play Button Overlay */}
-            <View style={styles.playOverlay}>
-              <View style={styles.playButton}>
-                <Text style={styles.playIcon}>▶</Text>
-              </View>
-              <Text style={styles.playText}>Tap to play</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
 
         {/* Learning Path Steps */}
         <View style={styles.stepsSection}>
@@ -479,57 +414,6 @@ export default function RoadmapDetailsScreen() {
         </View>
       </ScrollView>
 
-                 {/* Simple Fullscreen Video Modal */}
-                 <Modal
-                   visible={showFullscreenModal}
-                   transparent={false}
-                   animationType="slide"
-                   supportedOrientations={['portrait', 'landscape']}
-                   onRequestClose={exitFullscreen}
-                 >
-                   <View style={styles.simpleFullscreenContainer}>
-                     <StatusBar hidden={true} />
-
-                     {/* Simple Close Button */}
-                     <TouchableOpacity
-                       style={styles.closeButton}
-                       onPress={exitFullscreen}
-                       activeOpacity={0.7}
-                     >
-                       <Text style={styles.closeButtonText}>✕</Text>
-                     </TouchableOpacity>
-
-                     {/* Video Player */}
-                     <Video
-                       ref={videoRef}
-                       source={{ uri: roadmap.videoUrl }}
-                       style={styles.simpleFullscreenVideo}
-                       resizeMode={ResizeMode.CONTAIN}
-                       shouldPlay={false}
-                       isLooping={false}
-                       volume={1.0}
-                       onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                       useNativeControls={true}
-                     />
-
-                     {/* Play Button Overlay */}
-                     {!isPlaying && (
-                       <View style={styles.playOverlayFullscreen}>
-                         <TouchableOpacity
-                           style={styles.playButtonFullscreen}
-                           onPress={() => setIsPlaying(true)}
-                           activeOpacity={0.7}
-                         >
-                           <Text style={styles.playIconFullscreen}>▶</Text>
-                         </TouchableOpacity>
-                         <Text style={styles.playTextFullscreen}>Tap to play</Text>
-                       </View>
-                     )}
-
-
-
-                   </View>
-                 </Modal>
     </SafeAreaView>
   );
 }
@@ -1138,305 +1022,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  // Video Section Styles
-  videoSection: {
-    padding: 20,
-    backgroundColor: '#000000',
-  },
-  videoSectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 15,
-  },
-  videoContainer: {
-    height: 200,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
-    position: 'relative',
-  },
-  video: {
-    width: '100%',
-    height: '100%',
-  },
-  playOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  playButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  playIcon: {
-    color: '#000000',
-    fontSize: 24,
-    marginLeft: 3,
-  },
-  playText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Advanced Fullscreen Video Styles
-  simpleFullscreenContainer: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  topControlsBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 20 : 10,
-    zIndex: 1000,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    right: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  videoTitle: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 15,
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  settingsIcon: {
-    fontSize: 18,
-  },
-  simpleFullscreenVideo: {
-    width: '100%',
-    height: '100%',
-  },
-  videoControlsOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-  },
-  playPauseButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  playPauseIcon: {
-    fontSize: 24,
-  },
-  progressContainer: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
-    marginRight: 15,
-  },
-  progressBar: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#E50914',
-    borderRadius: 2,
-  },
-  volumeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  volumeIcon: {
-    fontSize: 20,
-  },
-  fullscreenButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullscreenIcon: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  // Settings Panel Styles
-  settingsPanel: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    width: 300,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    borderRadius: 12,
-    padding: 20,
-    zIndex: 1001,
-  },
-  settingsTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  settingRow: {
-    marginBottom: 20,
-  },
-  settingLabel: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  speedButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  speedButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  speedButtonActive: {
-    backgroundColor: '#E50914',
-  },
-  speedButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  speedButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  qualityButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  qualityButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  qualityButtonActive: {
-    backgroundColor: '#E50914',
-  },
-  qualityButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  qualityButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  audioButtons: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  audioButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  audioButtonText: {
-    fontSize: 18,
-  },
-  playOverlayFullscreen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  playButtonFullscreen: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  playIconFullscreen: {
-    color: '#000000',
-    fontSize: 32,
-    marginLeft: 4,
-  },
-  playTextFullscreen: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   safariControls: {
     position: 'absolute',
