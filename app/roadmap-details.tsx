@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
+    Dimensions,
     ImageBackground,
     Platform,
     SafeAreaView,
@@ -11,6 +12,8 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 
 export default function RoadmapDetailsScreen() {
