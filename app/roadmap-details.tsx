@@ -386,18 +386,18 @@ export default function RoadmapDetailsScreen() {
                 <Text style={styles.backButtonText}>← Back</Text>
               </TouchableOpacity>
 
-              {/* Roadmap Info */}
-              <View style={styles.roadmapInfo}>
-                <Text style={styles.roadmapTitle}>{roadmap.title}</Text>
-                <Text style={styles.roadmapDescription}>{roadmap.description}</Text>
-                <View style={styles.roadmapMeta}>
-                  <View style={styles.metaItem}>
-                    <Text style={styles.metaIcon}>⏱️</Text>
-                    <Text style={styles.metaText}>{roadmap.duration}</Text>
+              {/* Roadmap Info - Better positioned */}
+              <View style={styles.roadmapInfoFixed}>
+                <Text style={styles.roadmapTitleFixed}>{roadmap.title}</Text>
+                <Text style={styles.roadmapDescriptionFixed}>{roadmap.description}</Text>
+                <View style={styles.roadmapMetaFixed}>
+                  <View style={styles.metaItemFixed}>
+                    <Text style={styles.metaIconFixed}>⏱️</Text>
+                    <Text style={styles.metaTextFixed}>{roadmap.duration}</Text>
                   </View>
-                  <View style={styles.metaItem}>
-                    <Text style={styles.metaIcon}>📊</Text>
-                    <Text style={styles.metaText}>{roadmap.level}</Text>
+                  <View style={styles.metaItemFixed}>
+                    <Text style={styles.metaIconFixed}>📊</Text>
+                    <Text style={styles.metaTextFixed}>{roadmap.level}</Text>
                   </View>
                 </View>
               </View>
@@ -1312,6 +1312,53 @@ const styles = StyleSheet.create({
   metaText: {
     color: '#FFFFFF',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  // Fixed positioning for better layout
+  roadmapInfoFixed: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    paddingBottom: 20,
+  },
+  roadmapTitleFixed: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  roadmapDescriptionFixed: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    lineHeight: 26,
+    marginBottom: 20,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  roadmapMetaFixed: {
+    flexDirection: 'row',
+    gap: 25,
+  },
+  metaItemFixed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  metaIconFixed: {
+    fontSize: 18,
+  },
+  metaTextFixed: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
   },
   stepsSection: {
