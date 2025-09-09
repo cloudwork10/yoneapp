@@ -505,20 +505,6 @@ export default function RoadmapDetailsScreen() {
             />
           </View>
           
-          {/* Safari-like Controls */}
-          <View style={styles.safariControls}>
-            {/* Top Bar */}
-            <View style={styles.safariTopBar}>
-              <TouchableOpacity 
-                style={styles.safariBackButton}
-                onPress={exitFullscreen}
-              >
-                <Text style={styles.safariBackText}>Done</Text>
-              </TouchableOpacity>
-              <Text style={styles.safariTitle}>{roadmap.title}</Text>
-              <View style={styles.safariSpacer} />
-            </View>
-          </View>
         </View>
       </Modal>
     </SafeAreaView>
