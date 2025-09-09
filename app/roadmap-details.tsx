@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,9 +7,11 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   ImageBackground,
-  Dimensions
+  Dimensions,
+  PanResponder,
+  Animated
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
@@ -19,7 +21,17 @@ export default function RoadmapDetailsScreen() {
   const router = useRouter();
   const { roadmapId } = useLocalSearchParams();
   const [isPlaying, setIsPlaying] = useState(false);
-  const videoRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1.0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  
+  const videoRef = useRef<Video>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // Sample roadmap data
   const roadmap = {
@@ -106,6 +118,20 @@ export default function RoadmapDetailsScreen() {
     ]
   };
 
+  // Video control functions
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (status.isLoaded) {
+      setCurrentTime(status.positionMillis || 0);
+      setDuration(status.durationMillis || 0);
+      setIsPlaying(status.isPlaying);
+      setIsLoading(false);
+      setHasError(false);
+    } else if (status.error) {
+      setHasError(true);
+      setIsLoading(false);
+    }
+  };
+
   const togglePlayPause = async () => {
     if (videoRef.current) {
       if (isPlaying) {
@@ -113,9 +139,71 @@ export default function RoadmapDetailsScreen() {
       } else {
         await videoRef.current.playAsync();
       }
-      setIsPlaying(!isPlaying);
     }
   };
+
+  const handleSeek = async (position: number) => {
+    if (videoRef.current) {
+      await videoRef.current.setPositionAsync(position);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const handleVolumeChange = async (newVolume: number) => {
+    setVolume(newVolume);
+    if (videoRef.current) {
+      await videoRef.current.setVolumeAsync(newVolume);
+    }
+  };
+
+  const formatTime = (milliseconds: number) => {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const showControlsTemporarily = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) {
+        setShowControls(false);
+      }
+    }, 3000);
+  };
+
+  const handleVideoPress = () => {
+    if (showControls) {
+      setShowControls(false);
+    } else {
+      showControlsTemporarily();
+    }
+  };
+
+  // Auto-hide controls when playing
+  useEffect(() => {
+    if (isPlaying && showControls) {
+      const timer = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isPlaying, showControls]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const toggleStepCompletion = (stepId: string) => {
     // In a real app, you would update the completion status
@@ -145,26 +233,125 @@ export default function RoadmapDetailsScreen() {
               </TouchableOpacity>
 
               {/* Video Player */}
-              <View style={styles.videoContainer}>
+              <View style={[styles.videoContainer, isFullscreen && styles.fullscreenContainer]}>
                 <Video
                   ref={videoRef}
                   source={{ uri: roadmap.videoUrl }}
                   style={styles.video}
-                  resizeMode={ResizeMode.COVER}
+                  resizeMode={ResizeMode.CONTAIN}
                   shouldPlay={isPlaying}
                   isLooping={false}
+                  volume={volume}
+                  onPlaybackStatusUpdate={onPlaybackStatusUpdate}
                 />
                 
-                {/* Video Overlay */}
+                {/* Video Overlay with Controls */}
                 <TouchableOpacity 
                   style={styles.videoOverlay}
-                  onPress={togglePlayPause}
-                  activeOpacity={0.8}
+                  onPress={handleVideoPress}
+                  activeOpacity={1}
                 >
-                  {!isPlaying && (
-                    <View style={styles.playButton}>
-                      <Text style={styles.playButtonText}>▶</Text>
+                  {/* Loading Indicator */}
+                  {isLoading && (
+                    <View style={styles.loadingContainer}>
+                      <Text style={styles.loadingText}>Loading...</Text>
                     </View>
+                  )}
+
+                  {/* Error Message */}
+                  {hasError && (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>Error loading video</Text>
+                      <TouchableOpacity 
+                        style={styles.retryButton}
+                        onPress={() => {
+                          setHasError(false);
+                          setIsLoading(true);
+                        }}
+                      >
+                        <Text style={styles.retryButtonText}>Retry</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Video Controls */}
+                  {showControls && !isLoading && !hasError && (
+                    <Animated.View style={[styles.controlsContainer, { opacity: fadeAnim }]}>
+                      {/* Top Controls */}
+                      <View style={styles.topControls}>
+                        <TouchableOpacity 
+                          style={styles.fullscreenButton}
+                          onPress={toggleFullscreen}
+                        >
+                          <Text style={styles.controlButtonText}>
+                            {isFullscreen ? '⤓' : '⤢'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Center Play Button */}
+                      <View style={styles.centerControls}>
+                        <TouchableOpacity 
+                          style={styles.bigPlayButton}
+                          onPress={togglePlayPause}
+                        >
+                          <Text style={styles.bigPlayButtonText}>
+                            {isPlaying ? '⏸' : '▶'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* Bottom Controls */}
+                      <View style={styles.bottomControls}>
+                        {/* Progress Bar */}
+                        <View style={styles.progressContainer}>
+                          <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                          <View style={styles.progressBar}>
+                            <View 
+                              style={[
+                                styles.progressFill, 
+                                { width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }
+                              ]} 
+                            />
+                            <TouchableOpacity
+                              style={[
+                                styles.progressThumb,
+                                { left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }
+                              ]}
+                              onPress={() => {
+                                // Handle seek on thumb press
+                                const newPosition = (currentTime / duration) * duration;
+                                handleSeek(newPosition);
+                              }}
+                            />
+                          </View>
+                          <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                        </View>
+
+                        {/* Volume Control */}
+                        <View style={styles.volumeContainer}>
+                          <Text style={styles.volumeIcon}>🔊</Text>
+                          <View style={styles.volumeBar}>
+                            <View 
+                              style={[
+                                styles.volumeFill, 
+                                { width: `${volume * 100}%` }
+                              ]} 
+                            />
+                            <TouchableOpacity
+                              style={[
+                                styles.volumeThumb,
+                                { left: `${volume * 100}%` }
+                              ]}
+                              onPress={() => {
+                                const newVolume = volume > 0.5 ? 0 : 1;
+                                handleVolumeChange(newVolume);
+                              }}
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    </Animated.View>
                   )}
                 </TouchableOpacity>
               </View>
@@ -281,6 +468,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#1a1a1a',
   },
+  fullscreenContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    margin: 0,
+    borderRadius: 0,
+  },
   video: {
     width: '100%',
     height: '100%',
@@ -293,13 +490,75 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  playButton: {
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 20,
+    borderRadius: 10,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 20,
+    borderRadius: 10,
+  },
+  errorText: {
+    color: '#E50914',
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  controlsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  topControls: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  fullscreenButton: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 10,
+    borderRadius: 5,
+  },
+  controlButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  centerControls: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bigPlayButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E50914',
+    backgroundColor: 'rgba(229, 9, 20, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#E50914',
@@ -308,10 +567,78 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  playButtonText: {
+  bigPlayButtonText: {
     color: '#FFFFFF',
     fontSize: 30,
     marginLeft: 4,
+  },
+  bottomControls: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 15,
+    borderRadius: 10,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  timeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    minWidth: 40,
+    textAlign: 'center',
+  },
+  progressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    marginHorizontal: 10,
+    position: 'relative',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+  },
+  progressThumb: {
+    position: 'absolute',
+    top: -6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#E50914',
+    marginLeft: -8,
+  },
+  volumeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  volumeIcon: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  volumeBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    position: 'relative',
+  },
+  volumeFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+  },
+  volumeThumb: {
+    position: 'absolute',
+    top: -6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#E50914',
+    marginLeft: -8,
   },
   roadmapInfo: {
     paddingBottom: 20,
