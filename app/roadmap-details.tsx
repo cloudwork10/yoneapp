@@ -501,8 +501,16 @@ export default function RoadmapDetailsScreen() {
               isLooping={false}
               volume={1.0}
               onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-              useNativeControls={true}
+              useNativeControls={false}
             />
+            
+            {/* Close Button - Left Side */}
+            <TouchableOpacity 
+              style={styles.leftCloseButton}
+              onPress={exitFullscreen}
+            >
+              <Text style={styles.leftCloseText}>✕</Text>
+            </TouchableOpacity>
           </View>
           
         </View>
@@ -1240,6 +1248,25 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   easyCloseText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  // Left Close Button
+  leftCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 12,
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  leftCloseText: {
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
