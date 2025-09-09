@@ -505,12 +505,26 @@ export default function RoadmapDetailsScreen() {
                        source={{ uri: roadmap.videoUrl }}
                        style={styles.simpleFullscreenVideo}
                        resizeMode={ResizeMode.CONTAIN}
-                       shouldPlay={true}
+                       shouldPlay={false}
                        isLooping={false}
                        volume={1.0}
                        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
                        useNativeControls={true}
                      />
+
+                     {/* Play Button Overlay */}
+                     {!isPlaying && (
+                       <View style={styles.playOverlayFullscreen}>
+                         <TouchableOpacity
+                           style={styles.playButtonFullscreen}
+                           onPress={() => setIsPlaying(true)}
+                           activeOpacity={0.7}
+                         >
+                           <Text style={styles.playIconFullscreen}>▶</Text>
+                         </TouchableOpacity>
+                         <Text style={styles.playTextFullscreen}>Tap to play</Text>
+                       </View>
+                     )}
 
 
 
@@ -1389,6 +1403,40 @@ const styles = StyleSheet.create({
   },
   audioButtonText: {
     fontSize: 18,
+  },
+  playOverlayFullscreen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  playButtonFullscreen: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  playIconFullscreen: {
+    color: '#000000',
+    fontSize: 32,
+    marginLeft: 4,
+  },
+  playTextFullscreen: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   safariControls: {
     position: 'absolute',
