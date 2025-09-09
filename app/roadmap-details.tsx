@@ -501,7 +501,7 @@ export default function RoadmapDetailsScreen() {
               isLooping={false}
               volume={1.0}
               onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-              useNativeControls={true}
+              useNativeControls={false}
             />
             
             {/* Easy Close Button */}
@@ -510,6 +510,16 @@ export default function RoadmapDetailsScreen() {
               onPress={exitFullscreen}
             >
               <Text style={styles.easyCloseText}>✕</Text>
+            </TouchableOpacity>
+
+            {/* Simple Play/Pause Button */}
+            <TouchableOpacity 
+              style={styles.simplePlayPauseButton}
+              onPress={togglePlayPause}
+            >
+              <Text style={styles.simplePlayPauseText}>
+                {isPlaying ? '⏸' : '▶'}
+              </Text>
             </TouchableOpacity>
           </View>
           
@@ -1250,6 +1260,25 @@ const styles = StyleSheet.create({
   easyCloseText: {
     color: '#FFFFFF',
     fontSize: 20,
+    fontWeight: 'bold',
+  },
+  // Simple Play/Pause Button
+  simplePlayPauseButton: {
+    position: 'absolute',
+    bottom: 50,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 15,
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  simplePlayPauseText: {
+    color: '#FFFFFF',
+    fontSize: 24,
     fontWeight: 'bold',
   },
   roadmapInfo: {
