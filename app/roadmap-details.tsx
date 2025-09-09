@@ -6,18 +6,17 @@ import {
     Animated,
     Dimensions,
     ImageBackground,
+    Modal,
+    PanResponder,
+    PanResponderGestureState,
+    Platform,
     SafeAreaView,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
-    PanResponder,
-    GestureResponderEvent,
-    PanResponderGestureState,
-    StatusBar,
-    Modal,
-    Platform
+    View
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -387,32 +386,6 @@ export default function RoadmapDetailsScreen() {
                 <Text style={styles.backButtonText}>← Back</Text>
               </TouchableOpacity>
 
-              {/* Simple Video Player - Like iPhone Safari */}
-              <TouchableOpacity 
-                style={styles.simpleVideoContainer}
-                onPress={toggleFullscreen}
-                activeOpacity={0.9}
-              >
-                <Video
-                  ref={videoRef}
-                  source={{ uri: roadmap.videoUrl }}
-                  style={styles.simpleVideo}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay={false}
-                  isLooping={false}
-                  volume={1.0}
-                  onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                />
-                
-                {/* Simple Play Button Overlay */}
-                <View style={styles.simplePlayOverlay}>
-                  <View style={styles.simplePlayButton}>
-                    <Text style={styles.simplePlayIcon}>▶</Text>
-                  </View>
-                  <Text style={styles.simplePlayText}>Tap to play</Text>
-                </View>
-              </TouchableOpacity>
-
               {/* Roadmap Info */}
               <View style={styles.roadmapInfo}>
                 <Text style={styles.roadmapTitle}>{roadmap.title}</Text>
@@ -430,6 +403,35 @@ export default function RoadmapDetailsScreen() {
               </View>
             </LinearGradient>
           </ImageBackground>
+        </View>
+
+        {/* Video Section - Below Hero Image */}
+        <View style={styles.videoSection}>
+          <Text style={styles.videoSectionTitle}>Watch Introduction</Text>
+          <TouchableOpacity 
+            style={styles.videoContainer}
+            onPress={toggleFullscreen}
+            activeOpacity={0.9}
+          >
+            <Video
+              ref={videoRef}
+              source={{ uri: roadmap.videoUrl }}
+              style={styles.video}
+              resizeMode={ResizeMode.COVER}
+              shouldPlay={false}
+              isLooping={false}
+              volume={1.0}
+              onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            />
+            
+            {/* Play Button Overlay */}
+            <View style={styles.playOverlay}>
+              <View style={styles.playButton}>
+                <Text style={styles.playIcon}>▶</Text>
+              </View>
+              <Text style={styles.playText}>Tap to play</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Learning Path Steps */}
@@ -477,7 +479,7 @@ export default function RoadmapDetailsScreen() {
         </View>
       </ScrollView>
 
-      {/* Simple Fullscreen Video Modal - Like iPhone */}
+      {/* Safari-like Fullscreen Video Modal */}
       <Modal
         visible={showFullscreenModal}
         transparent={false}
@@ -485,28 +487,38 @@ export default function RoadmapDetailsScreen() {
         supportedOrientations={['portrait', 'landscape']}
         onRequestClose={exitFullscreen}
       >
-        <View style={styles.simpleFullscreenContainer}>
+        <View style={styles.safariFullscreenContainer}>
           <StatusBar hidden={true} />
           
-          {/* Simple Fullscreen Video */}
-          <Video
-            ref={videoRef}
-            source={{ uri: roadmap.videoUrl }}
-            style={styles.simpleFullscreenVideo}
-            resizeMode={ResizeMode.CONTAIN}
-            shouldPlay={true}
-            isLooping={false}
-            volume={1.0}
-            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-          />
+          {/* Safari-like Video Player */}
+          <View style={styles.safariVideoContainer}>
+            <Video
+              ref={videoRef}
+              source={{ uri: roadmap.videoUrl }}
+              style={styles.safariVideo}
+              resizeMode={ResizeMode.CONTAIN}
+              shouldPlay={true}
+              isLooping={false}
+              volume={1.0}
+              onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+              useNativeControls={true}
+            />
+          </View>
           
-          {/* Simple Exit Button */}
-          <TouchableOpacity 
-            style={styles.simpleExitButton}
-            onPress={exitFullscreen}
-          >
-            <Text style={styles.simpleExitText}>✕</Text>
-          </TouchableOpacity>
+          {/* Safari-like Controls */}
+          <View style={styles.safariControls}>
+            {/* Top Bar */}
+            <View style={styles.safariTopBar}>
+              <TouchableOpacity 
+                style={styles.safariBackButton}
+                onPress={exitFullscreen}
+              >
+                <Text style={styles.safariBackText}>Done</Text>
+              </TouchableOpacity>
+              <Text style={styles.safariTitle}>{roadmap.title}</Text>
+              <View style={styles.safariSpacer} />
+            </View>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -1117,6 +1129,115 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  // Video Section Styles
+  videoSection: {
+    padding: 20,
+    backgroundColor: '#000000',
+  },
+  videoSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 15,
+  },
+  videoContainer: {
+    height: 200,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a1a',
+    position: 'relative',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
+  },
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  playButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  playIcon: {
+    color: '#000000',
+    fontSize: 24,
+    marginLeft: 3,
+  },
+  playText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Safari-like Fullscreen Styles
+  safariFullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  safariVideoContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  safariVideo: {
+    width: '100%',
+    height: '100%',
+  },
+  safariControls: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-start',
+  },
+  safariTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+  },
+  safariBackButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  safariBackText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  safariTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 20,
+  },
+  safariSpacer: {
+    width: 60,
   },
   roadmapInfo: {
     paddingBottom: 20,
