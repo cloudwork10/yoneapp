@@ -490,27 +490,152 @@ export default function RoadmapDetailsScreen() {
                    <View style={styles.simpleFullscreenContainer}>
                      <StatusBar hidden={true} />
 
-                     {/* Close Button */}
-                     <TouchableOpacity
-                       style={styles.closeButton}
-                       onPress={exitFullscreen}
-                       activeOpacity={0.7}
-                     >
-                       <Text style={styles.closeButtonText}>✕</Text>
-                     </TouchableOpacity>
+                     {/* Top Controls Bar */}
+                     <View style={styles.topControlsBar}>
+                       <TouchableOpacity
+                         style={styles.closeButton}
+                         onPress={exitFullscreen}
+                         activeOpacity={0.7}
+                       >
+                         <Text style={styles.closeButtonText}>✕</Text>
+                       </TouchableOpacity>
+                       
+                       <Text style={styles.videoTitle}>{roadmap.title}</Text>
+                       
+                       <TouchableOpacity
+                         style={styles.settingsButton}
+                         onPress={() => setShowSettings(!showSettings)}
+                         activeOpacity={0.7}
+                       >
+                         <Text style={styles.settingsIcon}>⚙️</Text>
+                       </TouchableOpacity>
+                     </View>
 
-                     {/* Simple Video Player */}
+                     {/* Video Player */}
                      <Video
                        ref={videoRef}
                        source={{ uri: roadmap.videoUrl }}
                        style={styles.simpleFullscreenVideo}
                        resizeMode={ResizeMode.CONTAIN}
-                       shouldPlay={true}
+                       shouldPlay={isPlaying}
                        isLooping={false}
                        volume={1.0}
                        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-                       useNativeControls={true}
+                       useNativeControls={false}
                      />
+
+                     {/* Custom Video Controls */}
+                     <View style={styles.videoControlsOverlay}>
+                       {/* Play/Pause Button */}
+                       <TouchableOpacity
+                         style={styles.playPauseButton}
+                         onPress={() => setIsPlaying(!isPlaying)}
+                         activeOpacity={0.7}
+                       >
+                         <Text style={styles.playPauseIcon}>
+                           {isPlaying ? '⏸️' : '▶️'}
+                         </Text>
+                       </TouchableOpacity>
+
+                       {/* Progress Bar */}
+                       <View style={styles.progressContainer}>
+                         <View style={styles.progressBar}>
+                           <View style={[styles.progressFill, { width: '50%' }]} />
+                         </View>
+                       </View>
+
+                       {/* Volume Control */}
+                       <TouchableOpacity
+                         style={styles.volumeButton}
+                         onPress={() => console.log('Volume toggle')}
+                         activeOpacity={0.7}
+                       >
+                         <Text style={styles.volumeIcon}>🔊</Text>
+                       </TouchableOpacity>
+
+                       {/* Fullscreen Toggle */}
+                       <TouchableOpacity
+                         style={styles.fullscreenButton}
+                         onPress={exitFullscreen}
+                         activeOpacity={0.7}
+                       >
+                         <Text style={styles.fullscreenIcon}>⤢</Text>
+                       </TouchableOpacity>
+                     </View>
+
+                     {/* Settings Panel */}
+                     {showSettings && (
+                       <View style={styles.settingsPanel}>
+                         <Text style={styles.settingsTitle}>Video Settings</Text>
+                         
+                         {/* Playback Speed */}
+                         <View style={styles.settingRow}>
+                           <Text style={styles.settingLabel}>Playback Speed</Text>
+                           <View style={styles.speedButtons}>
+                             {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => (
+                               <TouchableOpacity
+                                 key={speed}
+                                 style={[
+                                   styles.speedButton,
+                                   speed === 1.0 && styles.speedButtonActive
+                                 ]}
+                                 onPress={() => console.log(`Speed: ${speed}x`)}
+                               >
+                                 <Text style={[
+                                   styles.speedButtonText,
+                                   speed === 1.0 && styles.speedButtonTextActive
+                                 ]}>
+                                   {speed}x
+                                 </Text>
+                               </TouchableOpacity>
+                             ))}
+                           </View>
+                         </View>
+
+                         {/* Quality Settings */}
+                         <View style={styles.settingRow}>
+                           <Text style={styles.settingLabel}>Video Quality</Text>
+                           <View style={styles.qualityButtons}>
+                             {['Auto', '1080p', '720p', '480p', '360p'].map((quality) => (
+                               <TouchableOpacity
+                                 key={quality}
+                                 style={[
+                                   styles.qualityButton,
+                                   quality === 'Auto' && styles.qualityButtonActive
+                                 ]}
+                                 onPress={() => console.log(`Quality: ${quality}`)}
+                               >
+                                 <Text style={[
+                                   styles.qualityButtonText,
+                                   quality === 'Auto' && styles.qualityButtonTextActive
+                                 ]}>
+                                   {quality}
+                                 </Text>
+                               </TouchableOpacity>
+                             ))}
+                           </View>
+                         </View>
+
+                         {/* Audio Settings */}
+                         <View style={styles.settingRow}>
+                           <Text style={styles.settingLabel}>Audio</Text>
+                           <View style={styles.audioButtons}>
+                             <TouchableOpacity
+                               style={styles.audioButton}
+                               onPress={() => console.log('Mute/Unmute')}
+                             >
+                               <Text style={styles.audioButtonText}>🔊</Text>
+                             </TouchableOpacity>
+                             <TouchableOpacity
+                               style={styles.audioButton}
+                               onPress={() => console.log('Subtitles')}
+                             >
+                               <Text style={styles.audioButtonText}>📝</Text>
+                             </TouchableOpacity>
+                           </View>
+                         </View>
+                       </View>
+                     )}
 
                    </View>
                  </Modal>
@@ -1179,31 +1304,210 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Simple Fullscreen Video Styles
+  // Advanced Fullscreen Video Styles
   simpleFullscreenContainer: {
     flex: 1,
     backgroundColor: '#000000',
   },
-  closeButton: {
+  topControlsBar: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    right: 20,
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 20 : 10,
+    zIndex: 1000,
+  },
+  closeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
   },
   closeButtonText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  videoTitle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 15,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsIcon: {
+    fontSize: 18,
   },
   simpleFullscreenVideo: {
     width: '100%',
     height: '100%',
+  },
+  videoControlsOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+  },
+  playPauseButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  playPauseIcon: {
+    fontSize: 24,
+  },
+  progressContainer: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+    marginRight: 15,
+  },
+  progressBar: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 2,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+  },
+  volumeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  volumeIcon: {
+    fontSize: 20,
+  },
+  fullscreenButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenIcon: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  // Settings Panel Styles
+  settingsPanel: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 300,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    borderRadius: 12,
+    padding: 20,
+    zIndex: 1001,
+  },
+  settingsTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  settingRow: {
+    marginBottom: 20,
+  },
+  settingLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  speedButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  speedButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  speedButtonActive: {
+    backgroundColor: '#E50914',
+  },
+  speedButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  speedButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  qualityButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  qualityButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  qualityButtonActive: {
+    backgroundColor: '#E50914',
+  },
+  qualityButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  qualityButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  audioButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  audioButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  audioButtonText: {
+    fontSize: 18,
   },
   safariControls: {
     position: 'absolute',
