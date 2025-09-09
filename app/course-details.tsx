@@ -15,6 +15,7 @@ import {
   PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Video from 'react-native-video';
 
 const { width, height } = Dimensions.get('window');
 
@@ -124,6 +125,8 @@ export default function CourseDetailsScreen() {
   const [floatingPosition, setFloatingPosition] = useState({ x: width - 150, y: height - 250 });
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isAutoplay, setIsAutoplay] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -143,9 +146,12 @@ export default function CourseDetailsScreen() {
 
   const handlePlayVideo = (lecture: any) => {
     setSelectedVideo(lecture);
-    setIsPlaying(true);
     setCurrentTime(0);
     setShowControls(true);
+    
+    // Netflix-style autoplay with preview
+    setShowPreview(true);
+    setIsAutoplay(true);
     
     // Start creative animations with multiple effects
     Animated.parallel([
@@ -160,6 +166,12 @@ export default function CourseDetailsScreen() {
     
     startPulseAnimation();
     startCreativeAnimations();
+    
+    // Netflix-style autoplay delay
+    setTimeout(() => {
+      setIsPlaying(true);
+      setShowPreview(false);
+    }, 2000);
   };
 
   const handlePlayPause = () => {
@@ -380,11 +392,34 @@ export default function CourseDetailsScreen() {
             }
           ]}
         >
-        {/* Video Player - Fallback for now */}
-        <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+        {/* Netflix-Style Cinema Video Player */}
+        <Video
+          source={{ uri: selectedVideo.videoUrl }}
           style={styles.cinemaVideo}
-          resizeMode="cover"
+          paused={!isPlaying}
+          resizeMode="contain"
+          onLoad={(data) => {
+            setDuration(data.duration);
+            setIsLoading(false);
+          }}
+          onProgress={(data) => {
+            setCurrentTime(data.currentTime);
+          }}
+          onError={(error) => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+          onLoadStart={() => setIsLoading(true)}
+          onEnd={() => setIsPlaying(false)}
+          onBuffer={(data) => setIsLoading(data.isBuffering)}
+          repeat={false}
+          playInBackground={false}
+          playWhenInactive={false}
+          ignoreSilentSwitch="ignore"
+          mixWithOthers="duck"
+          fullscreen={isFullscreen}
+          onFullscreenPlayerWillPresent={() => setIsFullscreen(true)}
+          onFullscreenPlayerWillDismiss={() => setIsFullscreen(false)}
         />
 
           {/* Cinema-style overlay */}
@@ -627,17 +662,66 @@ export default function CourseDetailsScreen() {
             />
           ))}
         </Animated.View>
-        {/* Video Player - Fallback for now */}
-        <ImageBackground
-          source={{ uri: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
+        {/* Netflix-Style Real Video Player */}
+        <Video
+          source={{ uri: selectedVideo.videoUrl }}
           style={styles.smallVideoBackground}
+          paused={!isPlaying}
           resizeMode="cover"
+          onLoad={(data) => {
+            setDuration(data.duration);
+            setIsLoading(false);
+          }}
+          onProgress={(data) => {
+            setCurrentTime(data.currentTime);
+          }}
+          onError={(error) => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
+          onLoadStart={() => setIsLoading(true)}
+          onEnd={() => setIsPlaying(false)}
+          onBuffer={(data) => setIsLoading(data.isBuffering)}
+          repeat={false}
+          playInBackground={false}
+          playWhenInactive={false}
+          ignoreSilentSwitch="ignore"
+          mixWithOthers="duck"
         />
 
         <LinearGradient
           colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
           style={styles.smallVideoGradient}
         >
+          {/* Netflix-Style Preview Overlay */}
+          {showPreview && (
+            <Animated.View 
+              style={[
+                styles.netflixPreviewOverlay,
+                {
+                  opacity: fadeAnim
+                }
+              ]}
+            >
+              <View style={styles.netflixPreviewContent}>
+                <Text style={styles.netflixPreviewTitle}>{selectedVideo.title}</Text>
+                <Text style={styles.netflixPreviewSubtitle}>Starting in 2 seconds...</Text>
+                <View style={styles.netflixPreviewProgress}>
+                  <Animated.View 
+                    style={[
+                      styles.netflixPreviewProgressBar,
+                      {
+                        width: fadeAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%']
+                        })
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+            </Animated.View>
+          )}
           {/* Small Video Header */}
           <View style={styles.smallVideoHeader}>
             <TouchableOpacity 
@@ -2010,5 +2094,47 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 2,
     borderColor: '#E50914',
+  },
+  
+  // Netflix-Style Preview Styles
+  netflixPreviewOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  netflixPreviewContent: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  netflixPreviewTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  netflixPreviewSubtitle: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  netflixPreviewProgress: {
+    width: 200,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  netflixPreviewProgressBar: {
+    height: '100%',
+    backgroundColor: '#E50914',
+    borderRadius: 2,
   },
 });
