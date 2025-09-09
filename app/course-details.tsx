@@ -653,7 +653,6 @@ export default function CourseDetailsScreen() {
                 <Text style={styles.floatingExpandIcon}>⤢</Text>
               </TouchableOpacity>
             </LinearGradient>
-          </ImageBackground>
         </Animated.View>
       );
     }
