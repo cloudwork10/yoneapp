@@ -846,28 +846,14 @@ export default function CourseDetailsScreen() {
             }
           ]}
         >
-          {[...Array(8)].map((_, i) => (
-            <Animated.View
+          {[...Array(6)].map((_, i) => (
+            <View
               key={i}
               style={[
                 styles.particle,
                 {
-                  left: `${10 + i * 12}%`,
+                  left: `${10 + i * 15}%`,
                   top: `${20 + (i % 3) * 25}%`,
-                  transform: [
-                    {
-                      rotate: particleAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ['0deg', `${360 + i * 45}deg`]
-                      })
-                    },
-                    {
-                      scale: particleAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: [0, 1, 0.8]
-                      })
-                    }
-                  ]
                 }
               ]}
             />
@@ -898,17 +884,7 @@ export default function CourseDetailsScreen() {
                 <Text style={styles.netflixPreviewTitle}>{selectedVideo.title}</Text>
                 <Text style={styles.netflixPreviewSubtitle}>Starting in 2 seconds...</Text>
                 <View style={styles.netflixPreviewProgress}>
-                  <Animated.View 
-                    style={[
-                      styles.netflixPreviewProgressBar,
-                      {
-                        width: fadeAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%']
-                        })
-                      }
-                    ]}
-                  />
+                  <View style={styles.netflixPreviewProgressBar} />
                 </View>
               </View>
             </Animated.View>
@@ -2317,27 +2293,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   
-  // Creative Animation Styles
-  particleContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-  },
-  particle: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E50914',
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 5,
-  },
+  // Creative Animation Styles (removed duplicate)
   playButtonGlow: {
     position: 'absolute',
     width: 80,
