@@ -22,9 +22,7 @@ export default function RoadmapsScreen() {
       id: 1, 
       title: 'Frontend Developer', 
       description: 'Master HTML, CSS, JavaScript, React, and modern frontend technologies',
-      progress: 65,
       totalSteps: 20,
-      completedSteps: 13,
       image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
       color: '#FF6B6B',
       icon: '🎨',
@@ -35,9 +33,7 @@ export default function RoadmapsScreen() {
       id: 2, 
       title: 'Backend Developer', 
       description: 'Learn Node.js, databases, APIs, and server-side development',
-      progress: 40,
       totalSteps: 25,
-      completedSteps: 10,
       image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
       color: '#4ECDC4',
       icon: '⚙️',
@@ -48,9 +44,7 @@ export default function RoadmapsScreen() {
       id: 3, 
       title: 'Full Stack Developer', 
       description: 'Complete end-to-end development with frontend and backend skills',
-      progress: 30,
       totalSteps: 35,
-      completedSteps: 10,
       image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
       color: '#45B7D1',
       icon: '🚀',
@@ -61,9 +55,7 @@ export default function RoadmapsScreen() {
       id: 4, 
       title: 'Mobile Developer', 
       description: 'Build iOS and Android apps with React Native and Flutter',
-      progress: 80,
       totalSteps: 15,
-      completedSteps: 12,
       image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
       color: '#96CEB4',
       icon: '📱',
@@ -74,9 +66,7 @@ export default function RoadmapsScreen() {
       id: 5, 
       title: 'DevOps Engineer', 
       description: 'Master cloud platforms, CI/CD, and infrastructure automation',
-      progress: 20,
       totalSteps: 30,
-      completedSteps: 6,
       image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
       color: '#FFEAA7',
       icon: '☁️',
@@ -87,9 +77,7 @@ export default function RoadmapsScreen() {
       id: 6, 
       title: 'Data Scientist', 
       description: 'Learn Python, machine learning, and data analysis',
-      progress: 15,
       totalSteps: 28,
-      completedSteps: 4,
       image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
       color: '#DDA0DD',
       icon: '📊',
@@ -169,9 +157,6 @@ export default function RoadmapsScreen() {
                         <View style={styles.roadmapIcon}>
                           <Text style={styles.roadmapIconText}>{roadmap.icon}</Text>
                         </View>
-                        <View style={styles.roadmapProgressContainer}>
-                          <Text style={styles.roadmapProgressText}>{roadmap.progress}%</Text>
-                        </View>
                       </LinearGradient>
                     </ImageBackground>
                   </View>
@@ -195,20 +180,6 @@ export default function RoadmapsScreen() {
                         <Text style={styles.roadmapMetaIcon}>📚</Text>
                         <Text style={styles.roadmapMetaText}>{roadmap.totalSteps} steps</Text>
                       </View>
-                    </View>
-                    
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBar}>
-                        <View 
-                          style={[
-                            styles.progressFill, 
-                            { width: `${roadmap.progress}%`, backgroundColor: roadmap.color }
-                          ]} 
-                        />
-                      </View>
-                      <Text style={styles.stepsText}>
-                        {roadmap.completedSteps} of {roadmap.totalSteps} completed
-                      </Text>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -367,17 +338,6 @@ const styles = StyleSheet.create({
   roadmapIconText: {
     fontSize: 20,
   },
-  roadmapProgressContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  roadmapProgressText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
   roadmapContent: {
     padding: 16,
   },
@@ -426,22 +386,5 @@ const styles = StyleSheet.create({
   roadmapMetaText: {
     color: '#CCCCCC',
     fontSize: 12,
-  },
-  progressContainer: {
-    gap: 6,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  stepsText: {
-    fontSize: 11,
-    color: '#999999',
   },
 });
