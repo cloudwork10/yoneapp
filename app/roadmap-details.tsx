@@ -173,6 +173,126 @@ export default function RoadmapDetailsScreen() {
             </View>
           ))}
         </View>
+
+        {/* Prerequisites Section */}
+        <View style={styles.detailsSection}>
+          <Text style={styles.sectionTitle}>Prerequisites</Text>
+          <Text style={styles.sectionSubtitle}>
+            What you should know before starting
+          </Text>
+          <View style={styles.prerequisitesCard}>
+            <View style={styles.prerequisiteItem}>
+              <Text style={styles.prerequisiteIcon}>📚</Text>
+              <Text style={styles.prerequisiteText}>Basic programming knowledge</Text>
+            </View>
+            <View style={styles.prerequisiteItem}>
+              <Text style={styles.prerequisiteIcon}>💻</Text>
+              <Text style={styles.prerequisiteText}>Computer with internet connection</Text>
+            </View>
+            <View style={styles.prerequisiteItem}>
+              <Text style={styles.prerequisiteIcon}>⏰</Text>
+              <Text style={styles.prerequisiteText}>2-3 hours per week commitment</Text>
+            </View>
+            <View style={styles.prerequisiteItem}>
+              <Text style={styles.prerequisiteIcon}>🎯</Text>
+              <Text style={styles.prerequisiteText}>Motivation to learn and practice</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* What You'll Learn Section */}
+        <View style={styles.detailsSection}>
+          <Text style={styles.sectionTitle}>What You'll Learn</Text>
+          <Text style={styles.sectionSubtitle}>
+            Key skills and knowledge you'll gain
+          </Text>
+          <View style={styles.learningCard}>
+            <View style={styles.learningItem}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Master the fundamentals and advanced concepts</Text>
+            </View>
+            <View style={styles.learningItem}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Build real-world projects and applications</Text>
+            </View>
+            <View style={styles.learningItem}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Understand best practices and industry standards</Text>
+            </View>
+            <View style={styles.learningItem}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Develop problem-solving and critical thinking skills</Text>
+            </View>
+            <View style={styles.learningItem}>
+              <Text style={styles.learningIcon}>✅</Text>
+              <Text style={styles.learningText}>Create a portfolio of completed projects</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Resources Section */}
+        <View style={styles.detailsSection}>
+          <Text style={styles.sectionTitle}>Additional Resources</Text>
+          <Text style={styles.sectionSubtitle}>
+            Helpful tools and materials to support your learning
+          </Text>
+          <View style={styles.resourcesCard}>
+            <View style={styles.resourceItem}>
+              <Text style={styles.resourceIcon}>📖</Text>
+              <View style={styles.resourceInfo}>
+                <Text style={styles.resourceTitle}>Documentation</Text>
+                <Text style={styles.resourceDescription}>Official guides and references</Text>
+              </View>
+            </View>
+            <View style={styles.resourceItem}>
+              <Text style={styles.resourceIcon}>🎥</Text>
+              <View style={styles.resourceInfo}>
+                <Text style={styles.resourceTitle}>Video Tutorials</Text>
+                <Text style={styles.resourceDescription}>Step-by-step video guides</Text>
+              </View>
+            </View>
+            <View style={styles.resourceItem}>
+              <Text style={styles.resourceIcon}>💬</Text>
+              <View style={styles.resourceInfo}>
+                <Text style={styles.resourceTitle}>Community Support</Text>
+                <Text style={styles.resourceDescription}>Get help from other learners</Text>
+              </View>
+            </View>
+            <View style={styles.resourceItem}>
+              <Text style={styles.resourceIcon}>🛠️</Text>
+              <View style={styles.resourceInfo}>
+                <Text style={styles.resourceTitle}>Tools & Software</Text>
+                <Text style={styles.resourceDescription}>Essential development tools</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Tips Section */}
+        <View style={styles.detailsSection}>
+          <Text style={styles.sectionTitle}>Learning Tips</Text>
+          <Text style={styles.sectionSubtitle}>
+            Make the most of your learning journey
+          </Text>
+          <View style={styles.tipsCard}>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipNumber}>1</Text>
+              <Text style={styles.tipText}>Practice regularly - consistency is key to mastering any skill</Text>
+            </View>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipNumber}>2</Text>
+              <Text style={styles.tipText}>Build projects as you learn - hands-on experience is invaluable</Text>
+            </View>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipNumber}>3</Text>
+              <Text style={styles.tipText}>Join communities - connect with other learners and professionals</Text>
+            </View>
+            <View style={styles.tipItem}>
+              <Text style={styles.tipNumber}>4</Text>
+              <Text style={styles.tipText}>Don't rush - take time to understand concepts thoroughly</Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -366,5 +486,110 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     marginBottom: 4,
     lineHeight: 18,
+  },
+  // Details Sections
+  detailsSection: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  // Prerequisites Section
+  prerequisitesCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 20,
+  },
+  prerequisiteItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  prerequisiteIcon: {
+    fontSize: 20,
+    marginRight: 12,
+    width: 30,
+  },
+  prerequisiteText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    flex: 1,
+    lineHeight: 22,
+  },
+  // Learning Section
+  learningCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 20,
+  },
+  learningItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  learningIcon: {
+    fontSize: 16,
+    marginRight: 12,
+    marginTop: 2,
+    width: 20,
+  },
+  learningText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    flex: 1,
+    lineHeight: 22,
+  },
+  // Resources Section
+  resourcesCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 20,
+  },
+  resourceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  resourceIcon: {
+    fontSize: 24,
+    marginRight: 16,
+    width: 40,
+  },
+  resourceInfo: {
+    flex: 1,
+  },
+  resourceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  resourceDescription: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    lineHeight: 20,
+  },
+  // Tips Section
+  tipsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 20,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  tipNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginRight: 16,
+    width: 30,
+    textAlign: 'center',
+  },
+  tipText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    flex: 1,
+    lineHeight: 22,
   },
 });
