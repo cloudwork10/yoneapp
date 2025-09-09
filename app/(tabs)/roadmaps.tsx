@@ -2,8 +2,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 export default function RoadmapsScreen() {
+  const router = useRouter();
+  
   const roadmaps = [
     { 
       id: 1, 
@@ -58,7 +61,11 @@ export default function RoadmapsScreen() {
 
         <View style={styles.roadmapsContainer}>
           {roadmaps.map((roadmap) => (
-            <TouchableOpacity key={roadmap.id} style={styles.roadmapCard}>
+            <TouchableOpacity 
+              key={roadmap.id} 
+              style={styles.roadmapCard}
+              onPress={() => router.push(`/roadmap-details?roadmapId=${roadmap.id}`)}
+            >
               <View style={styles.roadmapHeader}>
                 <Text style={styles.roadmapTitle}>{roadmap.title}</Text>
                 <Text style={styles.progressText}>{roadmap.progress}%</Text>
