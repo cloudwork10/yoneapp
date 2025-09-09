@@ -107,6 +107,14 @@ export default function PodcastDetailsScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const floatingAnim = useRef(new Animated.ValueXY({ x: width - 120, y: height - 200 })).current;
+  
+  // Creative animation values
+  const tiltAnim = useRef(new Animated.Value(0)).current;
+  const morphAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const waveAnim = useRef(new Animated.Value(0)).current;
+  const particleAnim = useRef(new Animated.Value(0)).current;
+  const colorAnim = useRef(new Animated.Value(0)).current;
 
   const handlePlayVideo = (episode: any) => {
     setSelectedVideo(episode);
@@ -114,14 +122,19 @@ export default function PodcastDetailsScreen() {
     setCurrentTime(0);
     setShowControls(true);
     
-    // Start creative animations
+    // Start creative animations with multiple effects
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, tension: 100, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 1, duration: 600, useNativeDriver: true })
+      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(tiltAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.timing(glowAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      Animated.timing(particleAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(colorAnim, { toValue: 1, duration: 1500, useNativeDriver: true })
     ]).start();
     
     startPulseAnimation();
+    startCreativeAnimations();
   };
 
   const handlePlayPause = () => {
@@ -208,6 +221,34 @@ export default function PodcastDetailsScreen() {
   const stopPulseAnimation = () => {
     pulseAnim.stopAnimation();
     Animated.timing(pulseAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+  };
+
+  const startCreativeAnimations = () => {
+    // Morphing animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(morphAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+        Animated.timing(morphAnim, { toValue: 0, duration: 2000, useNativeDriver: true })
+      ])
+    ).start();
+
+    // Wave animation
+    Animated.loop(
+      Animated.timing(waveAnim, { toValue: 1, duration: 3000, useNativeDriver: true })
+    ).start();
+
+    // Glow pulsing
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 0.3, duration: 1500, useNativeDriver: true }),
+        Animated.timing(glowAnim, { toValue: 1, duration: 1500, useNativeDriver: true })
+      ])
+    ).start();
+
+    // Color cycling
+    Animated.loop(
+      Animated.timing(colorAnim, { toValue: 1, duration: 4000, useNativeDriver: true })
+    ).start();
   };
 
   // Pan responder for floating video
@@ -500,11 +541,67 @@ export default function PodcastDetailsScreen() {
                   inputRange: [0, 1],
                   outputRange: [100, 0]
                 })
+              },
+              {
+                rotateX: tiltAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '5deg']
+                })
+              },
+              {
+                rotateY: tiltAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', '3deg']
+                })
               }
             ]
           }
         ]}
       >
+        {/* Creative Particle Effects */}
+        <Animated.View 
+          style={[
+            styles.particleContainer,
+            {
+              opacity: particleAnim,
+              transform: [
+                {
+                  scale: particleAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.5, 1.2]
+                  })
+                }
+              ]
+            }
+          ]}
+        >
+          {[...Array(8)].map((_, i) => (
+            <Animated.View
+              key={i}
+              style={[
+                styles.particle,
+                {
+                  left: `${10 + i * 12}%`,
+                  top: `${20 + (i % 3) * 25}%`,
+                  transform: [
+                    {
+                      rotate: particleAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', `${360 + i * 45}deg`]
+                      })
+                    },
+                    {
+                      scale: particleAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0, 1, 0.8]
+                      })
+                    }
+                  ]
+                }
+              ]}
+            />
+          ))}
+        </Animated.View>
         {/* Video Player - Fallback for now */}
         <ImageBackground
           source={{ uri: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80' }}
@@ -548,18 +645,66 @@ export default function PodcastDetailsScreen() {
             onPress={handlePlayPause}
             activeOpacity={0.8}
           >
+            {/* Glow Effect */}
+            <Animated.View 
+              style={[
+                styles.playButtonGlow,
+                {
+                  opacity: glowAnim,
+                  transform: [
+                    { scale: glowAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1.3]
+                    })}
+                  ]
+                }
+              ]}
+            />
+            
+            {/* Morphing Play Button */}
             <Animated.View 
               style={[
                 styles.smallPlayButton,
                 {
                   transform: [
-                    { scale: pulseAnim }
-                  ]
+                    { scale: pulseAnim },
+                    {
+                      rotate: morphAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg']
+                      })
+                    }
+                  ],
+                  borderRadius: morphAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [35, 20, 35]
+                  })
                 }
               ]}
             >
               <Text style={styles.smallPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
             </Animated.View>
+            
+            {/* Wave Effect */}
+            <Animated.View 
+              style={[
+                styles.waveEffect,
+                {
+                  transform: [
+                    {
+                      scale: waveAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 1.5]
+                      })
+                    }
+                  ],
+                  opacity: waveAnim.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    outputRange: [0.8, 0.4, 0]
+                  })
+                }
+              ]}
+            />
           </TouchableOpacity>
 
           {/* Small Video Bottom Controls */}
@@ -1740,5 +1885,47 @@ const styles = StyleSheet.create({
   },
   smallErrorIcon: {
     fontSize: 20,
+  },
+  
+  // Creative Animation Styles
+  particleContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  particle: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E50914',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  playButtonGlow: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E50914',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  waveEffect: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: '#E50914',
   },
 });
