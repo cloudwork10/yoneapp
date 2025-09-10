@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View, Modal, FlatList } from 'react-native';
+import { Alert, FlatList, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Configure notifications
@@ -32,26 +32,26 @@ export default function PrayerTimesScreen() {
   });
   const [countryModalVisible, setCountryModalVisible] = useState(false);
 
-  // Arab countries and cities
+  // Arab countries and cities with fallback prayer times
   const arabCountries = [
-    { name: 'Cairo', country: 'Egypt', displayName: 'القاهرة، مصر' },
-    { name: 'Riyadh', country: 'Saudi Arabia', displayName: 'الرياض، السعودية' },
-    { name: 'Dubai', country: 'UAE', displayName: 'دبي، الإمارات' },
-    { name: 'Kuwait City', country: 'Kuwait', displayName: 'الكويت، الكويت' },
-    { name: 'Doha', country: 'Qatar', displayName: 'الدوحة، قطر' },
-    { name: 'Manama', country: 'Bahrain', displayName: 'المنامة، البحرين' },
-    { name: 'Amman', country: 'Jordan', displayName: 'عمان، الأردن' },
-    { name: 'Beirut', country: 'Lebanon', displayName: 'بيروت، لبنان' },
-    { name: 'Damascus', country: 'Syria', displayName: 'دمشق، سوريا' },
-    { name: 'Baghdad', country: 'Iraq', displayName: 'بغداد، العراق' },
-    { name: 'Tunis', country: 'Tunisia', displayName: 'تونس، تونس' },
-    { name: 'Algiers', country: 'Algeria', displayName: 'الجزائر، الجزائر' },
-    { name: 'Rabat', country: 'Morocco', displayName: 'الرباط، المغرب' },
-    { name: 'Tripoli', country: 'Libya', displayName: 'طرابلس، ليبيا' },
-    { name: 'Khartoum', country: 'Sudan', displayName: 'الخرطوم، السودان' },
-    { name: 'Sanaa', country: 'Yemen', displayName: 'صنعاء، اليمن' },
-    { name: 'Muscat', country: 'Oman', displayName: 'مسقط، عمان' },
-    { name: 'Jerusalem', country: 'Palestine', displayName: 'القدس، فلسطين' }
+    { name: 'Cairo', country: 'Egypt', displayName: 'القاهرة، مصر', fallback: { fajr: '05:15', dhuhr: '12:55', asr: '16:25', maghrib: '19:10', isha: '20:40' } },
+    { name: 'Riyadh', country: 'Saudi Arabia', displayName: 'الرياض، السعودية', fallback: { fajr: '04:45', dhuhr: '12:15', asr: '15:45', maghrib: '18:30', isha: '20:00' } },
+    { name: 'Dubai', country: 'UAE', displayName: 'دبي، الإمارات', fallback: { fajr: '05:00', dhuhr: '12:30', asr: '16:00', maghrib: '18:45', isha: '20:15' } },
+    { name: 'Kuwait City', country: 'Kuwait', displayName: 'الكويت، الكويت', fallback: { fajr: '04:50', dhuhr: '12:20', asr: '15:50', maghrib: '18:35', isha: '20:05' } },
+    { name: 'Doha', country: 'Qatar', displayName: 'الدوحة، قطر', fallback: { fajr: '04:55', dhuhr: '12:25', asr: '15:55', maghrib: '18:40', isha: '20:10' } },
+    { name: 'Manama', country: 'Bahrain', displayName: 'المنامة، البحرين', fallback: { fajr: '04:50', dhuhr: '12:20', asr: '15:50', maghrib: '18:35', isha: '20:05' } },
+    { name: 'Amman', country: 'Jordan', displayName: 'عمان، الأردن', fallback: { fajr: '05:20', dhuhr: '12:50', asr: '16:20', maghrib: '19:05', isha: '20:35' } },
+    { name: 'Beirut', country: 'Lebanon', displayName: 'بيروت، لبنان', fallback: { fajr: '05:25', dhuhr: '12:55', asr: '16:25', maghrib: '19:10', isha: '20:40' } },
+    { name: 'Damascus', country: 'Syria', displayName: 'دمشق، سوريا', fallback: { fajr: '05:20', dhuhr: '12:50', asr: '16:20', maghrib: '19:05', isha: '20:35' } },
+    { name: 'Baghdad', country: 'Iraq', displayName: 'بغداد، العراق', fallback: { fajr: '05:00', dhuhr: '12:30', asr: '16:00', maghrib: '18:45', isha: '20:15' } },
+    { name: 'Tunis', country: 'Tunisia', displayName: 'تونس، تونس', fallback: { fajr: '05:30', dhuhr: '13:00', asr: '16:30', maghrib: '19:15', isha: '20:45' } },
+    { name: 'Algiers', country: 'Algeria', displayName: 'الجزائر، الجزائر', fallback: { fajr: '05:35', dhuhr: '13:05', asr: '16:35', maghrib: '19:20', isha: '20:50' } },
+    { name: 'Rabat', country: 'Morocco', displayName: 'الرباط، المغرب', fallback: { fajr: '05:40', dhuhr: '13:10', asr: '16:40', maghrib: '19:25', isha: '20:55' } },
+    { name: 'Tripoli', country: 'Libya', displayName: 'طرابلس، ليبيا', fallback: { fajr: '05:25', dhuhr: '12:55', asr: '16:25', maghrib: '19:10', isha: '20:40' } },
+    { name: 'Khartoum', country: 'Sudan', displayName: 'الخرطوم، السودان', fallback: { fajr: '05:10', dhuhr: '12:40', asr: '16:10', maghrib: '18:55', isha: '20:25' } },
+    { name: 'Sanaa', country: 'Yemen', displayName: 'صنعاء، اليمن', fallback: { fajr: '05:00', dhuhr: '12:30', asr: '16:00', maghrib: '18:45', isha: '20:15' } },
+    { name: 'Muscat', country: 'Oman', displayName: 'مسقط، عمان', fallback: { fajr: '05:05', dhuhr: '12:35', asr: '16:05', maghrib: '18:50', isha: '20:20' } },
+    { name: 'Jerusalem', country: 'Palestine', displayName: 'القدس، فلسطين', fallback: { fajr: '05:20', dhuhr: '12:50', asr: '16:20', maghrib: '19:05', isha: '20:35' } }
   ];
 
   // Function to calculate prayer times for selected city
@@ -65,7 +65,7 @@ export default function PrayerTimesScreen() {
       
       // Using Aladhan API for accurate prayer times
       const response = await fetch(
-        `http://api.aladhan.com/v1/timingsByCity/${day}-${month}-${year}?city=${selectedCountry.name}&country=${selectedCountry.country}&method=5`
+        `https://api.aladhan.com/v1/timingsByCity/${day}-${month}-${year}?city=${selectedCountry.name}&country=${selectedCountry.country}&method=5`
       );
       
       if (response.ok) {
@@ -80,12 +80,24 @@ export default function PrayerTimesScreen() {
           isha: timings.Isha
         });
       } else {
-        // Fallback to calculated times if API fails
-        console.log('API failed, using fallback times');
+        // Use fallback times for the selected country
+        const selectedCountryData = arabCountries.find(country => 
+          country.name === selectedCountry.name && country.country === selectedCountry.country
+        );
+        if (selectedCountryData && selectedCountryData.fallback) {
+          setPrayerTimes(selectedCountryData.fallback);
+        }
+        console.log('API failed, using fallback times for', selectedCountry.displayName);
       }
     } catch (error) {
       console.log('Error fetching prayer times:', error);
-      // Keep current times as fallback
+      // Use fallback times for the selected country
+      const selectedCountryData = arabCountries.find(country => 
+        country.name === selectedCountry.name && country.country === selectedCountry.country
+      );
+      if (selectedCountryData && selectedCountryData.fallback) {
+        setPrayerTimes(selectedCountryData.fallback);
+      }
     }
     setLoading(false);
   };
