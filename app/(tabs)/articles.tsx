@@ -202,13 +202,28 @@ export default function ArticlesScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Header Section */}
           <View style={styles.header}>
-            <Text style={styles.title}>Articles</Text>
-            <Text style={styles.subtitle}>Latest insights and tutorials</Text>
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>📚</Text>
+              <Text style={styles.title}>Articles</Text>
+              <Text style={styles.titleAccent}>Hub</Text>
+            </View>
+            <Text style={styles.subtitle}>✨ Discover amazing insights & tutorials ✨</Text>
+            <View style={styles.subtitleContainer}>
+              <Text style={styles.subtitleAccent}>Latest</Text>
+              <Text style={styles.subtitleText}> • </Text>
+              <Text style={styles.subtitleAccent}>Trending</Text>
+              <Text style={styles.subtitleText}> • </Text>
+              <Text style={styles.subtitleAccent}>Popular</Text>
+            </View>
           </View>
 
           {/* Featured Article */}
           <View style={styles.featuredSection}>
-            <Text style={styles.featuredTitle}>Featured Article</Text>
+            <View style={styles.featuredTitleContainer}>
+              <Text style={styles.featuredTitleIcon}>⭐</Text>
+              <Text style={styles.featuredTitle}>Featured Article</Text>
+              <Text style={styles.featuredTitleIcon}>⭐</Text>
+            </View>
             <TouchableOpacity 
               style={styles.featuredCard}
               onPress={() => router.push(`/article-details?articleId=${articles[0].id}`)}
@@ -250,7 +265,7 @@ export default function ArticlesScreen() {
               <Text style={styles.searchIcon}>🔍</Text>
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search articles..."
+                placeholder="🔍 Search amazing articles..."
                 placeholderTextColor="#666666"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -260,7 +275,11 @@ export default function ArticlesScreen() {
 
           {/* Categories Section */}
           <View style={styles.categoriesSection}>
-            <Text style={styles.sectionTitle}>Categories</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitleIcon}>🏷️</Text>
+              <Text style={styles.sectionTitle}>Categories</Text>
+              <Text style={styles.sectionTitleAccent}>Explore</Text>
+            </View>
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
@@ -290,9 +309,15 @@ export default function ArticlesScreen() {
 
           {/* All Articles */}
           <View style={styles.articlesSection}>
-            <Text style={styles.sectionTitle}>
-              {selectedCategory === 'All' ? 'All Articles' : `${selectedCategory} Articles`}
-            </Text>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitleIcon}>📖</Text>
+              <Text style={styles.sectionTitle}>
+                {selectedCategory === 'All' ? 'All Articles' : `${selectedCategory} Articles`}
+              </Text>
+              <Text style={styles.sectionTitleAccent}>
+                {selectedCategory === 'All' ? '({filteredArticles.length})' : `(${filteredArticles.length})`}
+              </Text>
+            </View>
             <View style={styles.articlesContainer}>
               {filteredArticles.map((article) => (
                 <TouchableOpacity 
@@ -324,7 +349,7 @@ export default function ArticlesScreen() {
                     <View style={styles.articleHeader}>
                       <Text style={styles.articleTitle}>{article.title}</Text>
                       <View style={[styles.articleCategoryBadge, { backgroundColor: article.color }]}>
-                        <Text style={styles.articleCategoryText}>{article.category}</Text>
+                        <Text style={styles.articleCategoryText}>#{article.category}</Text>
                       </View>
                     </View>
                     
@@ -367,25 +392,68 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 30,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   title: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginRight: 8,
+  },
+  titleAccent: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#E50914',
+    textShadowColor: 'rgba(229, 9, 20, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   subtitle: {
     fontSize: 18,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  subtitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  subtitleAccent: {
+    fontSize: 16,
+    color: '#E50914',
+    fontWeight: 'bold',
+  },
+  subtitleText: {
+    fontSize: 16,
     color: '#CCCCCC',
+    marginHorizontal: 8,
   },
   // Featured Section
   featuredSection: {
     marginBottom: 30,
   },
-  featuredTitle: {
+  featuredTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  featuredTitleIcon: {
     fontSize: 20,
+    marginHorizontal: 8,
+  },
+  featuredTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 15,
+    textShadowColor: 'rgba(255, 255, 255, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   featuredCard: {
     height: 200,
@@ -476,11 +544,26 @@ const styles = StyleSheet.create({
   categoriesSection: {
     marginBottom: 20,
   },
-  sectionTitle: {
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sectionTitleIcon: {
     fontSize: 20,
+    marginRight: 8,
+  },
+  sectionTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 20,
+    marginRight: 8,
+  },
+  sectionTitleAccent: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#E50914',
+    fontStyle: 'italic',
   },
   categoriesScrollView: {
     marginTop: 10,
@@ -583,6 +666,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     flex: 1,
     marginRight: 12,
+    lineHeight: 24,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   articleCategoryBadge: {
     paddingHorizontal: 8,
@@ -598,8 +685,9 @@ const styles = StyleSheet.create({
   articleDescription: {
     fontSize: 14,
     color: '#CCCCCC',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 12,
+    fontStyle: 'italic',
   },
   articleMeta: {
     flexDirection: 'row',
