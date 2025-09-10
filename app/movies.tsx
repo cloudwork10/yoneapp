@@ -146,7 +146,7 @@ export default function MoviesScreen() {
       arabicDescription: 'مبرمج كمبيوتر يُنقل إلى عالم رقمي.',
       category: 'Digital Worlds',
       duration: '1h 36m',
-      image: 'https://m.media-amazon.com/images/M/MV5BZGRjZTQzMzEtNzI5Yy00M2Y2LTg3MDYtMWJjYjMyYzE2MGEzXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg',
+      image: 'https://upload.wikimedia.org/wikipedia/en/5/5f/Tron_poster.jpg',
       whyWatch: 'Visualize programming concepts, digital environments, and computer graphics.',
       arabicWhyWatch: 'تصور مفاهيم البرمجة والبيئات الرقمية ورسومات الكمبيوتر.',
       lessons: [
@@ -167,7 +167,7 @@ export default function MoviesScreen() {
       arabicDescription: 'فريق من خبراء الأمن يُوظف لاختبار أنظمة الأمان.',
       category: 'Security & Cryptography',
       duration: '2h 6m',
-      image: 'https://m.media-amazon.com/images/M/MV5BMjE2NDU3NTI5Nl5BMl5BanBnXkFtZTcwNzQ5NTQ5Mw@@._V1_SX300.jpg',
+      image: 'https://upload.wikimedia.org/wikipedia/en/4/4c/Sneakers_ver1.jpg',
       whyWatch: 'Learn about security testing, cryptography, and ethical hacking practices.',
       arabicWhyWatch: 'تعلم عن اختبار الأمان والتشفير وممارسات الاختراق الأخلاقي.',
       lessons: [
