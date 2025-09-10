@@ -164,35 +164,6 @@ export default function PrayerTimesScreen() {
     }
   };
 
-  const schedulePrayerNotifications = async () => {
-    if (!notificationsEnabled) return;
-
-    // Cancel existing notifications
-    await Notifications.cancelAllScheduledNotificationsAsync();
-
-    // Schedule notifications for each prayer
-    Object.entries(prayerTimes).forEach(([prayer, time]) => {
-      const [hours, minutes] = time.split(':').map(Number);
-      const triggerDate = new Date();
-      triggerDate.setHours(hours, minutes, 0, 0);
-
-      // If the time has passed today, schedule for tomorrow
-      if (triggerDate <= new Date()) {
-        triggerDate.setDate(triggerDate.getDate() + 1);
-      }
-
-      Notifications.scheduleNotificationAsync({
-        content: {
-          title: `وقت صلاة ${prayerNames[prayer as keyof typeof prayerNames]}`,
-          body: `حان وقت صلاة ${prayerNames[prayer as keyof typeof prayerNames]} - ${time}`,
-          sound: true,
-        },
-        trigger: triggerDate,
-      });
-    });
-
-    Alert.alert('تم', 'تم جدولة إشعارات الصلاة بنجاح');
-  };
 
   const toggleNotifications = async (value: boolean) => {
     setNotificationsEnabled(value);
