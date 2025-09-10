@@ -20,7 +20,7 @@ export default function MoviesScreen() {
       arabicDescription: 'قصة كيف أنشأ مارك زوكربيرج فيسبوك وأحدث ثورة في الشبكات الاجتماعية.',
       category: 'Startup & Innovation',
       duration: '2h 0m',
-      image: 'https://image.tmdb.org/t/p/w500/7u3pxc0K1wx32IleAkLv78MKgrw.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BOGUyZDUxZjEtMmIzMC00MzlmLTg4MGItZWJmMzBhZjE0Mjc1XkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_SX300.jpg',
       whyWatch: 'Learn about startup culture, coding under pressure, and the tech industry dynamics.',
       arabicWhyWatch: 'تعلم عن ثقافة الشركات الناشئة والبرمجة تحت الضغط وديناميكيات صناعة التكنولوجيا.',
       lessons: [
@@ -41,7 +41,7 @@ export default function MoviesScreen() {
       arabicDescription: 'قصة آلان تورينج الذي ساعد في كسر شفرة إنيجما خلال الحرب العالمية الثانية.',
       category: 'Cryptography & Algorithms',
       duration: '1h 54m',
-      image: 'https://image.tmdb.org/t/p/w500/lAy0t6GtmZ0Z49d1OBwvc44e9zj.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BOTgwMzFiMWYtZDhlNS00ODNkLWJiODAtZDVhNzgyNzJhYjQ4L2ltYWdlXkEyXkFqcGdeQXVyNzEzOTYxNTQ@._V1_SX300.jpg',
       whyWatch: 'Understand the importance of algorithms, cryptography, and problem-solving in programming.',
       arabicWhyWatch: 'فهم أهمية الخوارزميات والتشفير وحل المشكلات في البرمجة.',
       lessons: [
@@ -62,7 +62,7 @@ export default function MoviesScreen() {
       arabicDescription: 'يُدعى مبرمج لاختبار الصفات الإنسانية لروبوت ذكي.',
       category: 'Artificial Intelligence',
       duration: '1h 48m',
-      image: 'https://image.tmdb.org/t/p/w500/btbRB6nbWxdl78Xj66pouyaPXBe.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BMTUxNzc0OTIxMV5BMl5BanBnXkFtZTgwNDI3NzU2NDE@._V1_SX300.jpg',
       whyWatch: 'Explore AI ethics, machine learning concepts, and the future of programming.',
       arabicWhyWatch: 'استكشف أخلاقيات الذكاء الاصطناعي ومفاهيم التعلم الآلي ومستقبل البرمجة.',
       lessons: [
@@ -83,7 +83,7 @@ export default function MoviesScreen() {
       arabicDescription: 'مجموعة من الهاكرز الشباب تكتشف مؤامرة لإلصاق جريمة بهم.',
       category: 'Cybersecurity',
       duration: '1h 47m',
-      image: 'https://image.tmdb.org/t/p/w500/5V0dpmbZrt8Xe6xlaWEv2nKs8nL.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BNWIwODRlZTUtY2U3ZS00Yzg1LWJhNzYtMmZiYmEyNmU1NjMzXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg',
       whyWatch: 'Learn about cybersecurity, ethical hacking, and computer security principles.',
       arabicWhyWatch: 'تعلم عن الأمن السيبراني والاختراق الأخلاقي ومبادئ أمان الكمبيوتر.',
       lessons: [
@@ -104,7 +104,7 @@ export default function MoviesScreen() {
       arabicDescription: 'هاكر شاب يصل بالصدفة إلى حاسوب عسكري فائق.',
       category: 'Classic Programming',
       duration: '1h 54m',
-      image: 'https://image.tmdb.org/t/p/w500/8bCO9p7vjq3o1tsxTWS1v2H2Vn6.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BMjI1NTg3NzYxNV5BMl5BanBnXkFtZTcwNjk5NTQ5Mw@@._V1_SX300.jpg',
       whyWatch: 'Understand early computing, programming culture, and the evolution of technology.',
       arabicWhyWatch: 'فهم الحوسبة المبكرة وثقافة البرمجة وتطور التكنولوجيا.',
       lessons: [
@@ -125,7 +125,7 @@ export default function MoviesScreen() {
       arabicDescription: 'مبرمج كمبيوتر يكتشف أن الواقع محاكاة.',
       category: 'Virtual Reality & Simulation',
       duration: '2h 16m',
-      image: 'https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BNzQzOTk3OTAtNDQ0Zi00ZTVkLWI0MTEtMDllZjNkYzNjNTc4L2ltYWdlXkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_SX300.jpg',
       whyWatch: 'Explore concepts of virtual reality, simulation, and the nature of reality in programming.',
       arabicWhyWatch: 'استكشف مفاهيم الواقع الافتراضي والمحاكاة وطبيعة الواقع في البرمجة.',
       lessons: [
@@ -146,7 +146,7 @@ export default function MoviesScreen() {
       arabicDescription: 'مبرمج كمبيوتر يُنقل إلى عالم رقمي.',
       category: 'Digital Worlds',
       duration: '1h 36m',
-      image: 'https://image.tmdb.org/t/p/w500/2nLo4TdYdmg7kzc7nOt5d6bxZ3x.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BZGRjZTQzMzEtNzI5Yy00M2Y2LTg3MDYtMWJjYjMyYzE2MGEzXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg',
       whyWatch: 'Visualize programming concepts, digital environments, and computer graphics.',
       arabicWhyWatch: 'تصور مفاهيم البرمجة والبيئات الرقمية ورسومات الكمبيوتر.',
       lessons: [
@@ -167,7 +167,7 @@ export default function MoviesScreen() {
       arabicDescription: 'فريق من خبراء الأمن يُوظف لاختبار أنظمة الأمان.',
       category: 'Security & Cryptography',
       duration: '2h 6m',
-      image: 'https://image.tmdb.org/t/p/w500/9WlJFhOSCPnaaSXvrqtkNPqCywp.jpg',
+      image: 'https://m.media-amazon.com/images/M/MV5BMjE2NDU3NTI5Nl5BMl5BanBnXkFtZTcwNzQ5NTQ5Mw@@._V1_SX300.jpg',
       whyWatch: 'Learn about security testing, cryptography, and ethical hacking practices.',
       arabicWhyWatch: 'تعلم عن اختبار الأمان والتشفير وممارسات الاختراق الأخلاقي.',
       lessons: [
