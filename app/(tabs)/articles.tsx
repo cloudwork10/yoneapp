@@ -208,7 +208,6 @@ export default function ArticlesScreen() {
 
           {/* Featured Article */}
           <View style={styles.featuredSection}>
-            <Text style={styles.featuredTitle}>Featured Article</Text>
             <TouchableOpacity 
               style={styles.featuredCard}
               onPress={() => router.push(`/article-details?articleId=${articles[0].id}`)}
@@ -379,7 +378,7 @@ const styles = StyleSheet.create({
   },
   // Featured Section
   featuredSection: {
-    marginBottom: 30,
+    marginBottom: 20,
   },
   featuredTitle: {
     fontSize: 20,
