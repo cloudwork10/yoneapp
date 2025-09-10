@@ -128,17 +128,14 @@ export default function TopCVScreen() {
                   <Text style={styles.cvName}>{template.name}</Text>
                   <Text style={styles.templateTitle}>{template.title}</Text>
                 </View>
-                <View style={styles.ratingContainer}>
-                  <Text style={styles.rating}>⭐ {template.rating}</Text>
-                </View>
               </View>
               
               <Text style={styles.templateDescription}>{template.description}</Text>
               
               <View style={styles.templateFooter}>
                 <View style={styles.statsContainer}>
-                  <Text style={styles.downloads}>{template.downloads} downloads</Text>
                   <Text style={styles.experience}>{template.experience} experience</Text>
+                  <Text style={styles.location}>📍 Cairo, Egypt</Text>
                 </View>
                 <TouchableOpacity 
                   style={styles.downloadButton}
@@ -195,13 +192,13 @@ export default function TopCVScreen() {
                       </View>
                       
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Rating:</Text>
-                        <Text style={styles.detailValue}>⭐ {selectedCV.rating}</Text>
+                        <Text style={styles.detailLabel}>Location:</Text>
+                        <Text style={styles.detailValue}>Cairo, Egypt</Text>
                       </View>
                       
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Downloads:</Text>
-                        <Text style={styles.detailValue}>{selectedCV.downloads}</Text>
+                        <Text style={styles.detailLabel}>Availability:</Text>
+                        <Text style={styles.detailValue}>Open to work</Text>
                       </View>
                     </View>
 
@@ -291,17 +288,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  ratingContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  rating: {
-    fontSize: 12,
-    color: '#FFD700',
-    fontWeight: '600',
-  },
   templateDescription: {
     fontSize: 14,
     color: '#CCCCCC',
@@ -325,6 +311,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#CCCCCC',
     fontWeight: '500',
+    marginBottom: 2,
+  },
+  location: {
+    fontSize: 12,
+    color: '#999999',
   },
   downloadButton: {
     backgroundColor: '#E50914',
