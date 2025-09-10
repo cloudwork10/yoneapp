@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Modal, Alert, Linking } from 'react-native';
+import { Alert, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TopCVScreen() {
@@ -103,6 +103,7 @@ export default function TopCVScreen() {
   };
 
   const openModal = (cv) => {
+    console.log('Opening modal for:', cv.name);
     setSelectedCV(cv);
     setModalVisible(true);
   };
@@ -114,6 +115,14 @@ export default function TopCVScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Top CV Templates</Text>
           <Text style={styles.subtitle}>Professional templates for developers</Text>
+          
+          {/* Test Modal Button */}
+          <TouchableOpacity 
+            style={styles.testButton}
+            onPress={() => openModal(cvTemplates[0])}
+          >
+            <Text style={styles.testButtonText}>🧪 Test Modal</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.templatesContainer}>
@@ -262,6 +271,19 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#CCCCCC',
+    marginBottom: 15,
+  },
+  testButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  testButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   templatesContainer: {
     gap: 20,
@@ -340,9 +362,10 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
     backgroundColor: '#1a1a1a',
