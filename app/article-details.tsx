@@ -165,63 +165,170 @@ export default function ArticleDetailsScreen() {
 
         {/* Article Content */}
         <View style={styles.contentSection}>
-          <Text style={styles.contentText}>{article.content}</Text>
+          <View style={styles.contentHeader}>
+            <Text style={styles.contentTitle}>📖 Article Content</Text>
+            <View style={styles.contentDivider} />
+          </View>
+          
+          <View style={styles.contentWrapper}>
+            {article.content.split('\n\n').map((paragraph, index) => {
+              if (paragraph.trim().startsWith('**') && paragraph.trim().endsWith('**')) {
+                // Bold headings
+                const heading = paragraph.replace(/\*\*/g, '').trim();
+                return (
+                  <View key={index} style={styles.headingContainer}>
+                    <Text style={styles.headingText}>{heading}</Text>
+                    <View style={styles.headingUnderline} />
+                  </View>
+                );
+              } else if (paragraph.trim().startsWith('**') && paragraph.includes('**')) {
+                // Bold text within paragraph
+                const parts = paragraph.split(/(\*\*.*?\*\*)/);
+                return (
+                  <View key={index} style={styles.paragraphContainer}>
+                    <Text style={styles.paragraphText}>
+                      {parts.map((part, partIndex) => {
+                        if (part.startsWith('**') && part.endsWith('**')) {
+                          return (
+                            <Text key={partIndex} style={styles.boldText}>
+                              {part.replace(/\*\*/g, '')}
+                            </Text>
+                          );
+                        }
+                        return part;
+                      })}
+                    </Text>
+                  </View>
+                );
+              } else if (paragraph.trim().startsWith(/\d+\./)) {
+                // Numbered list items
+                return (
+                  <View key={index} style={styles.listItemContainer}>
+                    <View style={styles.listItemNumber}>
+                      <Text style={styles.listItemNumberText}>
+                        {paragraph.match(/^\d+/)?.[0] || index + 1}
+                      </Text>
+                    </View>
+                    <Text style={styles.listItemText}>
+                      {paragraph.replace(/^\d+\.\s*/, '')}
+                    </Text>
+                  </View>
+                );
+              } else if (paragraph.trim().length > 0) {
+                // Regular paragraphs
+                return (
+                  <View key={index} style={styles.paragraphContainer}>
+                    <Text style={styles.paragraphText}>{paragraph.trim()}</Text>
+                  </View>
+                );
+              }
+              return null;
+            })}
+          </View>
         </View>
 
         {/* Tags Section */}
         <View style={styles.tagsSection}>
-          <Text style={styles.sectionTitle}>Tags</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitleIcon}>🏷️</Text>
+            <Text style={styles.sectionTitle}>Related Tags</Text>
+            <Text style={styles.sectionTitleAccent}>Explore</Text>
+          </View>
           <View style={styles.tagsContainer}>
             {article.tags.map((tag, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>#{tag}</Text>
-              </View>
+              <TouchableOpacity key={index} style={[styles.tag, { backgroundColor: `hsl(${index * 60}, 70%, 50%)` }]}>
+                <Text style={styles.tagIcon}>#</Text>
+                <Text style={styles.tagText}>{tag}</Text>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
 
         {/* Author Section */}
         <View style={styles.authorSection}>
-          <Text style={styles.sectionTitle}>About the Author</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitleIcon}>👤</Text>
+            <Text style={styles.sectionTitle}>Meet the Author</Text>
+            <Text style={styles.sectionTitleAccent}>Expert</Text>
+          </View>
           <View style={styles.authorCard}>
-            <View style={styles.authorAvatar}>
-              <Text style={styles.avatarText}>{article.author.charAt(0)}</Text>
+            <View style={styles.authorAvatarContainer}>
+              <View style={styles.authorAvatar}>
+                <Text style={styles.avatarText}>{article.author.charAt(0)}</Text>
+              </View>
+              <View style={styles.authorStatus}>
+                <Text style={styles.statusText}>●</Text>
+                <Text style={styles.statusLabel}>Online</Text>
+              </View>
             </View>
             <View style={styles.authorInfo}>
-              <Text style={styles.authorName}>{article.author}</Text>
+              <View style={styles.authorNameContainer}>
+                <Text style={styles.authorName}>{article.author}</Text>
+                <Text style={styles.authorVerified}>✓</Text>
+              </View>
               <Text style={styles.authorTitle}>Senior Developer & Technical Writer</Text>
               <Text style={styles.authorBio}>
                 {article.author} is an experienced developer with over 8 years in the industry. 
                 They specialize in {article.category} and are passionate about sharing knowledge 
                 through technical writing and mentoring.
               </Text>
+              <View style={styles.authorStats}>
+                <View style={styles.authorStat}>
+                  <Text style={styles.authorStatNumber}>8+</Text>
+                  <Text style={styles.authorStatLabel}>Years Experience</Text>
+                </View>
+                <View style={styles.authorStat}>
+                  <Text style={styles.authorStatNumber}>50+</Text>
+                  <Text style={styles.authorStatLabel}>Articles Written</Text>
+                </View>
+                <View style={styles.authorStat}>
+                  <Text style={styles.authorStatNumber}>10k+</Text>
+                  <Text style={styles.authorStatLabel}>Readers</Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
 
         {/* Related Articles Section */}
         <View style={styles.relatedSection}>
-          <Text style={styles.sectionTitle}>Related Articles</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitleIcon}>📚</Text>
+            <Text style={styles.sectionTitle}>You Might Also Like</Text>
+            <Text style={styles.sectionTitleAccent}>Discover</Text>
+          </View>
           <View style={styles.relatedContainer}>
-            {articles.filter(a => a.id !== article.id).slice(0, 3).map((relatedArticle) => (
+            {articles.filter(a => a.id !== article.id).slice(0, 3).map((relatedArticle, index) => (
               <TouchableOpacity 
                 key={relatedArticle.id} 
                 style={styles.relatedCard}
                 onPress={() => router.push(`/article-details?articleId=${relatedArticle.id}`)}
               >
+                <View style={styles.relatedCardHeader}>
+                  <Text style={styles.relatedCardNumber}>0{index + 1}</Text>
+                  <View style={styles.relatedCardBadge}>
+                    <Text style={styles.relatedCardBadgeText}>{relatedArticle.category}</Text>
+                  </View>
+                </View>
                 <ImageBackground
                   source={{ uri: relatedArticle.image }}
                   style={styles.relatedImage}
                   resizeMode="cover"
                 >
                   <LinearGradient
-                    colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
+                    colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.7)']}
                     style={styles.relatedGradient}
                   >
                     <Text style={styles.relatedTitle}>{relatedArticle.title}</Text>
                     <View style={styles.relatedMeta}>
-                      <Text style={styles.relatedAuthor}>{relatedArticle.author}</Text>
-                      <Text style={styles.relatedReadTime}>{relatedArticle.readTime}</Text>
+                      <View style={styles.relatedMetaItem}>
+                        <Text style={styles.relatedMetaIcon}>👤</Text>
+                        <Text style={styles.relatedAuthor}>{relatedArticle.author}</Text>
+                      </View>
+                      <View style={styles.relatedMetaItem}>
+                        <Text style={styles.relatedMetaIcon}>⏱️</Text>
+                        <Text style={styles.relatedReadTime}>{relatedArticle.readTime}</Text>
+                      </View>
                     </View>
                   </LinearGradient>
                 </ImageBackground>
@@ -335,22 +442,107 @@ const styles = StyleSheet.create({
   contentSection: {
     padding: 20,
   },
-  contentText: {
+  contentHeader: {
+    marginBottom: 24,
+  },
+  contentTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  contentDivider: {
+    height: 3,
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+    width: 60,
+    alignSelf: 'center',
+  },
+  contentWrapper: {
+    gap: 20,
+  },
+  headingContainer: {
+    marginBottom: 16,
+  },
+  headingText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  headingUnderline: {
+    height: 2,
+    backgroundColor: '#E50914',
+    borderRadius: 1,
+    width: 100,
+    alignSelf: 'center',
+  },
+  paragraphContainer: {
+    marginBottom: 16,
+  },
+  paragraphText: {
     fontSize: 16,
     color: '#FFFFFF',
     lineHeight: 28,
     textAlign: 'justify',
+  },
+  boldText: {
+    fontWeight: 'bold',
+    color: '#E50914',
+  },
+  listItemContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'flex-start',
+  },
+  listItemNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E50914',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    marginTop: 4,
+  },
+  listItemNumberText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  listItemText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF',
+    lineHeight: 26,
   },
   // Tags Section
   tagsSection: {
     padding: 20,
     paddingTop: 0,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sectionTitleIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 16,
+    marginRight: 8,
+  },
+  sectionTitleAccent: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#E50914',
+    fontStyle: 'italic',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -358,17 +550,29 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  tagIcon: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 6,
   },
   tagText: {
-    color: '#E50914',
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   // Author Section
   authorSection: {
@@ -377,42 +581,104 @@ const styles = StyleSheet.create({
   },
   authorCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     flexDirection: 'row',
-    gap: 16,
+    gap: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  authorAvatarContainer: {
+    alignItems: 'center',
   },
   authorAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#E50914',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  authorStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: '#00FF00',
+    fontSize: 12,
+    marginRight: 4,
+  },
+  statusLabel: {
+    color: '#00FF00',
+    fontSize: 10,
     fontWeight: 'bold',
   },
   authorInfo: {
     flex: 1,
   },
+  authorNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   authorName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginRight: 8,
+  },
+  authorVerified: {
+    color: '#00FF00',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   authorTitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#E50914',
-    marginBottom: 12,
+    marginBottom: 16,
+    fontWeight: '600',
   },
   authorBio: {
     fontSize: 14,
     color: '#CCCCCC',
-    lineHeight: 20,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  authorStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  authorStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  authorStatNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginBottom: 4,
+  },
+  authorStatLabel: {
+    fontSize: 10,
+    color: '#CCCCCC',
+    textAlign: 'center',
   },
   // Related Articles Section
   relatedSection: {
@@ -420,12 +686,49 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   relatedContainer: {
-    gap: 16,
+    gap: 20,
   },
   relatedCard: {
-    height: 120,
-    borderRadius: 12,
+    height: 140,
+    borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  relatedCardHeader: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  relatedCardNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#E50914',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  relatedCardBadge: {
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  relatedCardBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
   },
   relatedImage: {
     flex: 1,
@@ -439,12 +742,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 22,
   },
   relatedMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  relatedMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  relatedMetaIcon: {
+    fontSize: 12,
   },
   relatedAuthor: {
     fontSize: 12,
