@@ -503,14 +503,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 12,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   contentDivider: {
     height: 3,
     backgroundColor: '#E50914',
     borderRadius: 2,
     width: 60,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
   },
   contentWrapper: {
     gap: 20,
@@ -523,14 +523,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#E50914',
     marginBottom: 8,
-    textAlign: 'left',
+    textAlign: 'center',
   },
   headingUnderline: {
     height: 2,
     backgroundColor: '#E50914',
     borderRadius: 1,
     width: 100,
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
   },
   paragraphContainer: {
     marginBottom: 16,
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     lineHeight: 28,
-    textAlign: 'justify',
+    textAlign: 'left',
   },
   boldText: {
     fontWeight: 'bold',
