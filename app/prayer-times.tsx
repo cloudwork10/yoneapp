@@ -17,15 +17,55 @@ Notifications.setNotificationHandler({
 export default function PrayerTimesScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Prayer times for Cairo, Egypt (accurate times with 7-10 min difference)
-  const prayerTimes = {
+  const [prayerTimes, setPrayerTimes] = useState({
     fajr: '05:15',
     dhuhr: '12:55',
     asr: '16:25',
     maghrib: '19:10',
     isha: '20:40'
+  });
+  const [loading, setLoading] = useState(false);
+
+  // Function to calculate prayer times for Cairo, Egypt
+  const calculatePrayerTimes = async () => {
+    setLoading(true);
+    try {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;
+      const day = today.getDate();
+      
+      // Using Aladhan API for accurate prayer times
+      const response = await fetch(
+        `http://api.aladhan.com/v1/timingsByCity/${day}-${month}-${year}?city=Cairo&country=Egypt&method=5`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const timings = data.data.timings;
+        
+        setPrayerTimes({
+          fajr: timings.Fajr,
+          dhuhr: timings.Dhuhr,
+          asr: timings.Asr,
+          maghrib: timings.Maghrib,
+          isha: timings.Isha
+        });
+      } else {
+        // Fallback to calculated times if API fails
+        console.log('API failed, using fallback times');
+      }
+    } catch (error) {
+      console.log('Error fetching prayer times:', error);
+      // Keep current times as fallback
+    }
+    setLoading(false);
   };
+
+  // Load prayer times on component mount
+  useEffect(() => {
+    calculatePrayerTimes();
+  }, []);
 
   const prayerNames = {
     fajr: 'الفجر',
@@ -110,11 +150,11 @@ export default function PrayerTimesScreen() {
     const currentTimeMinutes = currentHour * 60 + currentMinute;
 
     const prayers = [
-      { name: 'fajr', time: '05:15' },
-      { name: 'dhuhr', time: '12:55' },
-      { name: 'asr', time: '16:25' },
-      { name: 'maghrib', time: '19:10' },
-      { name: 'isha', time: '20:40' }
+      { name: 'fajr', time: prayerTimes.fajr },
+      { name: 'dhuhr', time: prayerTimes.dhuhr },
+      { name: 'asr', time: prayerTimes.asr },
+      { name: 'maghrib', time: prayerTimes.maghrib },
+      { name: 'isha', time: prayerTimes.isha }
     ];
 
     for (let i = 0; i < prayers.length; i++) {
@@ -151,8 +191,19 @@ export default function PrayerTimesScreen() {
             >
               <Text style={styles.backButtonText}>←</Text>
             </TouchableOpacity>
-            <Text style={styles.title}>مواعيد الصلاة</Text>
-            <Text style={styles.subtitle}>Prayer Times & Notifications</Text>
+            <View style={styles.headerContent}>
+              <Text style={styles.title}>مواعيد الصلاة</Text>
+              <Text style={styles.subtitle}>Prayer Times & Notifications</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={calculatePrayerTimes}
+              disabled={loading}
+            >
+              <Text style={styles.refreshButtonText}>
+                {loading ? '⏳' : '🔄'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Current Time */}
@@ -267,16 +318,31 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  headerContent: {
+    flex: 1,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    flex: 1,
   },
   subtitle: {
     fontSize: 14,
     color: '#CCCCCC',
     marginTop: 5,
+  },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  refreshButtonText: {
+    fontSize: 18,
   },
   currentTimeSection: {
     alignItems: 'center',
