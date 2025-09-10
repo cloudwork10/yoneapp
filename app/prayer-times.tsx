@@ -18,13 +18,13 @@ export default function PrayerTimesScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Prayer times for Cairo, Egypt (approximate times)
+  // Prayer times for Cairo, Egypt (more accurate times)
   const prayerTimes = {
-    fajr: '05:30',
-    dhuhr: '12:00',
-    asr: '15:30',
-    maghrib: '18:00',
-    isha: '19:30'
+    fajr: '04:45',
+    dhuhr: '12:15',
+    asr: '15:45',
+    maghrib: '18:25',
+    isha: '19:55'
   };
 
   const prayerNames = {
@@ -110,11 +110,11 @@ export default function PrayerTimesScreen() {
     const currentTimeMinutes = currentHour * 60 + currentMinute;
 
     const prayers = [
-      { name: 'fajr', time: '05:30' },
-      { name: 'dhuhr', time: '12:00' },
-      { name: 'asr', time: '15:30' },
-      { name: 'maghrib', time: '18:00' },
-      { name: 'isha', time: '19:30' }
+      { name: 'fajr', time: '04:45' },
+      { name: 'dhuhr', time: '12:15' },
+      { name: 'asr', time: '15:45' },
+      { name: 'maghrib', time: '18:25' },
+      { name: 'isha', time: '19:55' }
     ];
 
     for (let i = 0; i < prayers.length; i++) {
