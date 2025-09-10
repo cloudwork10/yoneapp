@@ -200,7 +200,7 @@ export default function ArticleDetailsScreen() {
                     </Text>
                   </View>
                 );
-              } else if (paragraph.trim().startsWith(/\d+\./)) {
+              } else if (/^\d+\./.test(paragraph.trim())) {
                 // Numbered list items
                 return (
                   <View key={index} style={styles.listItemContainer}>
