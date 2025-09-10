@@ -288,12 +288,17 @@ export default function ArticleDetailsScreen() {
             <Text style={styles.sectionTitleAccent}>Explore</Text>
           </View>
           <View style={styles.tagsContainer}>
-            {article.tags.map((tag, index) => (
-              <TouchableOpacity key={index} style={[styles.tag, { backgroundColor: `hsl(${index * 60}, 70%, 50%)` }]}>
-                <Text style={styles.tagIcon}>#</Text>
-                <Text style={styles.tagText}>{tag}</Text>
-              </TouchableOpacity>
-            ))}
+            {article.tags.map((tag, index) => {
+              const tagColors = ['#FF6B6B', '#FFD93D', '#6BCF7F', '#4D96FF'];
+              const backgroundColor = tagColors[index % tagColors.length];
+              
+              return (
+                <TouchableOpacity key={index} style={[styles.tag, { backgroundColor }]}>
+                  <Text style={styles.tagIcon}>#</Text>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -605,27 +610,30 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    elevation: 3,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    marginBottom: 8,
+    marginRight: 8,
   },
   tagIcon: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginRight: 6,
+    marginRight: 8,
   },
   tagText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   // Author Section
   authorSection: {
