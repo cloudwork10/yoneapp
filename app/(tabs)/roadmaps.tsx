@@ -1,21 +1,33 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  ImageBackground,
-  Dimensions 
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+    Dimensions,
+    ImageBackground,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
 export default function RoadmapsScreen() {
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  
+  const categories = [
+    { id: 'all', name: 'All', icon: '🌟' },
+    { id: 'programming', name: 'Programming', icon: '💻' },
+    { id: 'design', name: 'Design', icon: '🎨' },
+    { id: 'marketing', name: 'Marketing', icon: '📈' },
+    { id: 'freelancing', name: 'Freelancing', icon: '💼' },
+    { id: 'career', name: 'Start Your Career', icon: '🚀' },
+  ];
   
   const roadmaps = [
     { 
@@ -27,7 +39,8 @@ export default function RoadmapsScreen() {
       color: '#FF6B6B',
       icon: '🎨',
       duration: '6 months',
-      level: 'Beginner to Advanced'
+      level: 'Beginner to Advanced',
+      category: 'programming'
     },
     { 
       id: 2, 
@@ -38,7 +51,8 @@ export default function RoadmapsScreen() {
       color: '#4ECDC4',
       icon: '⚙️',
       duration: '8 months',
-      level: 'Intermediate'
+      level: 'Intermediate',
+      category: 'programming'
     },
     { 
       id: 3, 
@@ -49,7 +63,8 @@ export default function RoadmapsScreen() {
       color: '#45B7D1',
       icon: '🚀',
       duration: '12 months',
-      level: 'Advanced'
+      level: 'Advanced',
+      category: 'programming'
     },
     { 
       id: 4, 
@@ -60,7 +75,8 @@ export default function RoadmapsScreen() {
       color: '#96CEB4',
       icon: '📱',
       duration: '4 months',
-      level: 'Beginner'
+      level: 'Beginner',
+      category: 'programming'
     },
     { 
       id: 5, 
@@ -71,7 +87,8 @@ export default function RoadmapsScreen() {
       color: '#FFEAA7',
       icon: '☁️',
       duration: '10 months',
-      level: 'Expert'
+      level: 'Expert',
+      category: 'programming'
     },
     { 
       id: 6, 
@@ -82,9 +99,102 @@ export default function RoadmapsScreen() {
       color: '#DDA0DD',
       icon: '📊',
       duration: '9 months',
-      level: 'Advanced'
+      level: 'Advanced',
+      category: 'programming'
+    },
+    { 
+      id: 7, 
+      title: 'UI/UX Designer', 
+      description: 'Master user interface and user experience design principles',
+      totalSteps: 18,
+      image: 'https://images.unsplash.com/photo-1558655146-d09347e92766?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      color: '#FF9F43',
+      icon: '🎨',
+      duration: '5 months',
+      level: 'Beginner to Advanced',
+      category: 'design'
+    },
+    { 
+      id: 8, 
+      title: 'Graphic Designer', 
+      description: 'Learn Adobe Creative Suite and visual design fundamentals',
+      totalSteps: 16,
+      image: 'https://images.unsplash.com/photo-1558655146-d09347e92766?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      color: '#6C5CE7',
+      icon: '🖼️',
+      duration: '4 months',
+      level: 'Beginner',
+      category: 'design'
+    },
+    { 
+      id: 9, 
+      title: 'Digital Marketing', 
+      description: 'Master SEO, social media, and online advertising strategies',
+      totalSteps: 22,
+      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      color: '#00B894',
+      icon: '📈',
+      duration: '6 months',
+      level: 'Intermediate',
+      category: 'marketing'
+    },
+    { 
+      id: 10, 
+      title: 'Content Marketing', 
+      description: 'Learn content strategy, copywriting, and brand storytelling',
+      totalSteps: 14,
+      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      color: '#E17055',
+      icon: '✍️',
+      duration: '3 months',
+      level: 'Beginner',
+      category: 'marketing'
+    },
+    { 
+      id: 11, 
+      title: 'Freelance Web Developer', 
+      description: 'Build a successful freelance web development business',
+      totalSteps: 20,
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      color: '#A29BFE',
+      icon: '💼',
+      duration: '7 months',
+      level: 'Intermediate',
+      category: 'freelancing'
+    },
+    { 
+      id: 12, 
+      title: 'Freelance Designer', 
+      description: 'Start and grow your freelance design business',
+      totalSteps: 17,
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      color: '#FD79A8',
+      icon: '🎨',
+      duration: '5 months',
+      level: 'Beginner',
+      category: 'freelancing'
+    },
+    { 
+      id: 13, 
+      title: 'Career Starter', 
+      description: 'Essential skills to kickstart your professional career',
+      totalSteps: 12,
+      image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      color: '#FDCB6E',
+      icon: '🚀',
+      duration: '2 months',
+      level: 'Beginner',
+      category: 'career'
     },
   ];
+
+  // Filter roadmaps based on search and category
+  const filteredRoadmaps = roadmaps.filter(roadmap => {
+    const matchesSearch = roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         roadmap.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || roadmap.category === selectedCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -134,11 +244,57 @@ export default function RoadmapsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Search Section */}
+          <View style={styles.searchSection}>
+            <View style={styles.searchContainer}>
+              <Text style={styles.searchIcon}>🔍</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search roadmaps..."
+                placeholderTextColor="#666666"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+          </View>
+
+          {/* Categories Section */}
+          <View style={styles.categoriesSection}>
+            <Text style={styles.sectionTitle}>Categories</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesScrollView}
+              contentContainerStyle={styles.categoriesContainer}
+            >
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryButton,
+                    selectedCategory === category.name && styles.categoryButtonActive
+                  ]}
+                  onPress={() => setSelectedCategory(category.name)}
+                >
+                  <Text style={styles.categoryIcon}>{category.icon}</Text>
+                  <Text style={[
+                    styles.categoryText,
+                    selectedCategory === category.name && styles.categoryTextActive
+                  ]}>
+                    {category.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
           {/* All Roadmaps */}
           <View style={styles.roadmapsSection}>
-            <Text style={styles.sectionTitle}>All Roadmaps</Text>
+            <Text style={styles.sectionTitle}>
+              {selectedCategory === 'All' ? 'All Roadmaps' : `${selectedCategory} Roadmaps`}
+            </Text>
             <View style={styles.roadmapsContainer}>
-              {roadmaps.map((roadmap) => (
+              {filteredRoadmaps.map((roadmap) => (
                 <TouchableOpacity 
                   key={roadmap.id} 
                   style={styles.roadmapCard}
@@ -386,5 +542,65 @@ const styles = StyleSheet.create({
   roadmapMetaText: {
     color: '#CCCCCC',
     fontSize: 12,
+  },
+  // Search Section
+  searchSection: {
+    marginBottom: 20,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 12,
+    color: '#CCCCCC',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  // Categories Section
+  categoriesSection: {
+    marginBottom: 20,
+  },
+  categoriesScrollView: {
+    marginTop: 10,
+  },
+  categoriesContainer: {
+    paddingRight: 20,
+  },
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#E50914',
+    borderColor: '#E50914',
+  },
+  categoryIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  categoryText: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    fontWeight: '500',
+  },
+  categoryTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
 });
