@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   featuredCard: {
-    height: 200,
+    height: 280,
     borderRadius: 16,
     overflow: 'hidden',
     elevation: 8,
