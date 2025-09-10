@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Switch, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View, Modal, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -25,8 +25,36 @@ export default function PrayerTimesScreen() {
     isha: '20:40'
   });
   const [loading, setLoading] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState({
+    name: 'Cairo',
+    country: 'Egypt',
+    displayName: 'القاهرة، مصر'
+  });
+  const [countryModalVisible, setCountryModalVisible] = useState(false);
 
-  // Function to calculate prayer times for Cairo, Egypt
+  // Arab countries and cities
+  const arabCountries = [
+    { name: 'Cairo', country: 'Egypt', displayName: 'القاهرة، مصر' },
+    { name: 'Riyadh', country: 'Saudi Arabia', displayName: 'الرياض، السعودية' },
+    { name: 'Dubai', country: 'UAE', displayName: 'دبي، الإمارات' },
+    { name: 'Kuwait City', country: 'Kuwait', displayName: 'الكويت، الكويت' },
+    { name: 'Doha', country: 'Qatar', displayName: 'الدوحة، قطر' },
+    { name: 'Manama', country: 'Bahrain', displayName: 'المنامة، البحرين' },
+    { name: 'Amman', country: 'Jordan', displayName: 'عمان، الأردن' },
+    { name: 'Beirut', country: 'Lebanon', displayName: 'بيروت، لبنان' },
+    { name: 'Damascus', country: 'Syria', displayName: 'دمشق، سوريا' },
+    { name: 'Baghdad', country: 'Iraq', displayName: 'بغداد، العراق' },
+    { name: 'Tunis', country: 'Tunisia', displayName: 'تونس، تونس' },
+    { name: 'Algiers', country: 'Algeria', displayName: 'الجزائر، الجزائر' },
+    { name: 'Rabat', country: 'Morocco', displayName: 'الرباط، المغرب' },
+    { name: 'Tripoli', country: 'Libya', displayName: 'طرابلس، ليبيا' },
+    { name: 'Khartoum', country: 'Sudan', displayName: 'الخرطوم، السودان' },
+    { name: 'Sanaa', country: 'Yemen', displayName: 'صنعاء، اليمن' },
+    { name: 'Muscat', country: 'Oman', displayName: 'مسقط، عمان' },
+    { name: 'Jerusalem', country: 'Palestine', displayName: 'القدس، فلسطين' }
+  ];
+
+  // Function to calculate prayer times for selected city
   const calculatePrayerTimes = async () => {
     setLoading(true);
     try {
@@ -37,7 +65,7 @@ export default function PrayerTimesScreen() {
       
       // Using Aladhan API for accurate prayer times
       const response = await fetch(
-        `http://api.aladhan.com/v1/timingsByCity/${day}-${month}-${year}?city=Cairo&country=Egypt&method=5`
+        `http://api.aladhan.com/v1/timingsByCity/${day}-${month}-${year}?city=${selectedCountry.name}&country=${selectedCountry.country}&method=5`
       );
       
       if (response.ok) {
@@ -83,14 +111,19 @@ export default function PrayerTimesScreen() {
     isha: 'Isha'
   };
 
-  // Update current time every minute
+  // Update current time every second for live clock
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 1000);
 
     return () => clearInterval(timer);
   }, []);
+
+  // Reload prayer times when country changes
+  useEffect(() => {
+    calculatePrayerTimes();
+  }, [selectedCountry]);
 
   // Request notification permissions
   useEffect(() => {
@@ -276,12 +309,59 @@ export default function PrayerTimesScreen() {
           {/* Location Info */}
           <View style={styles.locationSection}>
             <Text style={styles.sectionTitle}>الموقع</Text>
-            <View style={styles.locationCard}>
-              <Text style={styles.locationText}>📍 القاهرة، مصر</Text>
-              <Text style={styles.locationSubtext}>Cairo, Egypt</Text>
-            </View>
+            <TouchableOpacity 
+              style={styles.locationCard}
+              onPress={() => setCountryModalVisible(true)}
+            >
+              <Text style={styles.locationText}>📍 {selectedCountry.displayName}</Text>
+              <Text style={styles.locationSubtext}>{selectedCountry.name}, {selectedCountry.country}</Text>
+              <Text style={styles.changeLocationText}>اضغط لتغيير الموقع</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Country Selector Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={countryModalVisible}
+          onRequestClose={() => setCountryModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>اختر المدينة</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setCountryModalVisible(false)}
+                >
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <FlatList
+                data={arabCountries}
+                keyExtractor={(item) => `${item.name}-${item.country}`}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.countryItem,
+                      selectedCountry.name === item.name && styles.selectedCountryItem
+                    ]}
+                    onPress={() => {
+                      setSelectedCountry(item);
+                      setCountryModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.countryName}>{item.displayName}</Text>
+                    <Text style={styles.countryNameEn}>{item.name}, {item.country}</Text>
+                  </TouchableOpacity>
+                )}
+                style={styles.countryList}
+              />
+            </View>
+          </View>
+        </Modal>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -476,6 +556,78 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   locationSubtext: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    marginBottom: 5,
+  },
+  changeLocationText: {
+    fontSize: 12,
+    color: '#E50914',
+    fontStyle: 'italic',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 20,
+    width: '90%',
+    maxHeight: '70%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  countryList: {
+    maxHeight: 400,
+  },
+  countryItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  selectedCountryItem: {
+    backgroundColor: 'rgba(229, 9, 20, 0.1)',
+  },
+  countryName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  countryNameEn: {
     fontSize: 14,
     color: '#CCCCCC',
   },
