@@ -18,27 +18,34 @@ export default function MoreScreen() {
     },
     {
       id: 2,
+      title: 'مواعيد الصلاة',
+      description: 'Prayer times and notifications',
+      icon: '🕌',
+      route: '/prayer-times'
+    },
+    {
+      id: 3,
       title: 'Settings',
       description: 'App preferences and configuration',
       icon: '⚙️',
       route: '/settings'
     },
     {
-      id: 3,
+      id: 4,
       title: 'Help & Support',
       description: 'Get help and contact support',
       icon: '❓',
       route: '/help'
     },
     {
-      id: 4,
+      id: 5,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
       route: '/about'
     },
     {
-      id: 5,
+      id: 6,
       title: 'Test User Context',
       description: 'Debug user data loading',
       icon: '🔧',
@@ -49,7 +56,7 @@ export default function MoreScreen() {
   // Add Dashboard only for admin users
   const adminMenuItems = [
     {
-      id: 2,
+      id: 3,
       title: 'Admin Dashboard',
       description: 'Manage users and monitor system',
       icon: '👑',
@@ -62,14 +69,17 @@ export default function MoreScreen() {
   const menuItems = isAdmin 
     ? [
         baseMenuItems[0], // Profile
+        baseMenuItems[1], // Prayer Times
         ...adminMenuItems, // Admin Dashboard
-        ...baseMenuItems.slice(1) // Settings, Help, About
+        ...baseMenuItems.slice(2) // Settings, Help, About, Test
       ]
     : baseMenuItems;
 
   const handleMenuPress = (route: string) => {
     if (route === '/profile') {
       router.push('/profile');
+    } else if (route === '/prayer-times') {
+      router.push('/prayer-times');
     } else if (route === '/dashboard') {
       if (isAdmin) {
         router.push('/dashboard');
