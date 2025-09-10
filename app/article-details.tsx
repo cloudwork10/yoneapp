@@ -289,7 +289,7 @@ export default function ArticleDetailsScreen() {
           </View>
           <View style={styles.tagsContainer}>
             {article.tags.map((tag, index) => (
-              <TouchableOpacity key={index} style={[styles.tag, { backgroundColor: `hsl(${index * 60}, 70%, 50%)` }]}>
+              <TouchableOpacity key={index} style={styles.tag}>
                 <Text style={styles.tagIcon}>#</Text>
                 <Text style={styles.tagText}>{tag}</Text>
               </TouchableOpacity>
@@ -608,6 +608,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 25,
+    backgroundColor: '#E50914',
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     elevation: 3,
