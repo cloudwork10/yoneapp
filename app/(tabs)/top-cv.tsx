@@ -103,7 +103,6 @@ export default function TopCVScreen() {
   };
 
   const openModal = (cv) => {
-    console.log('Opening modal for:', cv.name);
     setSelectedCV(cv);
     setModalVisible(true);
   };
@@ -115,14 +114,6 @@ export default function TopCVScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Top CV Templates</Text>
           <Text style={styles.subtitle}>Professional templates for developers</Text>
-          
-          {/* Test Modal Button */}
-          <TouchableOpacity 
-            style={styles.testButton}
-            onPress={() => openModal(cvTemplates[0])}
-          >
-            <Text style={styles.testButtonText}>🧪 Test Modal</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.templatesContainer}>
@@ -167,11 +158,11 @@ export default function TopCVScreen() {
         {/* CV Details Modal */}
         <Modal
           animationType="slide"
-          transparent={true}
+          transparent={false}
           visible={modalVisible}
           onRequestClose={() => setModalVisible(false)}
         >
-          <View style={styles.modalOverlay}>
+          <SafeAreaView style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               {selectedCV && (
                 <>
@@ -240,7 +231,7 @@ export default function TopCVScreen() {
                 </>
               )}
             </View>
-          </View>
+          </SafeAreaView>
         </Modal>
       </LinearGradient>
     </SafeAreaView>
@@ -271,19 +262,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#CCCCCC',
-    marginBottom: 15,
-  },
-  testButton: {
-    backgroundColor: '#E50914',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  testButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
   },
   templatesContainer: {
     gap: 20,
@@ -363,15 +341,11 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
   },
   modalContent: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 20,
-    width: '90%',
-    maxHeight: '80%',
+    flex: 1,
+    width: '100%',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
