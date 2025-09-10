@@ -158,11 +158,11 @@ export default function TopCVScreen() {
         {/* CV Details Modal */}
         <Modal
           animationType="slide"
-          transparent={false}
+          transparent={true}
           visible={modalVisible}
           onRequestClose={() => setModalVisible(false)}
         >
-          <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               {selectedCV && (
                 <>
@@ -231,7 +231,7 @@ export default function TopCVScreen() {
                 </>
               )}
             </View>
-          </SafeAreaView>
+          </View>
         </Modal>
       </LinearGradient>
     </SafeAreaView>
@@ -340,12 +340,16 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
     backgroundColor: '#1a1a1a',
-    flex: 1,
-    width: '100%',
+    borderRadius: 20,
+    width: '95%',
+    height: '85%',
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
