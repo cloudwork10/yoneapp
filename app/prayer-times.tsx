@@ -31,6 +31,7 @@ export default function PrayerTimesScreen() {
     displayName: 'القاهرة، مصر'
   });
   const [countryModalVisible, setCountryModalVisible] = useState(false);
+  const [scheduledNotifications, setScheduledNotifications] = useState<string[]>([]);
 
   // Arab countries and cities with fallback prayer times
   const arabCountries = [
@@ -132,6 +133,20 @@ export default function PrayerTimesScreen() {
     return () => clearInterval(timer);
   }, []);
 
+  // Schedule notifications when prayer times change
+  useEffect(() => {
+    if (prayerTimes.fajr !== '05:15') { // Only schedule if prayer times are loaded
+      schedulePrayerNotifications();
+    }
+  }, [prayerTimes, notificationsEnabled]);
+
+  // Schedule notifications when country changes
+  useEffect(() => {
+    if (prayerTimes.fajr !== '05:15') { // Only schedule if prayer times are loaded
+      schedulePrayerNotifications();
+    }
+  }, [selectedCountry]);
+
   // Reload prayer times when country changes
   useEffect(() => {
     calculatePrayerTimes();
@@ -179,12 +194,12 @@ export default function PrayerTimesScreen() {
     Alert.alert('تم', 'تم جدولة إشعارات الصلاة بنجاح');
   };
 
-  const toggleNotifications = (value: boolean) => {
+  const toggleNotifications = async (value: boolean) => {
     setNotificationsEnabled(value);
     if (value) {
-      schedulePrayerNotifications();
+      await schedulePrayerNotifications();
     } else {
-      Notifications.cancelAllScheduledNotificationsAsync();
+      await cancelAllNotifications();
     }
   };
 
@@ -213,6 +228,86 @@ export default function PrayerTimesScreen() {
     }
     
     return prayers[0]; // Next day's Fajr
+  };
+
+  // Schedule prayer notifications
+  const schedulePrayerNotifications = async () => {
+    if (!notificationsEnabled) return;
+
+    try {
+      // Cancel existing notifications
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      setScheduledNotifications([]);
+
+      const prayers = [
+        { name: 'Fajr', time: prayerTimes.fajr, arabic: 'الفجر' },
+        { name: 'Dhuhr', time: prayerTimes.dhuhr, arabic: 'الظهر' },
+        { name: 'Asr', time: prayerTimes.asr, arabic: 'العصر' },
+        { name: 'Maghrib', time: prayerTimes.maghrib, arabic: 'المغرب' },
+        { name: 'Isha', time: prayerTimes.isha, arabic: 'العشاء' }
+      ];
+
+      const today = new Date();
+      const scheduledIds: string[] = [];
+
+      for (const prayer of prayers) {
+        const [hours, minutes] = prayer.time.split(':').map(Number);
+        
+        // Schedule notification 5 minutes before prayer
+        const reminderTime = new Date(today);
+        reminderTime.setHours(hours, minutes - 5, 0, 0);
+        
+        // If reminder time has passed today, schedule for tomorrow
+        if (reminderTime <= new Date()) {
+          reminderTime.setDate(reminderTime.getDate() + 1);
+        }
+
+        const reminderId = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '🕌 تذكير الصلاة',
+            body: `موعد صلاة ${prayer.arabic} خلال 5 دقائق`,
+            sound: true,
+          },
+          trigger: reminderTime,
+        });
+
+        // Schedule notification at exact prayer time
+        const prayerTime = new Date(today);
+        prayerTime.setHours(hours, minutes, 0, 0);
+        
+        // If prayer time has passed today, schedule for tomorrow
+        if (prayerTime <= new Date()) {
+          prayerTime.setDate(prayerTime.getDate() + 1);
+        }
+
+        const prayerId = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: '🕌 موعد الصلاة',
+            body: `حان موعد صلاة ${prayer.arabic}`,
+            sound: true,
+          },
+          trigger: prayerTime,
+        });
+
+        scheduledIds.push(reminderId, prayerId);
+      }
+
+      setScheduledNotifications(scheduledIds);
+      console.log('Prayer notifications scheduled successfully');
+    } catch (error) {
+      console.error('Error scheduling notifications:', error);
+    }
+  };
+
+  // Cancel all notifications
+  const cancelAllNotifications = async () => {
+    try {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      setScheduledNotifications([]);
+      console.log('All notifications cancelled');
+    } catch (error) {
+      console.error('Error cancelling notifications:', error);
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -317,6 +412,23 @@ export default function PrayerTimesScreen() {
                 thumbColor={notificationsEnabled ? '#FFFFFF' : '#f4f3f4'}
               />
             </View>
+            
+            {notificationsEnabled && (
+              <View style={styles.notificationActions}>
+                <TouchableOpacity 
+                  style={styles.scheduleButton}
+                  onPress={schedulePrayerNotifications}
+                >
+                  <Text style={styles.scheduleButtonText}>🔄 تحديث الإشعارات</Text>
+                </TouchableOpacity>
+                
+                {scheduledNotifications.length > 0 && (
+                  <Text style={styles.notificationStatus}>
+                    ✅ تم جدولة {scheduledNotifications.length} إشعار
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Location Info */}
@@ -552,6 +664,27 @@ const styles = StyleSheet.create({
   notificationDescription: {
     fontSize: 14,
     color: '#CCCCCC',
+  },
+  notificationActions: {
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  scheduleButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  scheduleButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  notificationStatus: {
+    fontSize: 12,
+    color: '#4CAF50',
+    textAlign: 'center',
   },
   locationSection: {
     marginBottom: 30,
