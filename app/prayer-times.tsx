@@ -188,21 +188,6 @@ export default function PrayerTimesScreen() {
     }
   };
 
-  const testNotification = async () => {
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: `اختبار إشعار الصلاة`,
-          body: `هذا اختبار لإشعارات الصلاة - ${selectedCountry.displayName}`,
-          sound: true,
-        },
-        trigger: { seconds: 2 },
-      });
-      Alert.alert('تم', 'تم إرسال إشعار تجريبي! سيظهر خلال ثانيتين');
-    } catch (error) {
-      Alert.alert('خطأ', 'فشل في إرسال الإشعار التجريبي');
-    }
-  };
 
   const getCurrentPrayer = () => {
     const now = new Date();
@@ -332,13 +317,6 @@ export default function PrayerTimesScreen() {
                 thumbColor={notificationsEnabled ? '#FFFFFF' : '#f4f3f4'}
               />
             </View>
-            
-            <TouchableOpacity 
-              style={styles.testNotificationButton}
-              onPress={testNotification}
-            >
-              <Text style={styles.testNotificationText}>🔔 اختبار الإشعار</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Location Info */}
@@ -574,20 +552,6 @@ const styles = StyleSheet.create({
   notificationDescription: {
     fontSize: 14,
     color: '#CCCCCC',
-  },
-  testNotificationButton: {
-    backgroundColor: 'rgba(229, 9, 20, 0.2)',
-    borderRadius: 12,
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.3)',
-  },
-  testNotificationText: {
-    color: '#E50914',
-    fontSize: 16,
-    fontWeight: '600',
   },
   locationSection: {
     marginBottom: 30,
