@@ -1,9 +1,9 @@
+import { useUser } from '@/contexts/UserContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUser } from '@/contexts/UserContext';
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
@@ -25,20 +25,27 @@ export default function MoreScreen() {
     },
     {
       id: 3,
+      title: 'Movies',
+      description: 'Best movies for programming and coding',
+      icon: '🎬',
+      route: '/movies'
+    },
+    {
+      id: 4,
       title: 'Settings',
       description: 'App preferences and configuration',
       icon: '⚙️',
       route: '/settings'
     },
     {
-      id: 4,
+      id: 5,
       title: 'Help & Support',
       description: 'Get help and contact support',
       icon: '❓',
       route: '/help'
     },
     {
-      id: 5,
+      id: 6,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
@@ -49,7 +56,7 @@ export default function MoreScreen() {
   // Add Dashboard only for admin users
   const adminMenuItems = [
     {
-      id: 3,
+      id: 4,
       title: 'Admin Dashboard',
       description: 'Manage users and monitor system',
       icon: '👑',
@@ -63,8 +70,9 @@ export default function MoreScreen() {
     ? [
         baseMenuItems[0], // Profile
         baseMenuItems[1], // Prayer Times
+        baseMenuItems[2], // Movies
         ...adminMenuItems, // Admin Dashboard
-        ...baseMenuItems.slice(2) // Settings, Help, About, Test
+        ...baseMenuItems.slice(3) // Settings, Help, About
       ]
     : baseMenuItems;
 
@@ -73,6 +81,8 @@ export default function MoreScreen() {
       router.push('/profile');
     } else if (route === '/prayer-times') {
       router.push('/prayer-times');
+    } else if (route === '/movies') {
+      router.push('/movies');
     } else if (route === '/dashboard') {
       if (isAdmin) {
         router.push('/dashboard');
