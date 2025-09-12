@@ -23,33 +23,33 @@ export default function PodcastsScreen() {
   const podcasts = [
     { 
       id: '1', 
-      title: 'The Future of AI in Mobile Development', 
-      duration: '45 min', 
+      title: 'Programming & Technology Podcast', 
+      duration: '12 hours', 
       category: 'Technology',
-      instructor: 'Sarah Chen',
-      rating: 4.9,
-      students: 2500,
-      thumbnail: '🎙️'
+      instructor: 'Ahmed Mohamed',
+      rating: 4.8,
+      students: 15420,
+      thumbnail: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
     },
     { 
       id: '2', 
-      title: 'Building Scalable React Native Apps', 
-      duration: '52 min', 
+      title: 'Mobile App Development Podcast', 
+      duration: '8 hours', 
       category: 'Technology',
-      instructor: 'Mike Johnson',
-      rating: 4.8,
-      students: 1800,
-      thumbnail: '🎙️'
+      instructor: 'Fatima Ali',
+      rating: 4.9,
+      students: 12000,
+      thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
     },
     { 
       id: '3', 
-      title: 'JavaScript Performance Optimization', 
-      duration: '38 min', 
+      title: 'AI & Machine Learning Podcast', 
+      duration: '15 hours', 
       category: 'Technology',
-      instructor: 'Alex Rodriguez',
+      instructor: 'Mohamed Hassan',
       rating: 4.7,
       students: 3200,
-      thumbnail: '🎙️'
+      thumbnail: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
     },
     { 
       id: '4', 
@@ -123,12 +123,27 @@ export default function PodcastsScreen() {
       onPress={() => handlePodcastPress(podcast.id)}
     >
       <View style={styles.podcastThumbnail}>
-        <LinearGradient
-          colors={['#E50914', '#B81D13']}
-          style={styles.thumbnailGradient}
-        >
-          <Text style={styles.thumbnailIcon}>{podcast.thumbnail}</Text>
-        </LinearGradient>
+        {podcast.thumbnail.startsWith('http') ? (
+          <ImageBackground
+            source={{ uri: podcast.thumbnail }}
+            style={styles.podcastImage}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+              style={styles.thumbnailGradient}
+            >
+              <Text style={styles.thumbnailIcon}>🎙️</Text>
+            </LinearGradient>
+          </ImageBackground>
+        ) : (
+          <LinearGradient
+            colors={['#E50914', '#B81D13']}
+            style={styles.thumbnailGradient}
+          >
+            <Text style={styles.thumbnailIcon}>{podcast.thumbnail}</Text>
+          </LinearGradient>
+        )}
         <View style={styles.playButtonOverlay}>
           <Text style={styles.playIcon}>▶</Text>
         </View>
@@ -415,6 +430,10 @@ const styles = StyleSheet.create({
   podcastThumbnail: {
     height: 200,
     position: 'relative',
+  },
+  podcastImage: {
+    width: '100%',
+    height: '100%',
   },
   thumbnailGradient: {
     flex: 1,
