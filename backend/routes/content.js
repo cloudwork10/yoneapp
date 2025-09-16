@@ -69,7 +69,7 @@ router.post('/upload-image', requireAuth, requireAdmin, uploadLimiter, upload.si
       });
     }
 
-    const imageUrl = `http://192.168.100.41:3000/uploads/images/${req.file.filename}`;
+    const imageUrl = `http://192.168.100.42:3000/uploads/images/${req.file.filename}`;
     
     res.json({
       status: 'success',
@@ -99,7 +99,7 @@ router.post('/upload-video', requireAuth, requireAdmin, uploadLimiter, upload.si
       });
     }
 
-    const videoUrl = `http://192.168.100.41:3000/uploads/videos/${req.file.filename}`;
+    const videoUrl = `http://192.168.100.42:3000/uploads/videos/${req.file.filename}`;
     
     res.json({
       status: 'success',

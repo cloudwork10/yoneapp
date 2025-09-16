@@ -109,7 +109,7 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
       'http://localhost:3000',
-      'http://192.168.100.41:3000'
+      'http://192.168.100.42:3000'
     ];
     
     // Allow requests with no origin (mobile apps, etc.)

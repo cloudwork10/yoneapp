@@ -202,7 +202,7 @@ export default function PodcastDetailsScreen() {
       setLoading(true);
       console.log('🎧 Fetching podcast details for ID:', podcastId);
       
-      const response = await fetch(`http://192.168.100.41:3000/api/public/podcasts/${podcastId}`);
+      const response = await fetch(`http://192.168.100.42:3000/api/public/podcasts/${podcastId}`);
       
       if (response.ok) {
         const result = await response.json();
