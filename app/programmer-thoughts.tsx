@@ -8,6 +8,7 @@ import {
     Image,
     Modal,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -282,6 +283,7 @@ export default function ProgrammerThoughts() {
         onRequestClose={closeEpisode}
       >
         <View style={styles.modalContainer}>
+          <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
           <LinearGradient
             colors={['#000000', '#1a1a1a', '#000000']}
             style={styles.modalGradient}
@@ -351,7 +353,8 @@ export default function ProgrammerThoughts() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
       <LinearGradient
         colors={['#0a0a0a', '#1a1a1a', '#0a0a0a']}
         style={styles.gradient}
@@ -398,7 +401,7 @@ export default function ProgrammerThoughts() {
         {/* Video Modal */}
         {renderVideoModal()}
       </LinearGradient>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -414,7 +417,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#333333',
@@ -601,7 +604,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 50,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#333333',
