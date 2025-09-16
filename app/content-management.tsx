@@ -235,6 +235,29 @@ export default function ContentManagementScreen() {
       if (response.ok) {
         const data = await response.json();
         setCvTemplates(data.data.cvTemplates || []);
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('🔄 Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with new token
+          const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/cv-templates', {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            setCvTemplates(data.data.cvTemplates || []);
+          } else {
+            console.error('Failed to fetch CV templates after token refresh');
+          }
+        } else {
+          console.error('Failed to refresh token for CV templates');
+        }
       } else if (response.status === 429 && retryCount < 3) {
         // Rate limited - retry after delay
         console.log(`Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
@@ -277,6 +300,30 @@ export default function ContentManagementScreen() {
         console.log('📄 Articles count:', data.data.articles?.length || 0);
         setArticles(data.data.articles || []);
         console.log('✅ Articles state updated');
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('🔄 Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with new token
+          const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/articles', {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            console.log('📄 Articles data received after refresh:', data);
+            setArticles(data.data.articles || []);
+          } else {
+            console.error('Failed to fetch articles after token refresh');
+          }
+        } else {
+          console.error('Failed to refresh token for articles');
+        }
       } else if (response.status === 429 && retryCount < 3) {
         // Rate limited - retry after delay
         console.log(`⏳ Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
@@ -330,6 +377,30 @@ export default function ContentManagementScreen() {
         console.log('🗺️ Roadmaps count:', data.data.roadmaps?.length || 0);
         setRoadmaps(data.data.roadmaps || []);
         console.log('✅ Roadmaps state updated');
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('🔄 Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with new token
+          const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/roadmaps', {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            console.log('🗺️ Roadmaps data received after refresh:', data);
+            setRoadmaps(data.data.roadmaps || []);
+          } else {
+            console.error('Failed to fetch roadmaps after token refresh');
+          }
+        } else {
+          console.error('Failed to refresh token for roadmaps');
+        }
       } else if (response.status === 429 && retryCount < 3) {
         // Rate limited - retry after delay
         console.log(`⏳ Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
@@ -382,6 +453,30 @@ export default function ContentManagementScreen() {
         console.log('📊 Podcasts data received:', data);
         setPodcasts(data.data.podcasts || []);
         console.log('✅ Podcasts state updated');
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('🔄 Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with new token
+          const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/podcasts', {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            console.log('📊 Podcasts data received after refresh:', data);
+            setPodcasts(data.data.podcasts || []);
+          } else {
+            console.error('Failed to fetch podcasts after token refresh');
+          }
+        } else {
+          console.error('Failed to refresh token for podcasts');
+        }
       } else if (response.status === 429 && retryCount < 3) {
         // Rate limited - retry after delay
         console.log(`⏳ Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
