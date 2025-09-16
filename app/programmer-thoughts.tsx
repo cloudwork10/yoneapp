@@ -284,10 +284,7 @@ export default function ProgrammerThoughts() {
       >
         <View style={styles.modalContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
-          <LinearGradient
-            colors={['#000000', '#0a0a0a', '#000000']}
-            style={styles.modalGradient}
-          >
+          <View style={styles.modalGradient}>
             {/* Header */}
             <View style={styles.modalHeader}>
               <TouchableOpacity
@@ -346,7 +343,7 @@ export default function ProgrammerThoughts() {
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
       </Modal>
     );
@@ -355,12 +352,7 @@ export default function ProgrammerThoughts() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
-      <LinearGradient
-        colors={['#000000', '#0a0a0a', '#000000']}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
+      <View style={styles.gradient}>
         {/* Header */}
         <Animated.View
           style={[
@@ -400,7 +392,7 @@ export default function ProgrammerThoughts() {
 
         {/* Video Modal */}
         {renderVideoModal()}
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -412,6 +404,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -599,6 +592,7 @@ const styles = StyleSheet.create({
   },
   modalGradient: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   modalHeader: {
     flexDirection: 'row',
