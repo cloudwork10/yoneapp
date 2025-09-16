@@ -74,7 +74,7 @@ router.get('/dashboard', requireSuperAdmin, async (req, res) => {
 // @route   GET /api/admin/users
 // @desc    Get all users with pagination and filtering
 // @access  Admin
-router.get('/users', requireAdmin, async (req, res) => {
+router.get('/users', requireAuth, requireAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
