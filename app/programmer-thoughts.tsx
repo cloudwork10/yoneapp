@@ -210,7 +210,7 @@ export default function ProgrammerThoughts() {
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']}
+            colors={['#0a0a0a', '#1a1a1a', '#0a0a0a']}
             style={styles.episodeGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -285,7 +285,7 @@ export default function ProgrammerThoughts() {
         <View style={styles.modalContainer}>
           <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
           <LinearGradient
-            colors={['#000000', '#1a1a1a', '#000000']}
+            colors={['#000000', '#0a0a0a', '#000000']}
             style={styles.modalGradient}
           >
             {/* Header */}
@@ -356,7 +356,7 @@ export default function ProgrammerThoughts() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
       <LinearGradient
-        colors={['#0a0a0a', '#1a1a1a', '#0a0a0a']}
+        colors={['#000000', '#0a0a0a', '#000000']}
         style={styles.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -420,8 +420,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    borderBottomColor: '#222222',
+    backgroundColor: '#000000',
   },
   backButton: {
     width: 40,
@@ -607,8 +607,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#333333',
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    borderBottomColor: '#222222',
+    backgroundColor: '#000000',
   },
   closeButton: {
     width: 40,
