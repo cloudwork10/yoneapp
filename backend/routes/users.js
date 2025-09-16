@@ -1,14 +1,14 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { protect, authorize } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
 // @route   GET /api/users/profile
 // @desc    Get user profile
 // @access  Private
-router.get('/profile', protect, async (req, res) => {
+router.get('/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .populate('coursesEnrolled', 'title category duration')
@@ -34,7 +34,7 @@ router.get('/profile', protect, async (req, res) => {
 // @desc    Update user profile
 // @access  Private
 router.put('/profile', [
-  protect,
+  requireAuth,
   body('name')
     .optional()
     .trim()
@@ -105,7 +105,7 @@ router.put('/profile', [
 // @desc    Change user password
 // @access  Private
 router.put('/change-password', [
-  protect,
+  requireAuth,
   body('currentPassword')
     .notEmpty()
     .withMessage('Current password is required'),
@@ -158,7 +158,7 @@ router.put('/change-password', [
 // @route   GET /api/users/dashboard
 // @desc    Get user dashboard data
 // @access  Private
-router.get('/dashboard', protect, async (req, res) => {
+router.get('/dashboard', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .populate('coursesEnrolled', 'title category duration rating')
@@ -193,7 +193,7 @@ router.get('/dashboard', protect, async (req, res) => {
 // @route   GET /api/users
 // @desc    Get all users (Admin only)
 // @access  Private/Admin
-router.get('/', protect, authorize('admin'), async (req, res) => {
+router.get('/', requireAuth, requireAdmin('admin'), async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;

@@ -70,14 +70,6 @@ mongoose.connect(process.env.DB_CONNECTION_STRING || 'mongodb://localhost:27017/
   process.exit(1);
 });
 
-// Routes with security middleware
-app.use('/api/auth', authLimiter, require('./routes/auth'));
-app.use('/api/users', apiLimiter, require('./routes/users'));
-app.use('/api/courses', apiLimiter, require('./routes/courses'));
-app.use('/api/admin', apiLimiter, require('./routes/admin'));
-app.use('/api/admin/content', apiLimiter, require('./routes/content'));
-app.use('/api/public/content', apiLimiter, require('./routes/content'));
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -106,6 +98,14 @@ app.get('/api/security/status', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Routes with security middleware
+app.use('/api/auth', authLimiter, require('./routes/auth'));
+app.use('/api/users', apiLimiter, require('./routes/users'));
+app.use('/api/courses', apiLimiter, require('./routes/courses'));
+app.use('/api/admin', apiLimiter, require('./routes/admin'));
+app.use('/api/admin/content', apiLimiter, require('./routes/content'));
+app.use('/api/public/content', apiLimiter, require('./routes/content'));
 
 // 404 handler
 app.use('*', notFoundHandler);
