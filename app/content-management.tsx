@@ -161,6 +161,30 @@ export default function ContentManagementScreen() {
         } else {
           Alert.alert('Error', 'Authentication failed. Please login again.');
         }
+      } else if (response.status === 429) {
+        // Rate limited
+        console.log('⏳ Rate limited, waiting before retry...');
+        Alert.alert('Rate Limited', 'Too many requests. Please wait a moment and try again.');
+        
+        // Wait and retry once
+        setTimeout(async () => {
+          try {
+            const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/stats', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              console.log('✅ Content stats received after retry:', data);
+              setStats(data.data);
+            }
+          } catch (retryError) {
+            console.error('❌ Retry failed:', retryError);
+          }
+        }, 5000); // Wait 5 seconds before retry
       } else {
         const errorText = await response.text();
         console.error('Failed to fetch content stats:', response.status, errorText);
@@ -238,6 +262,26 @@ export default function ContentManagementScreen() {
           fetchCVTemplates(retryCount + 1);
         }, (retryCount + 1) * 2000);
         return;
+      } else if (response.status === 429) {
+        // Rate limited
+        console.log('⏳ Rate limited for CV templates, waiting before retry...');
+        setTimeout(async () => {
+          try {
+            const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/cv-templates', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              setCvTemplates(data.data.cvTemplates || []);
+            }
+          } catch (retryError) {
+            console.error('❌ CV templates retry failed:', retryError);
+          }
+        }, 5000);
       } else {
         console.error('Failed to fetch CV templates:', response.status);
       }
@@ -304,6 +348,26 @@ export default function ContentManagementScreen() {
           fetchArticles(retryCount + 1);
         }, (retryCount + 1) * 2000);
         return;
+      } else if (response.status === 429) {
+        // Rate limited
+        console.log('⏳ Rate limited for articles, waiting before retry...');
+        setTimeout(async () => {
+          try {
+            const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/articles', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              setArticles(data.data.articles || []);
+            }
+          } catch (retryError) {
+            console.error('❌ Articles retry failed:', retryError);
+          }
+        }, 5000);
       } else {
         console.error('❌ Failed to fetch articles:', response.status);
         const errorText = await response.text();
@@ -381,6 +445,26 @@ export default function ContentManagementScreen() {
           fetchRoadmaps(retryCount + 1);
         }, (retryCount + 1) * 2000);
         return;
+      } else if (response.status === 429) {
+        // Rate limited
+        console.log('⏳ Rate limited for roadmaps, waiting before retry...');
+        setTimeout(async () => {
+          try {
+            const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/roadmaps', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              setRoadmaps(data.data.roadmaps || []);
+            }
+          } catch (retryError) {
+            console.error('❌ Roadmaps retry failed:', retryError);
+          }
+        }, 5000);
       } else {
         console.error('❌ Failed to fetch roadmaps:', response.status);
         const errorText = await response.text();
@@ -456,6 +540,26 @@ export default function ContentManagementScreen() {
         setTimeout(() => {
           fetchPodcasts(retryCount + 1);
         }, (retryCount + 1) * 2000);
+      } else if (response.status === 429) {
+        // Rate limited
+        console.log('⏳ Rate limited for podcasts, waiting before retry...');
+        setTimeout(async () => {
+          try {
+            const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/content/podcasts', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (retryResponse.ok) {
+              const data = await retryResponse.json();
+              setPodcasts(data.data.podcasts || []);
+            }
+          } catch (retryError) {
+            console.error('❌ Podcasts retry failed:', retryError);
+          }
+        }, 5000);
       } else {
         console.error('❌ Failed to fetch podcasts:', response.status);
         const errorText = await response.text();

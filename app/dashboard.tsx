@@ -149,6 +149,50 @@ export default function DashboardScreen() {
           console.error('❌ Token refresh error:', refreshError);
           setError('Authentication failed. Please login again.');
         }
+      } else if (usersResponse.status === 429) {
+        // Rate limited
+        console.log('⏳ Rate limited, waiting before retry...');
+        setError('Too many requests. Please wait a moment and try again.');
+        
+        // Wait and retry once
+        setTimeout(async () => {
+          try {
+            const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/users', {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (retryResponse.ok) {
+              const usersData = await retryResponse.json();
+              const users = usersData?.data?.users || usersData?.users || [];
+              setUsers(users);
+              
+              // Calculate stats safely
+              const totalUsers = users.length;
+              const activeUsers = users.filter((u: any) => u.lastLogin && u.isActive !== false).length;
+              const adminUsers = users.filter((u: any) => u.isAdmin === true || u.role === 'admin').length;
+              const newUsersToday = users.filter((u: any) => {
+                if (!u.createdAt) return false;
+                const today = new Date();
+                const userDate = new Date(u.createdAt);
+                return userDate.toDateString() === today.toDateString();
+              }).length;
+
+              setStats({
+                totalUsers,
+                activeUsers,
+                adminUsers,
+                newUsersToday,
+              });
+              
+              setError(null);
+            }
+          } catch (retryError) {
+            console.error('❌ Retry failed:', retryError);
+          }
+        }, 5000); // Wait 5 seconds before retry
       } else {
         const errorData = await usersResponse.json().catch(() => ({}));
         console.error('❌ Users API error:', errorData);
