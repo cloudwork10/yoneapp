@@ -316,7 +316,7 @@ router.delete('/courses/:id', requireAdmin, async (req, res) => {
 // @route   GET /api/admin/content/podcasts
 // @desc    Get all podcasts with pagination and filtering
 // @access  Admin
-router.get('/podcasts', async (req, res) => {
+router.get('/podcasts', requireAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -378,7 +378,7 @@ router.get('/podcasts', async (req, res) => {
 // @route   GET /api/admin/content/articles
 // @desc    Get all articles with pagination and filtering
 // @access  Admin
-router.get('/articles', async (req, res) => {
+router.get('/articles', requireAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -440,7 +440,7 @@ router.get('/articles', async (req, res) => {
 // @route   GET /api/admin/content/roadmaps
 // @desc    Get all roadmaps with pagination and filtering
 // @access  Admin
-router.get('/roadmaps', async (req, res) => {
+router.get('/roadmaps', requireAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -632,7 +632,7 @@ router.get('/programming-terms', requireAdmin, async (req, res) => {
 // @route   GET /api/admin/content/cv-templates
 // @desc    Get all CV templates with pagination and filtering
 // @access  Admin
-router.get('/cv-templates', async (req, res) => {
+router.get('/cv-templates', requireAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -933,7 +933,7 @@ router.get('/statistics', requireAdmin, async (req, res) => {
 // @route   GET /api/admin/content/articles
 // @desc    Get all articles with pagination and filtering
 // @access  Admin
-router.get('/articles', async (req, res) => {
+router.get('/articles', requireAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -1196,7 +1196,7 @@ router.get('/public/articles/:id', apiLimiter, async (req, res) => {
 // @route   GET /api/admin/content/roadmaps
 // @desc    Get all roadmaps for admin
 // @access  Admin
-router.get('/roadmaps', async (req, res) => {
+router.get('/roadmaps', requireAuth, async (req, res) => {
   try {
     const roadmaps = await Roadmap.find()
       .populate('createdBy', 'name email')
@@ -1408,7 +1408,7 @@ router.get('/public/roadmaps/:id', apiLimiter, async (req, res) => {
 // @route   GET /api/admin/content/podcasts
 // @desc    Get all podcasts for admin
 // @access  Admin
-router.get('/podcasts', async (req, res) => {
+router.get('/podcasts', requireAuth, async (req, res) => {
   try {
     const podcasts = await Podcast.find()
       .populate('createdBy', 'name email')

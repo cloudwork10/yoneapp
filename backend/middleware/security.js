@@ -59,10 +59,10 @@ const createRateLimit = (windowMs, max, message) => {
   });
 };
 
-// General Rate Limiting - DISABLED FOR TESTING
+// General Rate Limiting - RELAXED FOR DEVELOPMENT
 const generalLimiter = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  999999, // Very high limit to effectively disable
+  1000, // 1000 requests per 15 minutes (very high but not unlimited)
   'Too many requests from this IP, please try again later.'
 );
 
@@ -73,10 +73,10 @@ const publicLimiter = createRateLimit(
   'Too many requests from this IP, please try again later.'
 );
 
-// Auth Rate Limiting - DISABLED FOR TESTING
+// Auth Rate Limiting - RELAXED FOR DEVELOPMENT
 const authLimiter = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  999999, // Very high limit to effectively disable
+  50, // 50 login attempts per 15 minutes (high but reasonable)
   'Too many login attempts, please try again later.'
 );
 
@@ -172,7 +172,7 @@ const morganFormat = process.env.NODE_ENV === 'production'
   ? 'combined' 
   : 'dev';
 
-// Security Middleware Stack - RATE LIMITING COMPLETELY DISABLED
+// Security Middleware Stack - RELAXED RATE LIMITING
 const securityMiddleware = [
   // Compression
   compression(),
@@ -183,9 +183,9 @@ const securityMiddleware = [
   // CORS
   cors(corsOptions),
   
-  // Rate Limiting - COMPLETELY DISABLED
-  // generalLimiter,
-  // speedLimiter,
+  // Rate Limiting - RELAXED
+  generalLimiter,
+  // speedLimiter, // Keep disabled to avoid slowdowns
   
   // Data Sanitization
   mongoSanitize({

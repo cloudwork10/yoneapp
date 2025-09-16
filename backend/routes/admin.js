@@ -74,7 +74,7 @@ router.get('/dashboard', requireSuperAdmin, async (req, res) => {
 // @route   GET /api/admin/users
 // @desc    Get all users with pagination and filtering
 // @access  Admin
-router.get('/users', async (req, res) => {
+router.get('/users', requireAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -327,7 +327,7 @@ router.post('/users/:id/unlock', requireAdmin, async (req, res) => {
 // @route   GET /api/admin/stats
 // @desc    Get content statistics for admin
 // @access  Admin
-router.get('/stats', async (req, res) => {
+router.get('/stats', requireAuth, async (req, res) => {
   try {
     // Import models dynamically to avoid circular dependencies
     const Course = require('../models/Course');
