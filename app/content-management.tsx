@@ -804,7 +804,7 @@ export default function ContentManagementScreen() {
     return (
       <View style={styles.contentSection}>
         <View style={styles.contentHeader}>
-          <Text style={styles.sectionTitle}>Advice Management</Text>
+          <Text style={styles.sectionTitle}>إدارة النصائح</Text>
           <TouchableOpacity 
             style={styles.addButton}
             onPress={() => {
@@ -812,13 +812,13 @@ export default function ContentManagementScreen() {
               setShowAdviceModal(true);
             }}
           >
-            <Text style={styles.addButtonText}>+ Add Advice</Text>
+            <Text style={styles.addButtonText}>+ إضافة نصيحة</Text>
           </TouchableOpacity>
         </View>
         
         <TextInput
           style={styles.searchInput}
-          placeholder="Search advices..."
+          placeholder="البحث في النصائح..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#999"
@@ -834,10 +834,10 @@ export default function ContentManagementScreen() {
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>💡</Text>
               <Text style={styles.emptyTitle}>
-                {searchQuery ? 'No Advices Found' : 'No Advices'}
+                {searchQuery ? 'لم يتم العثور على نصائح' : 'لا توجد نصائح'}
               </Text>
               <Text style={styles.emptyText}>
-                {searchQuery ? 'Try a different search term' : 'Start by adding your first advice'}
+                {searchQuery ? 'جرب مصطلح بحث مختلف' : 'ابدأ بإضافة نصيحتك الأولى'}
               </Text>
             </View>
           ) : (
@@ -851,7 +851,7 @@ export default function ContentManagementScreen() {
                 <View style={styles.cvHeader}>
                   <View style={styles.cvInfo}>
                     <Text style={styles.cvName}>{advice.title}</Text>
-                    <Text style={styles.cvTitle}>by {advice.author}</Text>
+                    <Text style={styles.cvTitle}>بواسطة {advice.author}</Text>
                     <Text style={styles.cvDescription} numberOfLines={2}>{advice.content}</Text>
                   </View>
                   <View style={styles.cvActions}>
@@ -876,7 +876,7 @@ export default function ContentManagementScreen() {
                   <Text style={styles.cvExperience}>📚 {advice.category}</Text>
                   <Text style={styles.cvDownloads}>⏱️ {advice.duration}</Text>
                   {advice.isRecorded && (
-                    <Text style={styles.cvDownloads}>🎙️ Audio Available</Text>
+                    <Text style={styles.cvDownloads}>🎙️ متوفر صوتي</Text>
                   )}
                 </View>
               </View>
@@ -3279,24 +3279,38 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#2a2a2a',
+    borderWidth: 2,
+    borderColor: '#444',
+    marginHorizontal: 4,
+    marginVertical: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   categoryButtonActive: {
     backgroundColor: '#4ECDC4',
     borderColor: '#4ECDC4',
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   categoryButtonText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   categoryButtonTextActive: {
     color: '#000000',
+    fontWeight: '700',
   },
   // Empty State Styles
   emptyState: {
@@ -5192,27 +5206,27 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
     <View style={styles.formContainer}>
       <ScrollView style={styles.formScrollView}>
         <Text style={styles.formTitle}>
-          {advice ? 'Edit Advice' : 'Add New Advice'}
+          {advice ? 'تعديل النصيحة' : 'إضافة نصيحة جديدة'}
         </Text>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Title *</Text>
+          <Text style={styles.formLabel}>العنوان *</Text>
           <TextInput
             style={styles.formInput}
             value={formData.title}
             onChangeText={(text) => setFormData({...formData, title: text})}
-            placeholder="Advice title"
+            placeholder="عنوان النصيحة"
             placeholderTextColor="#666666"
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Content *</Text>
+          <Text style={styles.formLabel}>المحتوى *</Text>
           <TextInput
             style={[styles.formInput, styles.textArea]}
             value={formData.content}
             onChangeText={(text) => setFormData({...formData, content: text})}
-            placeholder="Advice content"
+            placeholder="محتوى النصيحة"
             placeholderTextColor="#666666"
             multiline={true}
             numberOfLines={4}
@@ -5220,7 +5234,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Category *</Text>
+          <Text style={styles.formLabel}>الفئة *</Text>
           <View style={styles.categoryContainer}>
             {['career-shift', 'kids', 'motivation', 'success', 'programming', 'business'].map((category) => (
               <TouchableOpacity
@@ -5243,31 +5257,31 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Author *</Text>
+          <Text style={styles.formLabel}>المؤلف *</Text>
           <TextInput
             style={styles.formInput}
             value={formData.author}
             onChangeText={(text) => setFormData({...formData, author: text})}
-            placeholder="Author name"
+            placeholder="اسم المؤلف"
             placeholderTextColor="#666666"
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Duration *</Text>
+          <Text style={styles.formLabel}>المدة *</Text>
           <TextInput
             style={styles.formInput}
             value={formData.duration}
             onChangeText={(text) => setFormData({...formData, duration: text})}
-            placeholder="e.g., 5 min read"
+            placeholder="مثال: 5 دقائق قراءة"
             placeholderTextColor="#666666"
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Thumbnail Image</Text>
+          <Text style={styles.formLabel}>الصورة المصغرة</Text>
           <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-            <Text style={styles.imagePickerButtonText}>📷 Pick Image</Text>
+            <Text style={styles.imagePickerButtonText}>📷 اختيار صورة</Text>
           </TouchableOpacity>
           {formData.thumbnail && (
             <Text style={styles.imageUrlText}>{formData.thumbnail}</Text>
@@ -5275,7 +5289,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>Audio Content</Text>
+          <Text style={styles.formLabel}>المحتوى الصوتي</Text>
           
           <View style={styles.audioSourceContainer}>
             <TouchableOpacity
@@ -5283,7 +5297,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
               onPress={() => setAudioSource('url')}
             >
               <Text style={[styles.audioSourceButtonText, audioSource === 'url' && styles.audioSourceButtonTextActive]}>
-                🔗 URL Link
+                🔗 رابط صوتي
               </Text>
             </TouchableOpacity>
             
@@ -5292,7 +5306,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
               onPress={() => setAudioSource('upload')}
             >
               <Text style={[styles.audioSourceButtonText, audioSource === 'upload' && styles.audioSourceButtonTextActive]}>
-                📁 Upload File
+                📁 رفع ملف
               </Text>
             </TouchableOpacity>
             
@@ -5301,7 +5315,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
               onPress={() => setAudioSource('record')}
             >
               <Text style={[styles.audioSourceButtonText, audioSource === 'record' && styles.audioSourceButtonTextActive]}>
-                🎙️ Record
+                🎙️ تسجيل
               </Text>
             </TouchableOpacity>
           </View>
@@ -5311,14 +5325,14 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
               style={styles.formInput}
               value={formData.audioUrl}
               onChangeText={(text) => setFormData({...formData, audioUrl: text, isRecorded: text.length > 0})}
-              placeholder="Audio URL (optional)"
+              placeholder="رابط الصوت (اختياري)"
               placeholderTextColor="#666666"
             />
           )}
 
           {audioSource === 'upload' && (
             <TouchableOpacity style={styles.audioUploadButton} onPress={uploadAudioFile}>
-              <Text style={styles.audioUploadButtonText}>📁 Upload Audio File</Text>
+              <Text style={styles.audioUploadButtonText}>📁 رفع ملف صوتي</Text>
             </TouchableOpacity>
           )}
 
@@ -5333,7 +5347,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
                 }}
               >
                 <Text style={styles.recordButtonText}>
-                  {isRecording ? '⏹️ Stop Recording' : '🎙️ Start Recording'}
+                  {isRecording ? '⏹️ إيقاف التسجيل' : '🎙️ بدء التسجيل'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -5371,11 +5385,11 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
 
       <View style={styles.formActions}>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.cancelButtonText}>إلغاء</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
           <Text style={styles.saveButtonText}>
-            {advice ? 'Update Advice' : 'Create Advice'}
+            {advice ? 'تحديث النصيحة' : 'إنشاء النصيحة'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -5455,59 +5469,85 @@ const adviceStyles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 15,
-    gap: 10,
+    gap: 8,
+    justifyContent: 'space-between',
   },
   audioSourceButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#333',
-    borderWidth: 1,
-    borderColor: '#555',
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#2a2a2a',
+    borderWidth: 2,
+    borderColor: '#444',
+    alignItems: 'center',
+    marginHorizontal: 2,
+    minHeight: 50,
   },
   audioSourceButtonActive: {
     backgroundColor: '#4ECDC4',
     borderColor: '#4ECDC4',
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   audioSourceButtonText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   audioSourceButtonTextActive: {
     color: '#000',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   audioUploadButton: {
     backgroundColor: '#4ECDC4',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   audioUploadButtonText: {
     color: '#000',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
   recordContainer: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   recordButton: {
     backgroundColor: '#E50914',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   recordButtonActive: {
     backgroundColor: '#FF4444',
+    shadowColor: '#FF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
   },
   recordButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
