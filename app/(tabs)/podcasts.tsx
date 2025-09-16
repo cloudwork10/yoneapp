@@ -38,7 +38,7 @@ export default function PodcastsScreen() {
       setLoading(true);
       console.log('🎧 Fetching podcasts from API...');
       
-      const response = await fetch('http://192.168.100.41:3000/api/admin/content/podcasts');
+      const response = await fetch('http://192.168.100.41:3000/api/public/content/podcasts');
       
       if (response.ok) {
         const result = await response.json();
