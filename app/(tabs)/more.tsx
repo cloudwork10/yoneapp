@@ -18,34 +18,41 @@ export default function MoreScreen() {
     },
     {
       id: 2,
+      title: 'برنامج خواطر مبرمج',
+      description: '10 حلقات من الخبرات والتجارب البرمجية',
+      icon: '💭',
+      route: '/programmer-thoughts'
+    },
+    {
+      id: 3,
       title: 'مواعيد الصلاة',
       description: 'Prayer times and notifications',
       icon: '🕌',
       route: '/prayer-times'
     },
     {
-      id: 3,
+      id: 4,
       title: 'Movies',
       description: 'Best movies for programming and coding',
       icon: '🎬',
       route: '/movies'
     },
     {
-      id: 4,
+      id: 5,
       title: 'Settings',
       description: 'App preferences and configuration',
       icon: '⚙️',
       route: '/settings'
     },
     {
-      id: 5,
+      id: 6,
       title: 'Help & Support',
       description: 'Get help and contact support',
       icon: '❓',
       route: '/help'
     },
     {
-      id: 6,
+      id: 7,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
@@ -56,7 +63,7 @@ export default function MoreScreen() {
   // Add Dashboard only for admin users
   const adminMenuItems = [
     {
-      id: 7,
+      id: 8,
       title: 'Admin Dashboard',
       description: 'Manage users and monitor system',
       icon: '👑',
@@ -64,7 +71,7 @@ export default function MoreScreen() {
       isAdmin: true
     },
     {
-      id: 8,
+      id: 9,
       title: 'Content Management',
       description: 'Manage courses, articles, and all content',
       icon: '📝',
@@ -77,16 +84,19 @@ export default function MoreScreen() {
   const menuItems = isAdmin 
     ? [
         baseMenuItems[0], // Profile
-        baseMenuItems[1], // Prayer Times
-        baseMenuItems[2], // Movies
+        baseMenuItems[1], // برنامج خواطر مبرمج
+        baseMenuItems[2], // Prayer Times
+        baseMenuItems[3], // Movies
         ...adminMenuItems, // Admin Dashboard
-        ...baseMenuItems.slice(3) // Settings, Help, About
+        ...baseMenuItems.slice(4) // Settings, Help, About
       ]
     : baseMenuItems;
 
   const handleMenuPress = (route: string) => {
     if (route === '/profile') {
       router.push('/profile');
+    } else if (route === '/programmer-thoughts') {
+      router.push('/programmer-thoughts');
     } else if (route === '/prayer-times') {
       router.push('/prayer-times');
     } else if (route === '/movies') {
