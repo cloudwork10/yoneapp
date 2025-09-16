@@ -155,7 +155,12 @@ export default function ContentManagementScreen() {
             const data = await retryResponse.json();
             console.log('✅ Content stats received after refresh:', data);
             setStats(data.data);
+          } else if (retryResponse.status === 429) {
+            // Still rate limited after refresh
+            console.log('⏳ Still rate limited after token refresh');
+            Alert.alert('Rate Limited', 'Please wait a moment and try again.');
           } else {
+            console.error('❌ Failed after token refresh:', retryResponse.status);
             Alert.alert('Error', 'Failed to load content statistics after token refresh');
           }
         } else {
@@ -249,8 +254,11 @@ export default function ContentManagementScreen() {
           if (retryResponse.ok) {
             const data = await retryResponse.json();
             setCvTemplates(data.data.cvTemplates || []);
+          } else if (retryResponse.status === 429) {
+            // Still rate limited after refresh
+            console.log('⏳ Still rate limited after token refresh for CV templates');
           } else {
-            console.error('Failed to fetch CV templates after token refresh');
+            console.error('❌ Failed to fetch CV templates after token refresh:', retryResponse.status);
           }
         } else {
           console.error('Failed to refresh token for CV templates');
@@ -335,8 +343,11 @@ export default function ContentManagementScreen() {
             const data = await retryResponse.json();
             console.log('📄 Articles data received after refresh:', data);
             setArticles(data.data.articles || []);
+          } else if (retryResponse.status === 429) {
+            // Still rate limited after refresh
+            console.log('⏳ Still rate limited after token refresh for articles');
           } else {
-            console.error('Failed to fetch articles after token refresh');
+            console.error('❌ Failed to fetch articles after token refresh:', retryResponse.status);
           }
         } else {
           console.error('Failed to refresh token for articles');
@@ -432,8 +443,11 @@ export default function ContentManagementScreen() {
             const data = await retryResponse.json();
             console.log('🗺️ Roadmaps data received after refresh:', data);
             setRoadmaps(data.data.roadmaps || []);
+          } else if (retryResponse.status === 429) {
+            // Still rate limited after refresh
+            console.log('⏳ Still rate limited after token refresh for roadmaps');
           } else {
-            console.error('Failed to fetch roadmaps after token refresh');
+            console.error('❌ Failed to fetch roadmaps after token refresh:', retryResponse.status);
           }
         } else {
           console.error('Failed to refresh token for roadmaps');
@@ -528,8 +542,11 @@ export default function ContentManagementScreen() {
             const data = await retryResponse.json();
             console.log('📊 Podcasts data received after refresh:', data);
             setPodcasts(data.data.podcasts || []);
+          } else if (retryResponse.status === 429) {
+            // Still rate limited after refresh
+            console.log('⏳ Still rate limited after token refresh for podcasts');
           } else {
-            console.error('Failed to fetch podcasts after token refresh');
+            console.error('❌ Failed to fetch podcasts after token refresh:', retryResponse.status);
           }
         } else {
           console.error('Failed to refresh token for podcasts');
