@@ -1,19 +1,19 @@
+import { Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { 
-  Animated, 
-  Dimensions, 
-  Image, 
-  Modal, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View 
+import {
+    Animated,
+    Dimensions,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Video } from 'expo-av';
 import { WebView } from 'react-native-webview';
 
 const { width, height } = Dimensions.get('window');
@@ -351,7 +351,7 @@ export default function ProgrammerThoughts() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <LinearGradient
         colors={['#0a0a0a', '#1a1a1a', '#0a0a0a']}
         style={styles.gradient}
@@ -414,10 +414,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#333333',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
   },
   backButton: {
     width: 40,
@@ -600,10 +601,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#333333',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
   },
   closeButton: {
     width: 40,
