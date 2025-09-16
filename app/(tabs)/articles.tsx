@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
     ImageBackground,
@@ -19,6 +19,75 @@ export default function ArticlesScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch articles from API
+  useEffect(() => {
+    fetchArticles();
+  }, []);
+
+  const fetchArticles = async () => {
+    try {
+      const response = await fetch('http://192.168.100.41:3000/api/content/public/articles');
+      if (response.ok) {
+        const data = await response.json();
+        setArticles(data.data.articles || []);
+      } else {
+        console.error('Failed to fetch articles:', response.status);
+        // Fallback to sample data if API fails
+        setArticles(getSampleArticles());
+      }
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      // Fallback to sample data if API fails
+      setArticles(getSampleArticles());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getSampleArticles = () => [
+    {
+      id: 1,
+      title: 'Getting Started with React Native',
+      description: 'Learn the basics of React Native development and build your first mobile app.',
+      author: 'Ahmed Hassan',
+      readTime: '8 min read',
+      category: 'programming',
+      views: 1250,
+      likes: 89,
+      image: 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=React+Native',
+      icon: '💻',
+      color: '#4ECDC4'
+    },
+    {
+      id: 2,
+      title: 'UI/UX Design Principles',
+      description: 'Essential design principles every developer should know for better user experience.',
+      author: 'Sarah Mohamed',
+      readTime: '6 min read',
+      category: 'design',
+      views: 980,
+      likes: 67,
+      image: 'https://via.placeholder.com/300x200/1a1a1a/FF6B35?text=UI+UX',
+      icon: '🎨',
+      color: '#FF6B35'
+    },
+    {
+      id: 3,
+      title: 'Freelancing Success Tips',
+      description: 'How to build a successful freelancing career in the tech industry.',
+      author: 'Omar Ali',
+      readTime: '10 min read',
+      category: 'freelancing',
+      views: 750,
+      likes: 45,
+      image: 'https://via.placeholder.com/300x200/1a1a1a/E50914?text=Freelancing',
+      icon: '💼',
+      color: '#E50914'
+    }
+  ];
   
   const categories = [
     { id: 'all', name: 'All', icon: '🌟' },
@@ -29,172 +98,27 @@ export default function ArticlesScreen() {
     { id: 'career', name: 'Start Your Career', icon: '🚀' },
   ];
   
-  const articles = [
-    { 
-      id: 1, 
-      title: '10 React Native Performance Tips', 
-      description: 'Learn essential techniques to optimize your React Native apps for better performance and user experience',
-      author: 'John Doe',
-      readTime: '5 min read',
-      category: 'programming',
-      date: '2 days ago',
-      image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#FF6B6B',
-      icon: '📱',
-      views: '2.3k'
-    },
-    { 
-      id: 2, 
-      title: 'Understanding JavaScript Closures', 
-      description: 'Master one of JavaScript\'s most powerful concepts with practical examples and real-world applications',
-      author: 'Jane Smith',
-      readTime: '8 min read',
-      category: 'programming',
-      date: '1 week ago',
-      image: 'https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#4ECDC4',
-      icon: '⚡',
-      views: '5.1k'
-    },
-    { 
-      id: 3, 
-      title: 'MongoDB vs PostgreSQL: Which to Choose?', 
-      description: 'A comprehensive comparison of two popular databases to help you make the right choice for your project',
-      author: 'Mike Johnson',
-      readTime: '12 min read',
-      category: 'programming',
-      date: '2 weeks ago',
-      image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#45B7D1',
-      icon: '🗄️',
-      views: '3.7k'
-    },
-    { 
-      id: 4, 
-      title: 'Building Scalable Node.js Applications', 
-      description: 'Best practices and patterns for creating robust, scalable Node.js applications that can handle growth',
-      author: 'Sarah Wilson',
-      readTime: '15 min read',
-      category: 'programming',
-      date: '3 weeks ago',
-      image: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#96CEB4',
-      icon: '🚀',
-      views: '4.2k'
-    },
-    { 
-      id: 5, 
-      title: 'CSS Grid vs Flexbox: A Complete Guide', 
-      description: 'When to use CSS Grid and when to use Flexbox - a complete guide with examples and best practices',
-      author: 'Alex Brown',
-      readTime: '10 min read',
-      category: 'design',
-      date: '1 month ago',
-      image: 'https://images.unsplash.com/photo-1558655146-d09347e92766?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#FF9F43',
-      icon: '🎨',
-      views: '6.8k'
-    },
-    { 
-      id: 6, 
-      title: 'UI/UX Design Principles for Mobile Apps', 
-      description: 'Essential design principles that every mobile app developer should know for better user experience',
-      author: 'Emma Davis',
-      readTime: '7 min read',
-      category: 'design',
-      date: '5 days ago',
-      image: 'https://images.unsplash.com/photo-1558655146-d09347e92766?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#6C5CE7',
-      icon: '📱',
-      views: '3.2k'
-    },
-    { 
-      id: 7, 
-      title: 'Digital Marketing Strategies for 2024', 
-      description: 'Latest trends and strategies in digital marketing to help your business grow in the current market',
-      author: 'David Lee',
-      readTime: '9 min read',
-      category: 'marketing',
-      date: '1 week ago',
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#00B894',
-      icon: '📈',
-      views: '4.5k'
-    },
-    { 
-      id: 8, 
-      title: 'Content Marketing: A Beginner\'s Guide', 
-      description: 'Learn how to create compelling content that engages your audience and drives business results',
-      author: 'Lisa Chen',
-      readTime: '6 min read',
-      category: 'marketing',
-      date: '3 days ago',
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#E17055',
-      icon: '✍️',
-      views: '2.9k'
-    },
-    { 
-      id: 9, 
-      title: 'How to Start Your Freelance Web Development Business', 
-      description: 'Step-by-step guide to building a successful freelance web development business from scratch',
-      author: 'Tom Wilson',
-      readTime: '11 min read',
-      category: 'freelancing',
-      date: '2 weeks ago',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#A29BFE',
-      icon: '💼',
-      views: '5.6k'
-    },
-    { 
-      id: 10, 
-      title: 'Freelance Design: Pricing Your Services', 
-      description: 'Learn how to price your design services competitively while ensuring you\'re fairly compensated',
-      author: 'Maria Garcia',
-      readTime: '8 min read',
-      category: 'freelancing',
-      date: '1 week ago',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#FD79A8',
-      icon: '🎨',
-      views: '3.4k'
-    },
-    { 
-      id: 11, 
-      title: 'Career Tips for New Developers', 
-      description: 'Essential advice for developers starting their career journey in the tech industry',
-      author: 'Chris Taylor',
-      readTime: '5 min read',
-      category: 'career',
-      date: '4 days ago',
-      image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#FDCB6E',
-      icon: '🚀',
-      views: '7.2k'
-    },
-    { 
-      id: 12, 
-      title: 'Building Your Professional Network', 
-      description: 'Strategies for networking and building meaningful professional relationships in tech',
-      author: 'Rachel Kim',
-      readTime: '6 min read',
-      category: 'career',
-      date: '6 days ago',
-      image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      color: '#74B9FF',
-      icon: '🤝',
-      views: '4.1k'
-    },
-  ];
-
-  // Filter articles based on search and category
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         article.description.toLowerCase().includes(searchQuery.toLowerCase());
+                         article.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         article.author.toLowerCase().includes(searchQuery.toLowerCase());
+    
     const matchesCategory = selectedCategory === 'All' || article.category === selectedCategory.toLowerCase();
+    
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading articles...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -207,41 +131,43 @@ export default function ArticlesScreen() {
           </View>
 
           {/* Featured Article */}
-          <View style={styles.featuredSection}>
-            <TouchableOpacity 
-              style={styles.featuredCard}
-              onPress={() => router.push(`/article-details?articleId=${articles[0].id}`)}
-            >
-              <ImageBackground
-                source={{ uri: articles[0].image }}
-                style={styles.featuredImage}
-                resizeMode="cover"
+          {articles.length > 0 && (
+            <View style={styles.featuredSection}>
+              <TouchableOpacity 
+                style={styles.featuredCard}
+                onPress={() => router.push(`/article-details?articleId=${articles[0]._id || articles[0].id}`)}
               >
-                <LinearGradient
-                  colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
-                  style={styles.featuredGradient}
+                <ImageBackground
+                  source={{ uri: articles[0].image }}
+                  style={styles.featuredImage}
+                  resizeMode="cover"
                 >
-                  <View style={styles.featuredContent}>
-                    <View style={styles.featuredBadge}>
-                      <Text style={styles.featuredBadgeText}>FEATURED</Text>
-                    </View>
-                    <Text style={styles.featuredTitleText}>{articles[0].title}</Text>
-                    <Text style={styles.featuredDescription}>{articles[0].description}</Text>
-                    <View style={styles.featuredMeta}>
-                      <View style={styles.featuredMetaItem}>
-                        <Text style={styles.featuredMetaIcon}>👤</Text>
-                        <Text style={styles.featuredMetaText}>{articles[0].author}</Text>
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+                    style={styles.featuredGradient}
+                  >
+                    <View style={styles.featuredContent}>
+                      <View style={styles.featuredBadge}>
+                        <Text style={styles.featuredBadgeText}>FEATURED</Text>
                       </View>
-                      <View style={styles.featuredMetaItem}>
-                        <Text style={styles.featuredMetaIcon}>⏱️</Text>
-                        <Text style={styles.featuredMetaText}>{articles[0].readTime}</Text>
+                      <Text style={styles.featuredTitleText}>{articles[0].title}</Text>
+                      <Text style={styles.featuredDescription}>{articles[0].description}</Text>
+                      <View style={styles.featuredMeta}>
+                        <View style={styles.featuredMetaItem}>
+                          <Text style={styles.featuredMetaIcon}>👤</Text>
+                          <Text style={styles.featuredMetaText}>{articles[0].author}</Text>
+                        </View>
+                        <View style={styles.featuredMetaItem}>
+                          <Text style={styles.featuredMetaIcon}>⏱️</Text>
+                          <Text style={styles.featuredMetaText}>{articles[0].readTime}</Text>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </LinearGradient>
-              </ImageBackground>
-            </TouchableOpacity>
-          </View>
+                  </LinearGradient>
+                </ImageBackground>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Search Section */}
           <View style={styles.searchSection}>
@@ -268,7 +194,7 @@ export default function ArticlesScreen() {
             >
               {categories.map((category) => (
                 <TouchableOpacity
-                  key={category.id}
+                  key={`article-category-${category.id}`}
                   style={[
                     styles.categoryButton,
                     selectedCategory === category.name && styles.categoryButtonActive
@@ -293,11 +219,11 @@ export default function ArticlesScreen() {
               {selectedCategory === 'All' ? 'All Articles' : `${selectedCategory} Articles`}
             </Text>
             <View style={styles.articlesContainer}>
-              {filteredArticles.map((article) => (
+              {filteredArticles.map((article, index) => (
                 <TouchableOpacity 
-                  key={article.id} 
+                  key={article._id || article.id || `article-${index}`} 
                   style={styles.articleCard}
-                  onPress={() => router.push(`/article-details?articleId=${article.id}`)}
+                  onPress={() => router.push(`/article-details?articleId=${article._id || article.id}`)}
                 >
                   <View style={styles.articleImageContainer}>
                     <ImageBackground
@@ -354,6 +280,16 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
   },
   container: {
     flex: 1,

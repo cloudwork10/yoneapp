@@ -1,9 +1,9 @@
+import { useUser } from '@/contexts/UserContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Alert, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUser } from '@/contexts/UserContext';
 
 export default function DashboardScreen() {
   const { user, isAdmin } = useUser();
@@ -15,6 +15,7 @@ export default function DashboardScreen() {
     adminUsers: 0,
     newUsersToday: 0,
   });
+  const [error, setError] = useState<string | null>(null);
 
   // Check if user is admin, redirect if not
   useEffect(() => {
@@ -34,38 +35,64 @@ export default function DashboardScreen() {
 
   const fetchAdminData = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const token = await AsyncStorage.getItem('token');
       
       if (!token) {
-        Alert.alert('Error', 'Authentication token not found');
+        setError('Authentication token not found');
+        setLoading(false);
         return;
       }
 
+      console.log('🔐 Fetching admin data with token:', token.substring(0, 20) + '...');
+
       // Fetch users
-      const usersResponse = await fetch('http://localhost:3000/api/admin/users', {
+      const usersResponse = await fetch('http://192.168.100.41:3000/api/admin/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
+      console.log('📊 Users response status:', usersResponse.status);
+
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
-        setUsers(usersData.data || []);
+        console.log('📊 Users data received:', usersData);
+        
+        // Ensure we have valid data structure
+        const users = usersData?.data?.users || usersData?.users || [];
+        setUsers(users);
+        
+        // Calculate stats safely
+        const totalUsers = users.length;
+        const activeUsers = users.filter((u: any) => u.lastLogin && u.isActive !== false).length;
+        const adminUsers = users.filter((u: any) => u.isAdmin === true || u.role === 'admin').length;
+        const newUsersToday = users.filter((u: any) => {
+          if (!u.createdAt) return false;
+          const today = new Date();
+          const userDate = new Date(u.createdAt);
+          return userDate.toDateString() === today.toDateString();
+        }).length;
+
         setStats({
-          totalUsers: usersData.data?.length || 0,
-          activeUsers: usersData.data?.filter((u: any) => u.lastLogin)?.length || 0,
-          adminUsers: usersData.data?.filter((u: any) => u.isAdmin)?.length || 0,
-          newUsersToday: usersData.data?.filter((u: any) => {
-            const today = new Date();
-            const userDate = new Date(u.createdAt);
-            return userDate.toDateString() === today.toDateString();
-          })?.length || 0,
+          totalUsers,
+          activeUsers,
+          adminUsers,
+          newUsersToday,
         });
+
+        console.log('📊 Stats calculated:', { totalUsers, activeUsers, adminUsers, newUsersToday });
+      } else {
+        const errorData = await usersResponse.json().catch(() => ({}));
+        console.error('❌ Users API error:', errorData);
+        setError(`Failed to load users: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error fetching admin data:', error);
-      Alert.alert('Error', 'Failed to load admin data');
+      console.error('❌ Error fetching admin data:', error);
+      setError(`Failed to load admin data: ${error.message || 'Network error'}`);
     } finally {
       setLoading(false);
     }
@@ -155,6 +182,26 @@ export default function DashboardScreen() {
           </TouchableOpacity>
           <Text style={styles.title}>Admin Dashboard</Text>
         </View>
+
+        {error && (
+          <View style={styles.errorBanner}>
+            <View style={styles.errorContent}>
+              <Text style={styles.errorText}>⚠️ {error}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={fetchAdminData}
+              >
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity 
+              style={styles.errorCloseButton}
+              onPress={() => setError(null)}
+            >
+              <Text style={styles.errorCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.overviewSection}>
           <Text style={styles.sectionTitle}>System Overview</Text>
@@ -458,5 +505,50 @@ const styles = StyleSheet.create({
     color: '#E50914',
     fontSize: 14,
     fontWeight: '600',
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(229, 9, 20, 0.1)',
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  errorContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  errorText: {
+    color: '#E50914',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  retryButtonText: {
+    color: '#E50914',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  errorCloseButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorCloseText: {
+    color: '#E50914',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Dimensions,
     ImageBackground,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -19,17 +20,69 @@ export default function RoadmapsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [roadmaps, setRoadmaps] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   
   const categories = [
-    { id: 'all', name: 'All', icon: '🌟' },
-    { id: 'programming', name: 'Programming', icon: '💻' },
-    { id: 'design', name: 'Design', icon: '🎨' },
-    { id: 'marketing', name: 'Marketing', icon: '📈' },
-    { id: 'freelancing', name: 'Freelancing', icon: '💼' },
-    { id: 'career', name: 'Start Your Career', icon: '🚀' },
+    { id: 'All', name: 'All', icon: '🌟' },
+    { id: 'Frontend', name: 'Frontend', icon: '💻' },
+    { id: 'Backend', name: 'Backend', icon: '⚙️' },
+    { id: 'Full Stack', name: 'Full Stack', icon: '🔄' },
+    { id: 'Mobile', name: 'Mobile', icon: '📱' },
+    { id: 'DevOps', name: 'DevOps', icon: '🔧' },
+    { id: 'Data Science', name: 'Data Science', icon: '📊' },
+    { id: 'AI/ML', name: 'AI/ML', icon: '🤖' },
   ];
-  
-  const roadmaps = [
+
+  // Fetch roadmaps from API
+  useEffect(() => {
+    fetchRoadmaps();
+  }, []);
+
+  // Refresh roadmaps when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 Roadmaps screen focused, refreshing data...');
+      fetchRoadmaps();
+    }, [])
+  );
+
+  const fetchRoadmaps = async () => {
+    try {
+      setLoading(true);
+      console.log('🗺️ Fetching roadmaps...');
+      
+      const response = await fetch('http://192.168.100.41:3000/api/content/public/roadmaps');
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Roadmaps received:', data);
+        console.log('📊 Roadmaps count:', data.data.roadmaps?.length || 0);
+        console.log('🔍 First roadmap:', data.data.roadmaps?.[0]);
+        setRoadmaps(data.data.roadmaps || []);
+      } else {
+        console.error('❌ Failed to fetch roadmaps:', response.status);
+        // Fallback data
+        setRoadmaps([]);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching roadmaps:', error);
+      // Fallback data
+      setRoadmaps([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchRoadmaps();
+    setRefreshing(false);
+  };
+
+  // Fallback roadmaps data
+  const fallbackRoadmaps = [
     { 
       id: 1, 
       title: 'Frontend Developer', 
@@ -192,29 +245,66 @@ export default function RoadmapsScreen() {
   const filteredRoadmaps = roadmaps.filter(roadmap => {
     const matchesSearch = roadmap.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          roadmap.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || roadmap.category === selectedCategory.toLowerCase();
+    const matchesCategory = selectedCategory === 'All' || roadmap.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  console.log('🔍 Filtered roadmaps:', filteredRoadmaps.length, 'out of', roadmaps.length);
+
+  // Loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading roadmaps...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#9B59B6']}
+              tintColor="#9B59B6"
+            />
+          }
+        >
           {/* Header Section */}
           <View style={styles.header}>
             <Text style={styles.title}>Learning Roadmaps</Text>
             <Text style={styles.subtitle}>Choose your path to success</Text>
           </View>
 
+          {/* Empty State */}
+          {roadmaps.length === 0 && !loading && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No roadmaps found</Text>
+              <Text style={styles.emptyStateSubtext}>Check back later for new learning paths</Text>
+            </View>
+          )}
+
           {/* Featured Roadmap */}
-          <View style={styles.featuredSection}>
-            <Text style={styles.featuredTitle}>Featured Roadmap</Text>
-            <TouchableOpacity 
-              style={styles.featuredCard}
-              onPress={() => router.push(`/roadmap-details?roadmapId=${roadmaps[0].id}`)}
+          {roadmaps.length > 0 && (
+            <View style={styles.featuredSection}>
+              <Text style={styles.featuredTitle}>Featured Roadmap</Text>
+              <TouchableOpacity 
+                style={styles.featuredCard}
+                onPress={() => router.push(`/roadmap-details?roadmapId=${roadmaps[0]._id || roadmaps[0].id}`)}
             >
               <ImageBackground
-                source={{ uri: roadmaps[0].image }}
+                source={{ 
+                  uri: roadmaps[0].image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+                }}
                 style={styles.featuredImage}
                 resizeMode="cover"
               >
@@ -230,12 +320,16 @@ export default function RoadmapsScreen() {
                     <Text style={styles.featuredDescription}>{roadmaps[0].description}</Text>
                     <View style={styles.featuredMeta}>
                       <View style={styles.featuredMetaItem}>
-                        <Text style={styles.featuredMetaIcon}>{roadmaps[0].icon}</Text>
-                        <Text style={styles.featuredMetaText}>{roadmaps[0].level}</Text>
+                        <Text style={styles.featuredMetaIcon}>{roadmaps[0].icon || '🗺️'}</Text>
+                        <Text style={styles.featuredMetaText}>{roadmaps[0].difficulty || 'Beginner'}</Text>
                       </View>
                       <View style={styles.featuredMetaItem}>
                         <Text style={styles.featuredMetaIcon}>⏱️</Text>
-                        <Text style={styles.featuredMetaText}>{roadmaps[0].duration}</Text>
+                        <Text style={styles.featuredMetaText}>{roadmaps[0].duration || '6 months'}</Text>
+                      </View>
+                      <View style={styles.featuredMetaItem}>
+                        <Text style={styles.featuredMetaIcon}>📊</Text>
+                        <Text style={styles.featuredMetaText}>{roadmaps[0].steps?.length || 0} steps</Text>
                       </View>
                     </View>
                   </View>
@@ -243,6 +337,7 @@ export default function RoadmapsScreen() {
               </ImageBackground>
             </TouchableOpacity>
           </View>
+          )}
 
           {/* Search Section */}
           <View style={styles.searchSection}>
@@ -269,7 +364,7 @@ export default function RoadmapsScreen() {
             >
               {categories.map((category) => (
                 <TouchableOpacity
-                  key={category.id}
+                  key={`roadmap-category-${category.id}`}
                   style={[
                     styles.categoryButton,
                     selectedCategory === category.name && styles.categoryButtonActive
@@ -294,15 +389,17 @@ export default function RoadmapsScreen() {
               {selectedCategory === 'All' ? 'All Roadmaps' : `${selectedCategory} Roadmaps`}
             </Text>
             <View style={styles.roadmapsContainer}>
-              {filteredRoadmaps.map((roadmap) => (
+              {filteredRoadmaps.map((roadmap, index) => (
                 <TouchableOpacity 
-                  key={roadmap.id} 
+                  key={roadmap._id || roadmap.id || `roadmap-${index}`} 
                   style={styles.roadmapCard}
-                  onPress={() => router.push(`/roadmap-details?roadmapId=${roadmap.id}`)}
+                  onPress={() => router.push(`/roadmap-details?roadmapId=${roadmap._id || roadmap.id}`)}
                 >
                   <View style={styles.roadmapImageContainer}>
                     <ImageBackground
-                      source={{ uri: roadmap.image }}
+                      source={{ 
+                        uri: roadmap.image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80'
+                      }}
                       style={styles.roadmapImage}
                       resizeMode="cover"
                     >
@@ -311,7 +408,7 @@ export default function RoadmapsScreen() {
                         style={styles.roadmapImageGradient}
                       >
                         <View style={styles.roadmapIcon}>
-                          <Text style={styles.roadmapIconText}>{roadmap.icon}</Text>
+                          <Text style={styles.roadmapIconText}>{roadmap.icon || '🗺️'}</Text>
                         </View>
                       </LinearGradient>
                     </ImageBackground>
@@ -320,8 +417,8 @@ export default function RoadmapsScreen() {
                   <View style={styles.roadmapContent}>
                     <View style={styles.roadmapHeader}>
                       <Text style={styles.roadmapTitle}>{roadmap.title}</Text>
-                      <View style={[styles.roadmapLevelBadge, { backgroundColor: roadmap.color }]}>
-                        <Text style={styles.roadmapLevelText}>{roadmap.level}</Text>
+                      <View style={[styles.roadmapLevelBadge, { backgroundColor: roadmap.color || '#9B59B6' }]}>
+                        <Text style={styles.roadmapLevelText}>{roadmap.difficulty || 'Beginner'}</Text>
                       </View>
                     </View>
                     
@@ -330,11 +427,11 @@ export default function RoadmapsScreen() {
                     <View style={styles.roadmapMeta}>
                       <View style={styles.roadmapMetaItem}>
                         <Text style={styles.roadmapMetaIcon}>⏱️</Text>
-                        <Text style={styles.roadmapMetaText}>{roadmap.duration}</Text>
+                        <Text style={styles.roadmapMetaText}>{roadmap.duration || '6 months'}</Text>
                       </View>
                       <View style={styles.roadmapMetaItem}>
                         <Text style={styles.roadmapMetaIcon}>📚</Text>
-                        <Text style={styles.roadmapMetaText}>{roadmap.totalSteps} steps</Text>
+                        <Text style={styles.roadmapMetaText}>{roadmap.steps?.length || 0} steps</Text>
                       </View>
                     </View>
                   </View>
@@ -352,6 +449,31 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  emptyStateText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    textAlign: 'center',
   },
   container: {
     flex: 1,

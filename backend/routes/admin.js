@@ -324,4 +324,68 @@ router.post('/users/:id/unlock', requireAdmin, async (req, res) => {
   }
 });
 
+// @route   GET /api/admin/stats
+// @desc    Get content statistics for admin
+// @access  Admin
+router.get('/stats', requireAdmin, async (req, res) => {
+  try {
+    // Import models dynamically to avoid circular dependencies
+    const Course = require('../models/Course');
+    const Podcast = require('../models/Podcast');
+    const Article = require('../models/Article');
+    const Roadmap = require('../models/Roadmap');
+    const Advice = require('../models/Advice');
+    const ProgrammingTerm = require('../models/ProgrammingTerm');
+    const CVTemplate = require('../models/CVTemplate');
+
+    // Get total counts
+    const totalCourses = await Course.countDocuments();
+    const totalPodcasts = await Podcast.countDocuments();
+    const totalArticles = await Article.countDocuments();
+    const totalRoadmaps = await Roadmap.countDocuments();
+    const totalAdvices = await Advice.countDocuments();
+    const totalTerms = await ProgrammingTerm.countDocuments();
+    const totalCVTemplates = await CVTemplate.countDocuments();
+
+    // Get active counts
+    const activeCourses = await Course.countDocuments({ isActive: true });
+    const activePodcasts = await Podcast.countDocuments({ isActive: true });
+    const activeArticles = await Article.countDocuments({ isActive: true });
+    const activeRoadmaps = await Roadmap.countDocuments({ isActive: true });
+    const activeAdvices = await Advice.countDocuments({ isActive: true });
+    const activeTerms = await ProgrammingTerm.countDocuments({ isActive: true });
+    const activeCVTemplates = await CVTemplate.countDocuments({ isActive: true });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        total: {
+          courses: totalCourses,
+          podcasts: totalPodcasts,
+          articles: totalArticles,
+          roadmaps: totalRoadmaps,
+          advices: totalAdvices,
+          terms: totalTerms,
+          cvTemplates: totalCVTemplates
+        },
+        active: {
+          courses: activeCourses,
+          podcasts: activePodcasts,
+          articles: activeArticles,
+          roadmaps: activeRoadmaps,
+          advices: activeAdvices,
+          terms: activeTerms,
+          cvTemplates: activeCVTemplates
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching content stats:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error'
+    });
+  }
+});
+
 module.exports = router;

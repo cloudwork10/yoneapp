@@ -1,13 +1,50 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TopCVScreen() {
   const [selectedCV, setSelectedCV] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [cvTemplates, setCvTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const cvTemplates = [
+  // Fetch CV templates from API
+  useEffect(() => {
+    fetchCVTemplates();
+  }, []);
+
+  const fetchCVTemplates = async (retryCount = 0) => {
+    try {
+      const response = await fetch('http://192.168.100.41:3000/api/content/public/cv-templates');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCvTemplates(data.data.cvTemplates || []);
+      } else if (response.status === 429 && retryCount < 3) {
+        // Rate limited - retry after delay
+        console.log(`Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
+        setTimeout(() => {
+          fetchCVTemplates(retryCount + 1);
+        }, (retryCount + 1) * 2000);
+        return;
+      } else {
+        console.error('Failed to fetch CV templates:', response.status);
+        // Fallback to sample data if API fails
+        setCvTemplates(getSampleCVTemplates());
+      }
+    } catch (error) {
+      console.error('Error fetching CV templates:', error);
+      // Fallback to sample data if API fails
+      setCvTemplates(getSampleCVTemplates());
+    } finally {
+      if (retryCount === 0) {
+        setLoading(false);
+      }
+    }
+  };
+
+  const getSampleCVTemplates = () => [
     { 
       id: 1, 
       name: 'Ahmed Hassan',
@@ -90,14 +127,20 @@ export default function TopCVScreen() {
 
   const handleDownload = async (cv) => {
     try {
-      const supported = await Linking.canOpenURL(cv.downloadUrl);
+      // If no downloadUrl, use a sample PDF URL
+      const downloadUrl = cv.downloadUrl && cv.downloadUrl.trim() !== '' 
+        ? cv.downloadUrl 
+        : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+
+      const supported = await Linking.canOpenURL(downloadUrl);
       if (supported) {
-        await Linking.openURL(cv.downloadUrl);
+        await Linking.openURL(downloadUrl);
         Alert.alert('Success', `Downloading ${cv.name}'s CV...`);
       } else {
         Alert.alert('Error', 'Cannot open download link');
       }
     } catch (error) {
+      console.error('Download error:', error);
       Alert.alert('Error', 'Failed to download CV');
     }
   };
@@ -106,6 +149,18 @@ export default function TopCVScreen() {
     setSelectedCV(cv);
     setModalVisible(true);
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading CV templates...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -117,9 +172,9 @@ export default function TopCVScreen() {
         </View>
 
         <View style={styles.templatesContainer}>
-          {cvTemplates.map((template) => (
+          {cvTemplates.map((template, index) => (
             <TouchableOpacity 
-              key={template.id} 
+              key={template._id || template.id || `cv-${index}`} 
               style={styles.templateCard}
               onPress={() => openModal(template)}
             >
@@ -206,7 +261,7 @@ export default function TopCVScreen() {
                       <Text style={styles.sectionTitle}>Skills</Text>
                       <View style={styles.skillsContainer}>
                         {selectedCV.skills.map((skill, index) => (
-                          <View key={index} style={styles.skillTag}>
+                          <View key={`skill-${index}-${skill}`} style={styles.skillTag}>
                             <Text style={styles.skillText}>{skill}</Text>
                           </View>
                         ))}
@@ -460,5 +515,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  // Disabled button styles
+  downloadButtonDisabled: {
+    backgroundColor: '#666666',
+    opacity: 0.6,
+  },
+  downloadTextDisabled: {
+    color: '#CCCCCC',
   },
 });

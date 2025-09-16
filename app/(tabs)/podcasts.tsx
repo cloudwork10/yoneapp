@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     ImageBackground,
     ScrollView,
@@ -18,94 +19,46 @@ const { width, height } = Dimensions.get('window');
 export default function PodcastsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const categories = ['All', 'Technology', 'Business', 'Science', 'Health', 'Education', 'Entertainment'];
+  const [podcasts, setPodcasts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const categories = ['All', 'Technology', 'Programming', 'Business', 'Design', 'Career'];
 
-  const podcasts = [
-    { 
-      id: '1', 
-      title: 'Programming & Technology Podcast', 
-      duration: '12 hours', 
-      category: 'Technology',
-      instructor: 'Ahmed Mohamed',
-      rating: 4.8,
-      students: 15420,
-      thumbnail: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
-    },
-    { 
-      id: '2', 
-      title: 'Mobile App Development Podcast', 
-      duration: '8 hours', 
-      category: 'Technology',
-      instructor: 'Fatima Ali',
-      rating: 4.9,
-      students: 12000,
-      thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
-    },
-    { 
-      id: '3', 
-      title: 'AI & Machine Learning Podcast', 
-      duration: '15 hours', 
-      category: 'Technology',
-      instructor: 'Mohamed Hassan',
-      rating: 4.7,
-      students: 3200,
-      thumbnail: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'
-    },
-    { 
-      id: '4', 
-      title: 'Node.js Best Practices', 
-      duration: '41 min', 
-      category: 'Technology',
-      instructor: 'Emma Wilson',
-      rating: 4.9,
-      students: 2100,
-      thumbnail: '🎙️'
-    },
-    { 
-      id: '5', 
-      title: 'Database Design Patterns', 
-      duration: '35 min', 
-      category: 'Technology',
-      instructor: 'David Kim',
-      rating: 4.6,
-      students: 1500,
-      thumbnail: '🎙️'
-    },
-    { 
-      id: '6', 
-      title: 'UI/UX Design Trends 2024', 
-      duration: '48 min', 
-      category: 'Design',
-      instructor: 'Lisa Park',
-      rating: 4.8,
-      students: 2800,
-      thumbnail: '🎙️'
-    },
-    { 
-      id: '7', 
-      title: 'Startup Success Stories', 
-      duration: '55 min', 
-      category: 'Business',
-      instructor: 'Tom Anderson',
-      rating: 4.7,
-      students: 1900,
-      thumbnail: '🎙️'
-    },
-    { 
-      id: '8', 
-      title: 'Machine Learning Fundamentals', 
-      duration: '42 min', 
-      category: 'Science',
-      instructor: 'Dr. Maria Garcia',
-      rating: 4.9,
-      students: 3600,
-      thumbnail: '🎙️'
+  // Fetch podcasts from API
+  useEffect(() => {
+    fetchPodcasts();
+  }, []);
+
+  // Add refresh function
+  const onRefresh = () => {
+    fetchPodcasts();
+  };
+
+  const fetchPodcasts = async () => {
+    try {
+      setLoading(true);
+      console.log('🎧 Fetching podcasts from API...');
+      
+      const response = await fetch('http://192.168.100.41:3000/api/admin/content/podcasts');
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Podcasts fetched:', result.data.podcasts.length);
+        setPodcasts(result.data.podcasts);
+      } else {
+        console.error('❌ Failed to fetch podcasts:', response.status);
+        Alert.alert('Error', 'Failed to load podcasts');
+      }
+    } catch (error) {
+      console.error('❌ Network error:', error);
+      Alert.alert('Network Error', 'Failed to connect to server');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const filteredPodcasts = podcasts.filter(podcast => {
     const matchesSearch = podcast.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         podcast.instructor.toLowerCase().includes(searchQuery.toLowerCase());
+                         podcast.host.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || podcast.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -120,7 +73,7 @@ export default function PodcastsScreen() {
   const renderPodcast = ({ item: podcast }) => (
     <TouchableOpacity 
       style={styles.podcastCard}
-      onPress={() => handlePodcastPress(podcast.id)}
+      onPress={() => handlePodcastPress(podcast._id)}
     >
       <View style={styles.podcastThumbnail}>
         {podcast.thumbnail.startsWith('http') ? (
@@ -154,7 +107,7 @@ export default function PodcastsScreen() {
       
       <View style={styles.podcastInfo}>
         <Text style={styles.podcastTitle} numberOfLines={2}>{podcast.title}</Text>
-        <Text style={styles.podcastInstructor}>By {podcast.instructor}</Text>
+        <Text style={styles.podcastInstructor}>By {podcast.host}</Text>
         
         <View style={styles.podcastStats}>
           <View style={styles.statItem}>
@@ -163,7 +116,7 @@ export default function PodcastsScreen() {
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statIcon}>👥</Text>
-            <Text style={styles.statText}>{podcast.students.toLocaleString()}</Text>
+            <Text style={styles.statText}>{podcast.totalListeners.toLocaleString()}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statIcon}>🎯</Text>
@@ -272,13 +225,35 @@ export default function PodcastsScreen() {
         </View>
       </LinearGradient>
 
+      {/* Refresh Button */}
+      {!loading && (
+        <View style={styles.refreshContainer}>
+          <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+            <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Podcasts List */}
       <View style={styles.podcastsContainer}>
-        {filteredPodcasts.map((podcast) => (
-          <View key={podcast.id}>
-            {renderPodcast({ item: podcast })}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading podcasts...</Text>
           </View>
-        ))}
+        ) : filteredPodcasts.length > 0 ? (
+          filteredPodcasts.map((podcast) => (
+            <View key={`podcast-${podcast._id}`}>
+              {renderPodcast({ item: podcast })}
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No podcasts found</Text>
+            <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+              <Text style={styles.refreshButtonText}>🔄 Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -418,6 +393,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 100,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  emptyText: {
+    color: '#888888',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  refreshContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  refreshButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E50914',
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   podcastCard: {
     backgroundColor: 'rgba(0, 0, 0, 0.8)',

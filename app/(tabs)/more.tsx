@@ -56,11 +56,19 @@ export default function MoreScreen() {
   // Add Dashboard only for admin users
   const adminMenuItems = [
     {
-      id: 4,
+      id: 7,
       title: 'Admin Dashboard',
       description: 'Manage users and monitor system',
       icon: '👑',
       route: '/dashboard',
+      isAdmin: true
+    },
+    {
+      id: 8,
+      title: 'Content Management',
+      description: 'Manage courses, articles, and all content',
+      icon: '📝',
+      route: '/content-management',
       isAdmin: true
     }
   ];
@@ -88,6 +96,12 @@ export default function MoreScreen() {
         router.push('/dashboard');
       } else {
         Alert.alert('Access Denied', 'You need admin privileges to access the dashboard.');
+      }
+    } else if (route === '/content-management') {
+      if (isAdmin) {
+        router.push('/content-management');
+      } else {
+        Alert.alert('Access Denied', 'You need admin privileges to access content management.');
       }
     } else {
       // For other routes, you can implement them later
@@ -135,7 +149,7 @@ export default function MoreScreen() {
         <View style={styles.menuContainer}>
           {menuItems.map((item) => (
             <TouchableOpacity 
-              key={item.id} 
+              key={`menu-${item.id}`} 
               style={styles.menuItem}
               onPress={() => handleMenuPress(item.route)}
             >

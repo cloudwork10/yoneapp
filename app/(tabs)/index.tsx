@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
@@ -68,7 +68,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Featured Courses</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.coursesScroll}>
             {featuredCourses.map((course) => (
-              <TouchableOpacity key={course.id} style={styles.courseCard}>
+              <TouchableOpacity key={`home-course-${course.id}`} style={styles.courseCard}>
                 <View style={styles.courseImage}>
                   <Text style={styles.courseImageText}>📚</Text>
                 </View>

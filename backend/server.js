@@ -33,6 +33,9 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Static file serving for uploads
+app.use('/uploads', express.static('uploads'));
+
 // Security middleware
 app.use(sanitizeInput);
 app.use(speedLimiter);
@@ -48,6 +51,8 @@ app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/courses', require('./routes/courses'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/admin/content', require('./routes/content'));
+app.use('/api/content', require('./routes/content'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

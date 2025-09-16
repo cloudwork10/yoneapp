@@ -31,6 +31,7 @@ export default function RootLayout() {
             <Stack.Screen name="prayer-times" options={{ headerShown: false }} />
             <Stack.Screen name="movies" options={{ headerShown: false }} />
             <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+            <Stack.Screen name="content-management" options={{ headerShown: false }} />
                   <Stack.Screen name="course-details" options={{ headerShown: false }} />
                   <Stack.Screen name="podcast-details" options={{ headerShown: false }} />
                   <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />

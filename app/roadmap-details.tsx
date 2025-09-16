@@ -1,595 +1,580 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     Dimensions,
     ImageBackground,
-    Platform,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+interface RoadmapStep {
+  _id?: string;
+  title: string;
+  description: string;
+  resources: Array<{
+    _id?: string;
+    title: string;
+    url: string;
+    type: string;
+  }>;
+  completed: boolean;
+}
+
+interface Roadmap {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  duration: string;
+  steps: RoadmapStep[];
+  image: string;
+  icon: string;
+  color: string;
+  isFeatured: boolean;
+  createdAt: string;
+}
 
 export default function RoadmapDetailsScreen() {
   const router = useRouter();
   const { roadmapId } = useLocalSearchParams();
+  const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sample roadmap data
-  const roadmap = {
-    id: roadmapId || '1',
-    title: 'React Native Developer Roadmap',
-    description: 'Complete guide to become a React Native developer from beginner to expert',
-    duration: '2 hours',
-    level: 'Beginner to Advanced',
-    backgroundImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-    steps: [
-      {
-        id: '1',
-        title: 'Learn JavaScript Fundamentals',
-        description: 'Master the basics of JavaScript including variables, functions, objects, and ES6+ features',
-        duration: '2 weeks',
-        completed: false,
-        topics: ['Variables & Data Types', 'Functions & Scope', 'Objects & Arrays', 'ES6+ Features']
-      },
-      {
-        id: '2',
-        title: 'Understand React Basics',
-        description: 'Learn React concepts like components, props, state, and lifecycle methods',
-        duration: '3 weeks',
-        completed: false,
-        topics: ['Components & JSX', 'Props & State', 'Event Handling', 'Lifecycle Methods']
-      },
-      {
-        id: '3',
-        title: 'React Native Fundamentals',
-        description: 'Get started with React Native development environment and basic components',
-        duration: '2 weeks',
-        completed: false,
-        topics: ['Development Environment', 'Core Components', 'Styling', 'Navigation']
-      },
-      {
-        id: '4',
-        title: 'State Management',
-        description: 'Learn how to manage application state effectively',
-        duration: '3 weeks',
-        completed: false,
-        topics: ['Context API', 'Redux', 'Zustand', 'Local State']
-      },
-      {
-        id: '5',
-        title: 'API Integration',
-        description: 'Connect your app to backend services and handle data',
-        duration: '2 weeks',
-        completed: false,
-        topics: ['REST APIs', 'GraphQL', 'Authentication', 'Error Handling']
-      },
-      {
-        id: '6',
-        title: 'Testing',
-        description: 'Write tests to ensure your app works correctly',
-        duration: '2 weeks',
-        completed: false,
-        topics: ['Unit Tests', 'Integration Tests', 'E2E Tests', 'Testing Tools']
-      },
-      {
-        id: '7',
-        title: 'Performance Optimization',
-        description: 'Make your app fast and efficient',
-        duration: '2 weeks',
-        completed: false,
-        topics: ['Performance Monitoring', 'Memory Management', 'Bundle Optimization', 'Lazy Loading']
-      },
-      {
-        id: '8',
-        title: 'Deployment',
-        description: 'Publish your app to app stores',
-        duration: '2 weeks',
-        completed: false,
-        topics: ['App Store', 'Google Play', 'Code Signing', 'Release Management']
+  useEffect(() => {
+    if (roadmapId) {
+      fetchRoadmap();
+    }
+  }, [roadmapId]);
+
+  const fetchRoadmap = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔍 Fetching roadmap:', roadmapId);
+      
+      const response = await fetch(`http://192.168.100.41:3000/api/content/public/roadmaps/${roadmapId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Roadmap received:', data);
+        setRoadmap(data.data.roadmap);
+      } else {
+        console.error('❌ Failed to fetch roadmap:', response.status);
+        setError('Failed to load roadmap');
       }
-    ]
+    } catch (error) {
+      console.error('❌ Error fetching roadmap:', error);
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleStepCompletion = (stepId: string) => {
-    // In a real app, you would update the completion status
-    console.log(`Toggle step ${stepId} completion`);
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty.toLowerCase()) {
+      case 'beginner': return '#4ECDC4';
+      case 'intermediate': return '#45B7D1';
+      case 'advanced': return '#96CEB4';
+      default: return '#9B59B6';
+    }
   };
+
+  const getResourceIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'course': return '🎓';
+      case 'article': return '📄';
+      case 'video': return '🎥';
+      case 'documentation': return '📚';
+      case 'tool': return '🔧';
+      default: return '🔗';
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#9B59B6" />
+            <Text style={styles.loadingText}>Loading roadmap...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || !roadmap) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>😞</Text>
+            <Text style={styles.errorTitle}>Oops!</Text>
+            <Text style={styles.errorText}>
+              {error || 'Roadmap not found'}
+            </Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={fetchRoadmap}
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButtonHeader}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Roadmap Details</Text>
+          </View>
+
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <ImageBackground
-            source={{ uri: roadmap.backgroundImage }}
-            style={styles.heroBackground}
+              source={{ 
+                uri: roadmap.image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+              }}
+              style={styles.heroImage}
             resizeMode="cover"
           >
             <LinearGradient
-              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+                colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
               style={styles.heroGradient}
-            >
-              {/* Back Button */}
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => router.back()}
               >
-                <Text style={styles.backButtonText}>← Back</Text>
-              </TouchableOpacity>
-
-              {/* Roadmap Info - Better positioned */}
-              <View style={styles.roadmapInfoFixed}>
-                <Text style={styles.roadmapTitleFixed}>{roadmap.title}</Text>
-                <Text style={styles.roadmapDescriptionFixed}>{roadmap.description}</Text>
-                <View style={styles.roadmapMetaFixed}>
-                  <View style={styles.metaItemFixed}>
-                    <Text style={styles.metaIconFixed}>⏱️</Text>
-                    <Text style={styles.metaTextFixed}>{roadmap.duration}</Text>
+                <View style={styles.heroContent}>
+                  <View style={styles.heroIcon}>
+                    <Text style={styles.heroIconText}>{roadmap.icon}</Text>
                   </View>
-                  <View style={styles.metaItemFixed}>
-                    <Text style={styles.metaIconFixed}>📊</Text>
-                    <Text style={styles.metaTextFixed}>{roadmap.level}</Text>
-                  </View>
+                  <Text style={styles.heroTitle}>{roadmap.title}</Text>
+                  <Text style={styles.heroDescription}>{roadmap.description}</Text>
+                  
+                  <View style={styles.heroMeta}>
+                    <View style={[styles.metaBadge, { backgroundColor: getDifficultyColor(roadmap.difficulty) }]}>
+                      <Text style={styles.metaBadgeText}>{roadmap.difficulty}</Text>
+                    </View>
+                    <View style={styles.metaBadge}>
+                      <Text style={styles.metaBadgeText}>{roadmap.duration}</Text>
+                    </View>
+                    <View style={styles.metaBadge}>
+                      <Text style={styles.metaBadgeText}>{roadmap.category}</Text>
+                    </View>
                 </View>
               </View>
             </LinearGradient>
           </ImageBackground>
         </View>
 
-        {/* Learning Path Steps */}
+          {/* Steps Section */}
         <View style={styles.stepsSection}>
-          <Text style={styles.sectionTitle}>Learning Path</Text>
-          <Text style={styles.sectionSubtitle}>
-            Follow these steps to master {roadmap.title}
+            <Text style={styles.sectionTitle}>Learning Steps</Text>
+            
+            {roadmap.steps && roadmap.steps.length > 0 ? (
+              <View style={styles.stepsContainer}>
+                {roadmap.steps.map((step, index) => (
+                  <View key={step._id || index} style={styles.stepItem}>
+                    <View style={styles.stepNumberContainer}>
+                      <View style={styles.stepNumber}>
+                        <Text style={styles.stepNumberText}>{index + 1}</Text>
+                      </View>
+                      {index < roadmap.steps.length - 1 && (
+                        <View style={styles.stepLine} />
+                      )}
+                    </View>
+                    <View style={styles.stepContent}>
+                      <Text style={styles.stepTitle}>
+                        {step.title || `Step ${index + 1}`}
           </Text>
-
-          {roadmap.steps.map((step, index) => (
-            <View key={step.id} style={styles.stepCard}>
-              <View style={styles.stepHeader}>
+                      {step.description && (
+                        <Text style={styles.stepDescription}>{step.description}</Text>
+                      )}
+                      
+                      {step.resources && step.resources.length > 0 && (
+                        <View style={styles.resourcesContainer}>
+                          <Text style={styles.resourcesTitle}>Resources:</Text>
+                          {step.resources.map((resource, resourceIndex) => (
                 <TouchableOpacity
-                  style={styles.stepCompletionButton}
-                  onPress={() => toggleStepCompletion(step.id)}
-                >
-                  <Text style={styles.stepCompletionIcon}>○</Text>
+                              key={resource._id || resourceIndex}
+                              style={styles.resourceItem}
+                              onPress={() => {
+                                if (resource.url) {
+                                  Alert.alert(
+                                    'Open Resource',
+                                    `Open ${resource.title}?`,
+                                    [
+                                      { text: 'Cancel', style: 'cancel' },
+                                      { text: 'Open', onPress: () => {
+                                        // Here you would open the URL
+                                        console.log('Opening:', resource.url);
+                                      }}
+                                    ]
+                                  );
+                                }
+                              }}
+                            >
+                              <Text style={styles.resourceIcon}>
+                                {getResourceIcon(resource.type)}
+                              </Text>
+                              <View style={styles.resourceContent}>
+                                <Text style={styles.resourceTitle}>{resource.title}</Text>
+                                <Text style={styles.resourceType}>{resource.type}</Text>
+                              </View>
+                              {resource.url && (
+                                <Text style={styles.resourceArrow}>→</Text>
+                              )}
                 </TouchableOpacity>
-                <Text style={styles.stepTitle}>{`${index + 1}. ${step.title}`}</Text>
+                          ))}
+                        </View>
+                      )}
               </View>
-              <Text style={styles.stepDescription}>{step.description}</Text>
-              <View style={styles.stepMeta}>
-                <Text style={styles.stepDuration}>⏱️ {step.duration}</Text>
               </View>
-              <View style={styles.topicsContainer}>
-                {step.topics.map((topic, topicIndex) => (
-                  <Text key={topicIndex} style={styles.topicText}>
-                    • {topic}
-                  </Text>
                 ))}
               </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Prerequisites Section */}
-        <View style={styles.detailsSection}>
-          <Text style={styles.sectionTitle}>Prerequisites</Text>
-          <Text style={styles.sectionSubtitle}>
-            What you should know before starting
-          </Text>
-          <View style={styles.prerequisitesCard}>
-            <View style={styles.prerequisiteItem}>
-              <Text style={styles.prerequisiteIcon}>📚</Text>
-              <Text style={styles.prerequisiteText}>Basic programming knowledge</Text>
-            </View>
-            <View style={styles.prerequisiteItem}>
-              <Text style={styles.prerequisiteIcon}>💻</Text>
-              <Text style={styles.prerequisiteText}>Computer with internet connection</Text>
-            </View>
-            <View style={styles.prerequisiteItem}>
-              <Text style={styles.prerequisiteIcon}>⏰</Text>
-              <Text style={styles.prerequisiteText}>2-3 hours per week commitment</Text>
-            </View>
-            <View style={styles.prerequisiteItem}>
-              <Text style={styles.prerequisiteIcon}>🎯</Text>
-              <Text style={styles.prerequisiteText}>Motivation to learn and practice</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* What You'll Learn Section */}
-        <View style={styles.detailsSection}>
-          <Text style={styles.sectionTitle}>What You'll Learn</Text>
-          <Text style={styles.sectionSubtitle}>
-            Key skills and knowledge you'll gain
-          </Text>
-          <View style={styles.learningCard}>
-            <View style={styles.learningItem}>
-              <Text style={styles.learningIcon}>✅</Text>
-              <Text style={styles.learningText}>Master the fundamentals and advanced concepts</Text>
-            </View>
-            <View style={styles.learningItem}>
-              <Text style={styles.learningIcon}>✅</Text>
-              <Text style={styles.learningText}>Build real-world projects and applications</Text>
-            </View>
-            <View style={styles.learningItem}>
-              <Text style={styles.learningIcon}>✅</Text>
-              <Text style={styles.learningText}>Understand best practices and industry standards</Text>
-            </View>
-            <View style={styles.learningItem}>
-              <Text style={styles.learningIcon}>✅</Text>
-              <Text style={styles.learningText}>Develop problem-solving and critical thinking skills</Text>
-            </View>
-            <View style={styles.learningItem}>
-              <Text style={styles.learningIcon}>✅</Text>
-              <Text style={styles.learningText}>Create a portfolio of completed projects</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Resources Section */}
-        <View style={styles.detailsSection}>
-          <Text style={styles.sectionTitle}>Additional Resources</Text>
-          <Text style={styles.sectionSubtitle}>
-            Helpful tools and materials to support your learning
-          </Text>
-          <View style={styles.resourcesCard}>
-            <View style={styles.resourceItem}>
-              <Text style={styles.resourceIcon}>📖</Text>
-              <View style={styles.resourceInfo}>
-                <Text style={styles.resourceTitle}>Documentation</Text>
-                <Text style={styles.resourceDescription}>Official guides and references</Text>
+            ) : (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No steps available yet</Text>
+                <Text style={styles.emptyStateSubtext}>Check back later for updates</Text>
               </View>
-            </View>
-            <View style={styles.resourceItem}>
-              <Text style={styles.resourceIcon}>🎥</Text>
-              <View style={styles.resourceInfo}>
-                <Text style={styles.resourceTitle}>Video Tutorials</Text>
-                <Text style={styles.resourceDescription}>Step-by-step video guides</Text>
-              </View>
-            </View>
-            <View style={styles.resourceItem}>
-              <Text style={styles.resourceIcon}>💬</Text>
-              <View style={styles.resourceInfo}>
-                <Text style={styles.resourceTitle}>Community Support</Text>
-                <Text style={styles.resourceDescription}>Get help from other learners</Text>
-              </View>
-            </View>
-            <View style={styles.resourceItem}>
-              <Text style={styles.resourceIcon}>🛠️</Text>
-              <View style={styles.resourceInfo}>
-                <Text style={styles.resourceTitle}>Tools & Software</Text>
-                <Text style={styles.resourceDescription}>Essential development tools</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Tips Section */}
-        <View style={styles.detailsSection}>
-          <Text style={styles.sectionTitle}>Learning Tips</Text>
-          <Text style={styles.sectionSubtitle}>
-            Make the most of your learning journey
-          </Text>
-          <View style={styles.tipsCard}>
-            <View style={styles.tipItem}>
-              <Text style={styles.tipNumber}>1</Text>
-              <Text style={styles.tipText}>Practice regularly - consistency is key to mastering any skill</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Text style={styles.tipNumber}>2</Text>
-              <Text style={styles.tipText}>Build projects as you learn - hands-on experience is invaluable</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Text style={styles.tipNumber}>3</Text>
-              <Text style={styles.tipText}>Join communities - connect with other learners and professionals</Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Text style={styles.tipNumber}>4</Text>
-              <Text style={styles.tipText}>Don't rush - take time to understand concepts thoroughly</Text>
-            </View>
-          </View>
+            )}
         </View>
       </ScrollView>
+      </LinearGradient>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  container: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
   },
-  heroSection: {
-    height: height * 0.6,
-    position: 'relative',
-  },
-  heroBackground: {
+  loadingContainer: {
     flex: 1,
-    resizeMode: 'cover',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  heroGradient: {
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorContainer: {
     flex: 1,
-    justifyContent: 'space-between',
-    padding: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    left: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  roadmapInfo: {
-    paddingBottom: 20,
-  },
-  roadmapTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 10,
-  },
-  roadmapDescription: {
-    fontSize: 16,
-    color: '#CCCCCC',
-    lineHeight: 24,
-    marginBottom: 15,
-  },
-  roadmapMeta: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  metaItem: {
-    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 20,
   },
-  metaIcon: {
-    fontSize: 16,
+  errorIcon: {
+    fontSize: 64,
+    marginBottom: 16,
   },
-  metaText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  // Fixed positioning for better layout
-  roadmapInfoFixed: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-    paddingBottom: 20,
-  },
-  roadmapTitleFixed: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 12,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  roadmapDescriptionFixed: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    lineHeight: 26,
-    marginBottom: 20,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  roadmapMetaFixed: {
-    flexDirection: 'row',
-    gap: 25,
-  },
-  metaItemFixed: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  metaIconFixed: {
-    fontSize: 18,
-  },
-  metaTextFixed: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  stepsSection: {
-    padding: 20,
-  },
-  sectionTitle: {
+  errorTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
   },
-  sectionSubtitle: {
+  errorText: {
     fontSize: 16,
     color: '#CCCCCC',
-    marginBottom: 20,
-    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 24,
   },
-  stepCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-  },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  retryButton: {
+    backgroundColor: '#9B59B6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
     marginBottom: 12,
   },
-  stepCompletionButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#E50914',
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#9B59B6',
+  },
+  backButtonText: {
+    color: '#9B59B6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  backButtonHeader: {
+    marginRight: 16,
+  },
+  backIcon: {
+    fontSize: 24,
+    color: '#FFFFFF',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  heroSection: {
+    marginHorizontal: 20,
+    marginBottom: 32,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  heroImage: {
+    width: '100%',
+    height: 250,
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 24,
+  },
+  heroContent: {
+    alignItems: 'center',
+  },
+  heroIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 16,
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  stepCompletionIcon: {
-    color: '#E50914',
+  heroIconText: {
+    fontSize: 28,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 10,
+    letterSpacing: 0.5,
+  },
+  heroDescription: {
+    fontSize: 17,
+    color: '#E0E0E0',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  heroMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  metaBadge: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 6,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  metaBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  stepsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  stepsContainer: {
+    position: 'relative',
+    paddingLeft: 32,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 32,
+    position: 'relative',
+  },
+  stepNumberContainer: {
+    alignItems: 'center',
+    marginRight: 20,
+    width: 40,
+  },
+  stepNumber: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6B6B',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  stepLine: {
+    width: 2,
+    height: 60,
+    backgroundColor: '#FF6B6B',
+    marginTop: 8,
+    opacity: 0.3,
+    borderRadius: 1,
+  },
+  stepNumberText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
+  stepContent: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#333333',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   stepTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#FFFFFF',
-    flex: 1,
+    marginBottom: 8,
   },
   stepDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#CCCCCC',
-    lineHeight: 20,
-    marginBottom: 12,
-    marginLeft: 40,
+    lineHeight: 24,
+    marginBottom: 16,
   },
-  stepMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    marginLeft: 40,
+  resourcesContainer: {
+    marginTop: 12,
   },
-  stepDuration: {
-    fontSize: 12,
-    color: '#E50914',
+  resourcesTitle: {
+    fontSize: 16,
     fontWeight: '600',
-  },
-  topicsContainer: {
-    marginLeft: 40,
-  },
-  topicText: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    marginBottom: 4,
-    lineHeight: 18,
-  },
-  // Details Sections
-  detailsSection: {
-    padding: 20,
-    paddingTop: 0,
-  },
-  // Prerequisites Section
-  prerequisitesCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
-  },
-  prerequisiteItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  prerequisiteIcon: {
-    fontSize: 20,
-    marginRight: 12,
-    width: 30,
-  },
-  prerequisiteText: {
-    fontSize: 16,
     color: '#FFFFFF',
-    flex: 1,
-    lineHeight: 22,
-  },
-  // Learning Section
-  learningCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
-  },
-  learningItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  learningIcon: {
-    fontSize: 16,
-    marginRight: 12,
-    marginTop: 2,
-    width: 20,
-  },
-  learningText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    flex: 1,
-    lineHeight: 22,
-  },
-  // Resources Section
-  resourcesCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
+    marginBottom: 12,
   },
   resourceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#444444',
   },
   resourceIcon: {
-    fontSize: 24,
-    marginRight: 16,
-    width: 40,
+    fontSize: 16,
+    marginRight: 12,
   },
-  resourceInfo: {
+  resourceContent: {
     flex: 1,
   },
   resourceTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 3,
   },
-  resourceDescription: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    lineHeight: 20,
+  resourceType: {
+    fontSize: 13,
+    color: '#999999',
+    textTransform: 'capitalize',
   },
-  // Tips Section
-  tipsCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  tipNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E50914',
-    marginRight: 16,
-    width: 30,
-    textAlign: 'center',
-  },
-  tipText: {
+  resourceArrow: {
     fontSize: 16,
-    color: '#FFFFFF',
-    flex: 1,
-    lineHeight: 22,
+    color: '#FF6B6B',
+    marginLeft: 8,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginBottom: 8,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#999999',
   },
 });

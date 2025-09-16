@@ -28,6 +28,18 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Public content rate limiting (more lenient)
+const publicContentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Limit each IP to 500 requests per windowMs
+  message: {
+    status: 'error',
+    message: 'Too many requests, please try again later.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Slow down repeated requests
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -39,7 +51,7 @@ const speedLimiter = slowDown({
 // Admin rate limiting (more restrictive)
 const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 requests per windowMs
+  max: 200, // Limit each IP to 200 requests per windowMs
   message: {
     status: 'error',
     message: 'Too many admin requests, please try again later.'
@@ -102,6 +114,7 @@ const securityLogger = (req, res, next) => {
 module.exports = {
   authLimiter,
   apiLimiter,
+  publicContentLimiter,
   speedLimiter,
   adminLimiter,
   sanitizeInput,

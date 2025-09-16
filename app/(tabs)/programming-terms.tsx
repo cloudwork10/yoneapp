@@ -10,6 +10,7 @@ interface Term {
   definition: string;
   category: string;
   audioUrl: string;
+  duration: string;
 }
 
 interface Language {
@@ -43,42 +44,48 @@ export default function ProgrammingTermsScreen() {
           term: 'Variable',
           definition: 'A container that stores data values. In JavaScript, you can declare variables using var, let, or const.',
           category: 'Basics',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         },
         {
           id: 'js-function',
           term: 'Function',
           definition: 'A reusable block of code that performs a specific task. Functions can take parameters and return values.',
           category: 'Functions',
-          audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/CantinaBand60.wav'
+          audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/CantinaBand60.wav',
+          duration: '3:15'
         },
         {
           id: 'js-array',
           term: 'Array',
           definition: 'A data structure that stores multiple values in a single variable. Arrays are indexed starting from 0.',
           category: 'Data Structures',
-          audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/PinkPanther60.wav'
+          audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/PinkPanther60.wav',
+          duration: '2:45'
         },
         {
           id: 'js-object',
           term: 'Object',
           definition: 'A collection of key-value pairs. Objects are used to represent real-world entities and their properties.',
           category: 'Data Structures',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '3:20'
         },
         {
           id: 'js-async',
           term: 'Async/Await',
           definition: 'Modern JavaScript syntax for handling asynchronous operations in a more readable way than callbacks.',
           category: 'Advanced',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '4:10'
         },
         {
           id: 'js-promise',
           term: 'Promise',
           definition: 'An object representing the eventual completion or failure of an asynchronous operation.',
           category: 'Advanced',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '3:55'
         }
       ]
     },
@@ -93,42 +100,48 @@ export default function ProgrammingTermsScreen() {
           term: 'Variable',
           definition: 'A name that refers to a value. In Python, variables are created when you assign a value to them.',
           category: 'Basics',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:15'
         },
         {
           id: 'py-function',
           term: 'Function',
           definition: 'A block of organized, reusable code that performs a single action. Defined using the def keyword.',
           category: 'Functions',
-          audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/StarWars60.wav'
+          audioUrl: 'https://www2.cs.uic.edu/~i101/SoundFiles/StarWars60.wav',
+          duration: '3:40'
         },
         {
           id: 'py-list',
           term: 'List',
           definition: 'A collection of items in a particular order. Lists are mutable and can contain different data types.',
           category: 'Data Structures',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:50'
         },
         {
           id: 'py-dict',
           term: 'Dictionary',
           definition: 'A collection of key-value pairs. Dictionaries are unordered, changeable, and indexed by keys.',
           category: 'Data Structures',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '3:25'
         },
         {
           id: 'py-class',
           term: 'Class',
           definition: 'A blueprint for creating objects. Classes define attributes and methods that objects will have.',
           category: 'OOP',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '4:30'
         },
         {
           id: 'py-module',
           term: 'Module',
           definition: 'A file containing Python definitions and statements. Modules help organize code into reusable components.',
           category: 'Advanced',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '3:10'
         }
       ]
     },
@@ -143,21 +156,24 @@ export default function ProgrammingTermsScreen() {
           term: 'Class',
           definition: 'A blueprint for creating objects. In Java, everything is defined within a class.',
           category: 'OOP',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         },
         {
           id: 'java-method',
           term: 'Method',
           definition: 'A block of code that performs a specific task. Methods are defined within classes.',
           category: 'Functions',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         },
         {
           id: 'java-array',
           term: 'Array',
           definition: 'A container object that holds a fixed number of values of a single type.',
           category: 'Data Structures',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         },
         {
           id: 'java-interface',
@@ -179,14 +195,16 @@ export default function ProgrammingTermsScreen() {
           term: 'Pointer',
           definition: 'A variable that stores the memory address of another variable. Pointers are fundamental in C++.',
           category: 'Memory Management',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         },
         {
           id: 'cpp-class',
           term: 'Class',
           definition: 'A user-defined data type that encapsulates data and functions that operate on that data.',
           category: 'OOP',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         },
         {
           id: 'cpp-template',
@@ -369,7 +387,7 @@ export default function ProgrammingTermsScreen() {
   };
 
   const renderTermCard = (term: Term) => (
-    <View key={term.id} style={styles.termCard}>
+    <View key={`term-${term.id}`} style={styles.termCard}>
       <View style={styles.termHeader}>
         <View style={styles.termTitleContainer}>
           <Text style={styles.termName}>{term.term}</Text>
@@ -424,7 +442,7 @@ export default function ProgrammingTermsScreen() {
               <Text style={styles.audioTimeText}>
                 {activeAudioId === term.id && audioStates[term.id]?.duration > 0
                   ? `${Math.floor(audioStates[term.id].duration / 1000 / 60)}:${Math.floor((audioStates[term.id].duration / 1000) % 60).toString().padStart(2, '0')}`
-                  : '0:00'
+                  : term.duration || '2:30'
                 }
               </Text>
             </View>
@@ -460,7 +478,7 @@ export default function ProgrammingTermsScreen() {
               <View style={styles.languagesGrid}>
                 {languages.map((language) => (
                   <TouchableOpacity
-                    key={language.id}
+                    key={`language-${language.id}`}
                     style={[styles.languageCard, { borderColor: language.color }]}
                     onPress={() => setSelectedLanguage(language.id)}
                   >

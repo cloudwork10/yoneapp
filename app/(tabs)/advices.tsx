@@ -294,7 +294,7 @@ export default function AdvicesScreen() {
 
 
   const renderAdviceCard = (advice: Advice) => (
-    <TouchableOpacity key={advice.id} style={styles.adviceCard}>
+    <TouchableOpacity key={`advice-${advice.id}`} style={styles.adviceCard}>
       <ImageBackground
         source={{ uri: advice.thumbnail }}
         style={styles.adviceThumbnail}
@@ -433,7 +433,7 @@ export default function AdvicesScreen() {
           >
             {categories.map((category) => (
               <TouchableOpacity
-                key={category.id}
+                key={`advice-category-${category.id}`}
                 style={[
                   styles.categoryButton,
                   selectedCategory === category.id && styles.categoryButtonActive

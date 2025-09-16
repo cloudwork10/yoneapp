@@ -13,127 +13,66 @@ const courseSchema = new mongoose.Schema({
     maxlength: [1000, 'Description cannot be more than 1000 characters']
   },
   instructor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  category: {
     type: String,
-    required: [true, 'Course category is required'],
-    enum: [
-      'Frontend Development',
-      'Backend Development',
-      'Full Stack Development',
-      'Mobile Development',
-      'Database',
-      'DevOps',
-      'UI/UX Design',
-      'Programming',
-      'Web Development'
-    ]
+    required: [true, 'Instructor name is required'],
+    trim: true
+  },
+  duration: {
+    type: String,
+    required: [true, 'Course duration is required']
   },
   level: {
     type: String,
     enum: ['Beginner', 'Intermediate', 'Advanced'],
-    default: 'Beginner'
+    required: [true, 'Course level is required']
   },
-  duration: {
-    type: Number, // in hours
-    required: [true, 'Course duration is required']
+  category: {
+    type: String,
+    required: [true, 'Course category is required'],
+    enum: ['Programming', 'Design', 'Business', 'Marketing', 'Data Science']
+  },
+  rating: {
+    type: Number,
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  students: {
+    type: Number,
+    default: 0
   },
   price: {
     type: Number,
-    default: 0 // Free courses
+    default: 0
   },
   thumbnail: {
     type: String,
-    default: ''
+    required: [true, 'Course thumbnail is required']
   },
-  videos: [{
-    title: {
-      type: String,
-      required: true
-    },
-    url: {
-      type: String,
-      required: true
-    },
-    duration: {
-      type: Number, // in minutes
-      required: true
-    },
-    order: {
-      type: Number,
-      required: true
-    }
-  }],
-  resources: [{
-    title: {
-      type: String,
-      required: true
-    },
-    url: {
-      type: String,
-      required: true
-    },
-    type: {
-      type: String,
-      enum: ['pdf', 'link', 'code'],
-      default: 'link'
-    }
-  }],
-  requirements: [{
-    type: String
-  }],
-  learningOutcomes: [{
-    type: String
-  }],
-  rating: {
-    average: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 5
-    },
-    count: {
-      type: Number,
-      default: 0
-    }
-  },
-  studentsEnrolled: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  studentsCompleted: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  isPublished: {
+  isActive: {
     type: Boolean,
-    default: false
+    default: true
   },
   isFeatured: {
     type: Boolean,
     default: false
   },
-  tags: [{
-    type: String
-  }]
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 }, {
   timestamps: true
 });
 
-// Virtual for enrollment count
-courseSchema.virtual('enrollmentCount').get(function() {
-  return this.studentsEnrolled.length;
-});
-
-// Virtual for completion count
-courseSchema.virtual('completionCount').get(function() {
-  return this.studentsCompleted.length;
-});
-
-// Index for search
-courseSchema.index({ title: 'text', description: 'text', tags: 'text' });
+// Index for better search performance
+courseSchema.index({ title: 'text', description: 'text' });
+courseSchema.index({ category: 1, level: 1 });
+courseSchema.index({ isActive: 1, isFeatured: 1 });
 
 module.exports = mongoose.model('Course', courseSchema);

@@ -325,7 +325,7 @@ export default function CoursesScreen() {
         {/* Courses List */}
         <View style={styles.coursesContainer}>
           {filteredCourses.map((course) => (
-            <View key={course.id}>
+            <View key={`course-${course.id}`}>
               {renderCourse({ item: course, index: 0 })}
             </View>
           ))}

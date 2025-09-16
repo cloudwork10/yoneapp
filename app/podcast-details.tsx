@@ -1,8 +1,10 @@
 import { ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+    Alert,
+    Animated,
     Dimensions,
     ImageBackground,
     Modal,
@@ -13,8 +15,151 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 const { width, height } = Dimensions.get('window');
+
+// Beautiful Video Loading Component
+const VideoLoadingScreen = ({ isVisible }: { isVisible: boolean }) => {
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isVisible) {
+      // Immediate fade in (no delay)
+      fadeAnim.setValue(1);
+
+      // Pulse animation
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+
+      // Rotate animation
+      const rotateAnimation = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      );
+
+      pulseAnimation.start();
+      rotateAnimation.start();
+    } else {
+      // Fade out animation
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isVisible]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  if (!isVisible) return null;
+
+  return (
+    <Animated.View style={[styles.videoLoadingContainer, { opacity: fadeAnim }]}>
+      <LinearGradient
+        colors={['#000000', '#0F0F23', '#1A1A2E', '#000000']}
+        style={styles.videoLoadingGradient}
+      >
+        {/* Animated Spinner */}
+        <Animated.View style={[styles.videoSpinner, { transform: [{ rotate: spin }] }]}>
+          <View style={styles.videoSpinnerInner} />
+        </Animated.View>
+
+        {/* Pulsing Play Icon */}
+        <Animated.View style={[styles.playIconContainer, { transform: [{ scale: pulseAnim }] }]}>
+          <View style={styles.playIcon}>
+            <Text style={styles.playIconText}>▶</Text>
+          </View>
+        </Animated.View>
+
+        {/* Loading Text */}
+        <Text style={styles.videoLoadingText}>Loading Video...</Text>
+        <Text style={styles.videoLoadingSubtext}>Preparing your content</Text>
+
+        {/* Animated Dots */}
+        <View style={styles.loadingDots}>
+          {[0, 1, 2].map((index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.loadingDot,
+                {
+                  opacity: pulseAnim,
+                  transform: [{ scale: pulseAnim }],
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+};
+
+// Function to convert video URLs to embed format
+const convertToEmbedUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // YouTube URLs
+  if (url.includes('youtube.com/watch')) {
+    const videoId = url.split('v=')[1]?.split('&')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  // YouTube short URLs
+  if (url.includes('youtu.be/')) {
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+  
+  // Vimeo URLs
+  if (url.includes('vimeo.com/')) {
+    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+    if (videoId) {
+      return `https://player.vimeo.com/video/${videoId}`;
+    }
+  }
+  
+  // Cloudinary URLs (already embed format)
+  if (url.includes('player.cloudinary.com')) {
+    return url;
+  }
+  
+  // Direct video URLs (MP4, WebM, etc.)
+  return url;
+};
+
+// Function to check if URL needs WebView
+const needsWebView = (url: string): boolean => {
+  return url.includes('youtube.com') || 
+         url.includes('vimeo.com') || 
+         url.includes('player.cloudinary.com') ||
+         url.includes('embed');
+};
 
 interface PodcastEpisode {
   id: string;
@@ -29,6 +174,8 @@ interface PodcastEpisode {
 
 export default function PodcastDetailsScreen() {
   const { podcastId } = useLocalSearchParams();
+  const [podcast, setPodcast] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedEpisode, setSelectedEpisode] = useState<PodcastEpisode | null>(null);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<PodcastEpisode | null>(null);
@@ -37,39 +184,63 @@ export default function PodcastDetailsScreen() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isIntroPlaying, setIsIntroPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    'Full Episode': true,
-  });
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [isEpisodeVideoLoading, setIsEpisodeVideoLoading] = useState(false);
 
-  // Sample podcast data
-  const podcast = {
-    id: podcastId || '1',
-    title: 'Programming & Technology Podcast',
-    instructor: 'Ahmed Mohamed',
-    rating: 4.8,
-    students: 15420,
-    duration: '12 hours',
-    level: 'All Levels',
-    language: 'English',
-    description: 'A comprehensive podcast covering the latest technologies and programming with guests from top developers in the region.',
-    image: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    introVideo: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    episodes: [
-      {
-        id: '2',
-        title: 'Full Episode',
-        duration: '45:20',
-        url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-        description: 'Complete episode about programming and technology - Learn advanced concepts and best practices',
-        isCompleted: false,
-        category: 'Full Episode'
+  // Fetch podcast data from API
+  useEffect(() => {
+    fetchPodcast();
+    // Show video loading immediately if there's an intro video
+    if (podcast?.introVideo) {
+      setIsVideoLoading(true);
+    }
+  }, [podcastId, podcast?.introVideo]);
+
+  const fetchPodcast = async () => {
+    try {
+      setLoading(true);
+      console.log('🎧 Fetching podcast details for ID:', podcastId);
+      
+      const response = await fetch(`http://192.168.100.41:3000/api/admin/content/podcasts/${podcastId}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Podcast fetched:', result.data.podcast);
+        console.log('🎬 Intro Video:', result.data.podcast.introVideo);
+        console.log('📹 Episodes count:', result.data.podcast.episodes?.length || 0);
+        console.log('📹 Episodes data:', result.data.podcast.episodes);
+        setPodcast(result.data.podcast);
+        
+        // Show video loading immediately if there's an intro video
+        if (result.data.podcast.introVideo && result.data.podcast.introVideo.trim() !== '') {
+          setIsVideoLoading(true);
+        }
+        
+        // Initialize expanded categories for episodes
+        if (result.data.podcast.episodes && result.data.podcast.episodes.length > 0) {
+          const categories = {};
+          result.data.podcast.episodes.forEach((episode, index) => {
+            const categoryKey = episode.category || `Episode ${index + 1}`;
+            categories[categoryKey] = index === 0; // Expand first episode
+          });
+          setExpandedCategories(categories);
+        }
+      } else {
+        console.error('❌ Failed to fetch podcast:', response.status);
+        Alert.alert('Error', 'Failed to load podcast details');
       }
-    ]
+    } catch (error) {
+      console.error('❌ Network error:', error);
+      Alert.alert('Network Error', 'Failed to connect to server');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEpisodePress = (episode: PodcastEpisode) => {
     setSelectedVideo(episode);
+    setIsEpisodeVideoLoading(true); // Show loading immediately
     setShowVideoModal(true);
   };
 
@@ -97,6 +268,26 @@ export default function PodcastDetailsScreen() {
     { id: 'host', label: 'Host', icon: '👨‍💼' },
   ];
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading podcast...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!podcast) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Podcast not found</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -105,14 +296,73 @@ export default function PodcastDetailsScreen() {
         {/* Hero Section with Video Background */}
         <View style={styles.heroSection}>
           <View style={styles.heroVideoContainer}>
-            <Video
-              source={{ uri: podcast.introVideo }}
-              style={styles.heroVideo}
-              resizeMode={ResizeMode.COVER}
-              shouldPlay={isIntroPlaying}
-              isLooping={true}
-              isMuted={isMuted}
-            />
+            {console.log('🎬 Intro video check:', podcast.introVideo)}
+            {podcast.introVideo && podcast.introVideo.trim() !== '' ? (
+              <>
+                <VideoLoadingScreen isVisible={isVideoLoading} />
+                {needsWebView(podcast.introVideo) ? (
+                  <WebView
+                    source={{ uri: convertToEmbedUrl(podcast.introVideo) }}
+                    style={styles.heroVideo}
+                    allowsFullscreenVideo={true}
+                    mediaPlaybackRequiresUserAction={false}
+                    onError={(error) => {
+                      console.log('🎬 WebView error:', error);
+                      setIsVideoLoading(false);
+                      Alert.alert('خطأ في الفيديو', `فشل في تحميل الفيديو: ${error.nativeEvent.description || 'Unknown error'}\n\nالرابط: ${podcast.introVideo}`);
+                    }}
+                    onLoad={() => {
+                      console.log('🎬 WebView loaded successfully');
+                      setIsVideoLoading(false);
+                    }}
+                    onLoadStart={() => {
+                      console.log('🎬 WebView loading started');
+                      setIsVideoLoading(true);
+                    }}
+                    onLoadEnd={() => {
+                      console.log('🎬 WebView loading ended');
+                      setIsVideoLoading(false);
+                    }}
+                  />
+                ) : (
+                  <Video
+                    source={{ uri: podcast.introVideo }}
+                    style={styles.heroVideo}
+                    resizeMode={ResizeMode.COVER}
+                    shouldPlay={isIntroPlaying}
+                    isLooping={true}
+                    isMuted={isMuted}
+                    useNativeControls={true}
+                    onError={(error) => {
+                      console.log('🎬 Video error:', error);
+                      setIsVideoLoading(false);
+                      Alert.alert('خطأ في الفيديو', `فشل في تحميل الفيديو: ${error.error?.message || 'Unknown error'}\n\nالرابط: ${podcast.introVideo}`);
+                    }}
+                    onLoad={(status) => {
+                      console.log('🎬 Video loaded successfully:', status);
+                      setIsVideoLoading(false);
+                    }}
+                    onLoadStart={() => {
+                      console.log('🎬 Video loading started');
+                      setIsVideoLoading(true);
+                    }}
+                    onLoadEnd={() => {
+                      console.log('🎬 Video loading ended');
+                      setIsVideoLoading(false);
+                    }}
+                    onPlaybackStatusUpdate={(status) => {
+                      console.log('🎬 Playback status:', status);
+                    }}
+                  />
+                )}
+              </>
+            ) : (
+              <ImageBackground
+                source={{ uri: podcast.thumbnail || 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' }}
+                style={styles.heroVideo}
+                resizeMode="cover"
+              />
+            )}
             <LinearGradient
               colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
               style={styles.heroGradient}
@@ -133,20 +383,20 @@ export default function PodcastDetailsScreen() {
               
               <View style={styles.heroContent}>
                 <Text style={styles.podcastTitle}>{podcast.title}</Text>
-                <Text style={styles.podcastInstructor}>By {podcast.instructor}</Text>
+                <Text style={styles.podcastInstructor}>By {podcast.host}</Text>
                 
                 <View style={styles.podcastMeta}>
                   <View style={styles.metaItem}>
                     <Text style={styles.metaIcon}>⭐</Text>
-                    <Text style={styles.metaText}>{podcast.rating}</Text>
+                    <Text style={styles.metaText}>{podcast.rating || 0}</Text>
                   </View>
                   <View style={styles.metaItem}>
                     <Text style={styles.metaIcon}>👥</Text>
-                    <Text style={styles.metaText}>{podcast.students.toLocaleString()}</Text>
+                    <Text style={styles.metaText}>{(podcast.totalListeners || 0).toLocaleString()} listeners</Text>
                   </View>
                   <View style={styles.metaItem}>
                     <Text style={styles.metaIcon}>⏱️</Text>
-                    <Text style={styles.metaText}>{podcast.duration}</Text>
+                    <Text style={styles.metaText}>{podcast.duration || '0:00'}</Text>
                   </View>
                 </View>
               </View>
@@ -269,9 +519,11 @@ export default function PodcastDetailsScreen() {
             </View>
 
             <View style={styles.podcastEpisodesContainer}>
-              {podcast.episodes.map((episode, index) => (
+              {console.log('🎬 Rendering episodes:', podcast.episodes)}
+              {(podcast.episodes && podcast.episodes.length > 0) ? (
+                podcast.episodes.map((episode, index) => (
                 <TouchableOpacity
-                  key={episode.id}
+                  key={episode._id || episode.id || index}
                   style={[
                     styles.episodeCardModern,
                     index === 0 && styles.episodeCardFirst
@@ -290,9 +542,9 @@ export default function PodcastDetailsScreen() {
                           </Text>
                         </View>
                         <View style={styles.episodeCardInfo}>
-                          <Text style={styles.episodeCardTitle}>{episode.title}</Text>
+                          <Text style={styles.episodeCardTitle}>{episode.title || 'Untitled Episode'}</Text>
                           <Text style={styles.episodeCardSubtitle}>
-                            {episode.category === 'Introduction' ? 'Welcome Episode' : 'Complete Content'}
+                            {episode.category === 'Introduction' ? 'Welcome Episode' : episode.category || 'Complete Content'}
                           </Text>
                         </View>
                       </View>
@@ -332,7 +584,7 @@ export default function PodcastDetailsScreen() {
                           <View style={styles.episodeDurationIcon}>
                             <Text style={styles.episodeDurationEmoji}>⏱️</Text>
                           </View>
-                          <Text style={styles.episodeDurationText}>{episode.duration}</Text>
+                          <Text style={styles.episodeDurationText}>{episode.duration || '0:00'}</Text>
                         </View>
                         
                         <View style={styles.episodeCardType}>
@@ -344,7 +596,13 @@ export default function PodcastDetailsScreen() {
                     </View>
                   </LinearGradient>
                 </TouchableOpacity>
-              ))}
+                ))
+              ) : (
+                <View style={styles.emptyEpisodesContainer}>
+                  <Text style={styles.emptyEpisodesText}>لا توجد حلقات متاحة</Text>
+                  <Text style={styles.emptyEpisodesSubtext}>أضف حلقات من الداشبورد</Text>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -459,6 +717,12 @@ export default function PodcastDetailsScreen() {
           visible={showVideoModal}
           animationType="slide"
           presentationStyle="fullScreen"
+          onShow={() => {
+            // Show loading immediately when modal opens
+            if (selectedVideo?.url) {
+              setIsEpisodeVideoLoading(true);
+            }
+          }}
         >
           <View style={styles.videoModal}>
             <LinearGradient
@@ -468,7 +732,10 @@ export default function PodcastDetailsScreen() {
               <View style={styles.videoHeader}>
                 <TouchableOpacity
                   style={styles.closeButton}
-                  onPress={() => setShowVideoModal(false)}
+                  onPress={() => {
+                    setShowVideoModal(false);
+                    setIsEpisodeVideoLoading(false); // Reset loading state
+                  }}
                 >
                   <Text style={styles.closeIcon}>✕</Text>
                 </TouchableOpacity>
@@ -482,15 +749,73 @@ export default function PodcastDetailsScreen() {
               </View>
               
               <View style={styles.videoContainer}>
-                {selectedVideo && (
-                  <Video
-                    source={{ uri: selectedVideo.url }}
-                    style={styles.videoPlayer}
-                    resizeMode={ResizeMode.CONTAIN}
-                    shouldPlay={true}
-                    isLooping={false}
-                    useNativeControls={true}
-                  />
+                {selectedVideo && selectedVideo.url && selectedVideo.url.trim() !== '' ? (
+                  <>
+                    <VideoLoadingScreen isVisible={isEpisodeVideoLoading} />
+                    {needsWebView(selectedVideo.url) ? (
+                    <WebView
+                      source={{ uri: convertToEmbedUrl(selectedVideo.url) }}
+                      style={styles.videoPlayer}
+                      allowsFullscreenVideo={true}
+                      mediaPlaybackRequiresUserAction={false}
+                      onError={(error) => {
+                        console.log('🎬 Episode WebView error:', error);
+                        setIsEpisodeVideoLoading(false);
+                        Alert.alert('خطأ في الفيديو', `فشل في تحميل الفيديو: ${error.nativeEvent.description || 'Unknown error'}\n\nالرابط: ${selectedVideo.url}`);
+                      }}
+                      onLoad={() => {
+                        console.log('🎬 Episode WebView loaded successfully');
+                        setIsEpisodeVideoLoading(false);
+                      }}
+                      onLoadStart={() => {
+                        console.log('🎬 Episode WebView loading started');
+                        setIsEpisodeVideoLoading(true);
+                      }}
+                      onLoadEnd={() => {
+                        console.log('🎬 Episode WebView loading ended');
+                        setIsEpisodeVideoLoading(false);
+                      }}
+                    />
+                  ) : (
+                    <Video
+                      source={{ uri: selectedVideo.url }}
+                      style={styles.videoPlayer}
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={true}
+                      useNativeControls={true}
+                      onError={(error) => {
+                        console.log('🎬 Episode video error:', error);
+                        setIsEpisodeVideoLoading(false);
+                        Alert.alert('خطأ في الفيديو', `فشل في تحميل الفيديو: ${error.error?.message || 'Unknown error'}\n\nالرابط: ${selectedVideo.url}`);
+                      }}
+                      onLoad={(status) => {
+                        console.log('🎬 Episode video loaded successfully:', status);
+                        setIsEpisodeVideoLoading(false);
+                      }}
+                      onLoadStart={() => {
+                        console.log('🎬 Episode video loading started');
+                        setIsEpisodeVideoLoading(true);
+                      }}
+                      onLoadEnd={() => {
+                        console.log('🎬 Episode video loading ended');
+                        setIsEpisodeVideoLoading(false);
+                      }}
+                      onPlaybackStatusUpdate={(status) => {
+                        console.log('🎬 Episode playback status:', status);
+                      }}
+                      isLooping={false}
+                    />
+                    )}
+                  </>
+                ) : (
+                  <View style={styles.videoErrorContainer}>
+                    <Text style={styles.videoErrorText}>🎬</Text>
+                    <Text style={styles.videoErrorTitle}>فيديو غير متاح</Text>
+                    <Text style={styles.videoErrorSubtitle}>
+                      {selectedVideo?.url ? 'الرابط غير صحيح أو غير مدعوم' : 'لم يتم إضافة رابط للفيديو'}
+                    </Text>
+                    <Text style={styles.videoErrorUrl}>{selectedVideo?.url || 'لا يوجد رابط'}</Text>
+                  </View>
                 )}
               </View>
               
@@ -531,6 +856,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  emptyEpisodesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  emptyEpisodesText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  emptyEpisodesSubtext: {
+    color: '#888888',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  videoErrorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#000000', // Ensure black background for error
+  },
+  videoErrorText: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  videoErrorTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  videoErrorSubtitle: {
+    color: '#CCCCCC',
+    fontSize: 16,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  videoErrorUrl: {
+    color: '#888888',
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: 'monospace',
+  },
   mainScroll: {
     flex: 1,
   },
@@ -549,6 +941,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
+    backgroundColor: '#000000', // Ensure black background for hero video
   },
   heroImage: {
     flex: 1,
@@ -1638,6 +2031,7 @@ const styles = StyleSheet.create({
   },
   videoModalGradient: {
     flex: 1,
+    backgroundColor: '#000000', // Ensure black background for modal
   },
   videoHeader: {
     flexDirection: 'row',
@@ -1646,7 +2040,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: '#000000', // Ensure black background for header
   },
   closeButton: {
     width: 40,
@@ -1695,10 +2089,103 @@ const styles = StyleSheet.create({
   videoPlayer: {
     width: width,
     height: height * 0.4,
+    backgroundColor: '#000000', // Ensure black background for video
+  },
+  // Video Loading Screen Styles
+  videoLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000', // Ensure black background
+  },
+  videoLoadingGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000', // Ensure black background
+  },
+  videoSpinner: {
+    width: 60,
+    height: 60,
+    marginBottom: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoSpinnerInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 4,
+    borderColor: 'transparent',
+    borderTopColor: '#4ECDC4',
+    borderRightColor: '#E50914',
+    borderBottomColor: '#FF6B35',
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+  },
+  playIconContainer: {
+    marginBottom: 20,
+  },
+  playIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(78, 205, 196, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4ECDC4',
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+  },
+  playIconText: {
+    fontSize: 32,
+    color: '#4ECDC4',
+    marginLeft: 4,
+  },
+  videoLoadingText: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  videoLoadingSubtext: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    marginBottom: 30,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  loadingDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4ECDC4',
+    marginHorizontal: 4,
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 5,
   },
   videoInfo: {
     padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: '#000000', // Ensure black background for info
   },
   videoInfoHeader: {
     marginBottom: 15,
