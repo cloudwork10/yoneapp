@@ -36,7 +36,7 @@ export default function ArticleDetailsScreen() {
       setLoading(true);
       console.log('📄 Fetching article with ID:', articleId);
       
-      const response = await fetch(`http://192.168.100.41:3000/api/content/public/articles/${articleId}`);
+      const response = await fetch(`http://192.168.100.41:3000/api/public/articles/${articleId}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -58,7 +58,7 @@ export default function ArticleDetailsScreen() {
     try {
       console.log('📄 Fetching related articles...');
       
-      const response = await fetch(`http://192.168.100.41:3000/api/content/public/articles`);
+      const response = await fetch(`http://192.168.100.41:3000/api/public/articles`);
       
       if (response.ok) {
         const data = await response.json();

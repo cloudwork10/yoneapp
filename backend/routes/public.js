@@ -110,6 +110,36 @@ router.get('/articles', async (req, res) => {
   }
 });
 
+// @route   GET /api/public/articles/:id
+// @desc    Get single article by ID for public use
+// @access  Public
+router.get('/articles/:id', async (req, res) => {
+  try {
+    const article = await Article.findById(req.params.id)
+      .select('-createdBy -updatedBy -__v');
+
+    if (!article) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Article not found'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      data: {
+        article
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching public article:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch article'
+    });
+  }
+});
+
 // @route   GET /api/public/roadmaps
 // @desc    Get active roadmaps for public use
 // @access  Public
@@ -142,6 +172,36 @@ router.get('/roadmaps', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch roadmaps'
+    });
+  }
+});
+
+// @route   GET /api/public/roadmaps/:id
+// @desc    Get single roadmap by ID for public use
+// @access  Public
+router.get('/roadmaps/:id', async (req, res) => {
+  try {
+    const roadmap = await Roadmap.findById(req.params.id)
+      .select('-createdBy -updatedBy -__v');
+
+    if (!roadmap) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Roadmap not found'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      data: {
+        roadmap
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching public roadmap:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch roadmap'
     });
   }
 });

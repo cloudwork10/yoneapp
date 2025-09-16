@@ -29,7 +29,7 @@ export default function ArticlesScreen() {
 
   const fetchArticles = async () => {
     try {
-      const response = await fetch('http://192.168.100.41:3000/api/content/public/articles');
+      const response = await fetch('http://192.168.100.41:3000/api/public/articles');
       if (response.ok) {
         const data = await response.json();
         setArticles(data.data.articles || []);
