@@ -1,13 +1,13 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { requireSuperAdmin, requireAdmin, requireModerator } = require('../middleware/adminAuth');
-const { adminLimiter } = require('../middleware/security');
+const { requireAuth, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
+const { apiLimiter } = require('../middleware/security');
 
 const router = express.Router();
 
 // Apply rate limiting to all admin routes
-router.use(adminLimiter);
+router.use(apiLimiter);
 
 // @route   GET /api/admin/dashboard
 // @desc    Get admin dashboard statistics

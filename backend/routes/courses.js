@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Course = require('../models/Course');
 const User = require('../models/User');
-const { protect, authorize, optionalAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -128,7 +128,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // @route   POST /api/courses/:id/enroll
 // @desc    Enroll in a course
 // @access  Private
-router.post('/:id/enroll', protect, async (req, res) => {
+router.post('/:id/enroll', requireAuth, async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
     
@@ -184,8 +184,8 @@ router.post('/:id/enroll', protect, async (req, res) => {
 // @desc    Create a new course
 // @access  Private/Instructor
 router.post('/', [
-  protect,
-  authorize('instructor', 'admin'),
+  requireAuth,
+  requireAdmin,
   body('title')
     .trim()
     .isLength({ min: 5, max: 100 })
@@ -239,8 +239,8 @@ router.post('/', [
 // @desc    Update a course
 // @access  Private/Instructor
 router.put('/:id', [
-  protect,
-  authorize('instructor', 'admin')
+  requireAuth,
+  requireAdmin
 ], async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -256,7 +256,7 @@ router.put('/:id', [
     if (course.instructor.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({
         status: 'error',
-        message: 'Not authorized to update this course'
+        message: 'Not requireAdmind to update this course'
       });
     }
 
@@ -286,8 +286,8 @@ router.put('/:id', [
 // @desc    Delete a course
 // @access  Private/Instructor
 router.delete('/:id', [
-  protect,
-  authorize('instructor', 'admin')
+  requireAuth,
+  requireAdmin
 ], async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
@@ -303,7 +303,7 @@ router.delete('/:id', [
     if (course.instructor.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({
         status: 'error',
-        message: 'Not authorized to delete this course'
+        message: 'Not requireAdmind to delete this course'
       });
     }
 

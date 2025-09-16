@@ -57,8 +57,7 @@ mongoose.connect(process.env.DB_CONNECTION_STRING || 'mongodb://localhost:27017/
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
-  bufferCommands: false,
-  bufferMaxEntries: 0
+  bufferCommands: false
 })
 .then(() => {
   logger.info('✅ MongoDB connected successfully');

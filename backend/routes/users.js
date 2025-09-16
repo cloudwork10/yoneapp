@@ -193,7 +193,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 // @route   GET /api/users
 // @desc    Get all users (Admin only)
 // @access  Private/Admin
-router.get('/', requireAuth, requireAdmin('admin'), async (req, res) => {
+router.get('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
