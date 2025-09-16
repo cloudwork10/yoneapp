@@ -64,7 +64,7 @@ export default function RoadmapDetailsScreen() {
       
       console.log('🔍 Fetching roadmap:', roadmapId);
       
-      const response = await fetch(`http://192.168.100.41:3000/api/public/roadmaps/${roadmapId}`);
+      const response = await fetch(`http://192.168.100.42:3000/api/public/roadmaps/${roadmapId}`);
       
       if (response.ok) {
         const data = await response.json();

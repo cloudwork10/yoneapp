@@ -16,7 +16,7 @@ export default function TopCVScreen() {
 
   const fetchCVTemplates = async (retryCount = 0) => {
     try {
-      const response = await fetch('http://192.168.100.41:3000/api/public/cv-templates');
+      const response = await fetch('http://192.168.100.42:3000/api/public/cv-templates');
       
       if (response.ok) {
         const data = await response.json();
