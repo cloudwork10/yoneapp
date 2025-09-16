@@ -828,7 +828,7 @@ router.delete('/cv-templates/:id', requireAdmin, async (req, res) => {
 // @route   GET /api/content/cv-templates
 // @desc    Get all active CV templates for public use
 // @access  Public
-router.get('/public/cv-templates', apiLimiter, async (req, res) => {
+router.get('/public/cv-templates', async (req, res) => {
   try {
     const cvTemplates = await CVTemplate.find({ isActive: true })
       .sort({ downloads: -1, createdAt: -1 });
@@ -1127,7 +1127,7 @@ router.delete('/articles/:id', requireAdmin, async (req, res) => {
 // @route   GET /api/content/public/articles
 // @desc    Get all active articles for public use
 // @access  Public
-router.get('/public/articles', apiLimiter, async (req, res) => {
+router.get('/public/articles', async (req, res) => {
   try {
     const { category, featured } = req.query;
     
@@ -1161,7 +1161,7 @@ router.get('/public/articles', apiLimiter, async (req, res) => {
 // @route   GET /api/content/public/articles/:id
 // @desc    Get a single article by ID for public use
 // @access  Public
-router.get('/public/articles/:id', apiLimiter, async (req, res) => {
+router.get('/public/articles/:id', async (req, res) => {
   try {
     const article = await Article.findOne({ 
       _id: req.params.id, 
@@ -1354,7 +1354,7 @@ router.delete('/roadmaps/:id', requireAdmin, async (req, res) => {
 // @route   GET /api/content/public/roadmaps
 // @desc    Get all active roadmaps for public use
 // @access  Public
-router.get('/public/roadmaps', apiLimiter, async (req, res) => {
+router.get('/public/roadmaps', async (req, res) => {
   try {
     const roadmaps = await Roadmap.find({ isActive: true })
       .select('title description category difficulty duration steps image icon color isFeatured createdAt')
@@ -1376,7 +1376,7 @@ router.get('/public/roadmaps', apiLimiter, async (req, res) => {
 // @route   GET /api/content/public/roadmaps/:id
 // @desc    Get a single roadmap by ID for public use
 // @access  Public
-router.get('/public/roadmaps/:id', apiLimiter, async (req, res) => {
+router.get('/public/roadmaps/:id', async (req, res) => {
   try {
     const roadmap = await Roadmap.findOne({ 
       _id: req.params.id, 
