@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Clipboard, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { refreshAuthToken, makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 interface ContentStats {
   total: {
@@ -34,36 +35,8 @@ export default function ContentManagementScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   
-  // Helper function to refresh token
-  const refreshToken = async () => {
-    try {
-      console.log('🔄 Refreshing authentication token...');
-      const refreshResponse = await fetch('http://192.168.100.41:3000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'admin@yoneapp.com',
-          password: 'admin123'
-        })
-      });
-      
-      if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json();
-        const newToken = refreshData.data.tokens.accessToken;
-        await AsyncStorage.setItem('token', newToken);
-        console.log('✅ Token refreshed successfully');
-        return newToken;
-      } else {
-        console.error('❌ Failed to refresh token');
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ Token refresh error:', error);
-      return null;
-    }
-  };
+  // Use shared refresh token function
+  const refreshToken = refreshAuthToken;
   
   // Debug activeTab changes
   useEffect(() => {

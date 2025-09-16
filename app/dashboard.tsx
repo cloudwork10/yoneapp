@@ -89,6 +89,9 @@ export default function DashboardScreen() {
         // Token expired, try to refresh
         console.log('🔄 Token expired, attempting to refresh...');
         try {
+          // Add delay for rate limiting
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
           const refreshResponse = await fetch('http://192.168.100.41:3000/api/auth/login', {
             method: 'POST',
             headers: {
