@@ -38,7 +38,7 @@ const loginValidation = [
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/register', registerValidation, async (req, res) => {
+router.post('/register', authLimiter, registerValidation, async (req, res) => {
   try {
     // Check for validation errors
     const errors = validationResult(req);
@@ -116,7 +116,7 @@ router.post('/register', registerValidation, async (req, res) => {
 // @route   POST /api/auth/login
 // @desc    Login user
 // @access  Public
-router.post('/login', accountLockout, loginValidation, async (req, res) => {
+router.post('/login', authLimiter, accountLockout, loginValidation, async (req, res) => {
   try {
     // Check for validation errors
     const errors = validationResult(req);
@@ -239,7 +239,7 @@ router.post('/login', accountLockout, loginValidation, async (req, res) => {
 // @route   POST /api/auth/refresh
 // @desc    Refresh access token
 // @access  Public
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', authLimiter, async (req, res) => {
   try {
     const { refreshToken } = req.body;
 

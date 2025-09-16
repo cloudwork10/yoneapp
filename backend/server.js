@@ -103,12 +103,12 @@ app.get('/api/security/status', (req, res) => {
 // Public routes (no authentication required)
 app.use('/api/public', publicSecurityMiddleware, require('./routes/public'));
 
-// Routes with security middleware
-app.use('/api/auth', securityMiddleware, authLimiter, require('./routes/auth'));
-app.use('/api/users', securityMiddleware, apiLimiter, require('./routes/users'));
-app.use('/api/courses', securityMiddleware, apiLimiter, require('./routes/courses'));
-app.use('/api/admin', securityMiddleware, apiLimiter, require('./routes/admin'));
-app.use('/api/admin/content', securityMiddleware, apiLimiter, require('./routes/content'));
+// Routes with security middleware - RATE LIMITING DISABLED FOR TESTING
+app.use('/api/auth', securityMiddleware, require('./routes/auth'));
+app.use('/api/users', securityMiddleware, require('./routes/users'));
+app.use('/api/courses', securityMiddleware, require('./routes/courses'));
+app.use('/api/admin', securityMiddleware, require('./routes/admin'));
+app.use('/api/admin/content', securityMiddleware, require('./routes/content'));
 
 // 404 handler
 app.use('*', notFoundHandler);
