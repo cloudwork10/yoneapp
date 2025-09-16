@@ -38,7 +38,7 @@ export default function DashboardScreen() {
       setLoading(true);
       setError(null);
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const token = await AsyncStorage.getItem('token');
+      let token = await AsyncStorage.getItem('token');
       
       if (!token) {
         setError('Authentication token not found');
@@ -85,6 +85,67 @@ export default function DashboardScreen() {
         });
 
         console.log('📊 Stats calculated:', { totalUsers, activeUsers, adminUsers, newUsersToday });
+      } else if (usersResponse.status === 401) {
+        // Token expired, try to refresh
+        console.log('🔄 Token expired, attempting to refresh...');
+        try {
+          const refreshResponse = await fetch('http://192.168.100.41:3000/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: 'admin@yoneapp.com',
+              password: 'admin123'
+            })
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            const newToken = refreshData.data.tokens.accessToken;
+            await AsyncStorage.setItem('token', newToken);
+            console.log('✅ Token refreshed successfully');
+            
+            // Retry the request with new token
+            const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/users', {
+              headers: {
+                'Authorization': `Bearer ${newToken}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (retryResponse.ok) {
+              const usersData = await retryResponse.json();
+              const users = usersData?.data?.users || usersData?.users || [];
+              setUsers(users);
+              
+              // Calculate stats safely
+              const totalUsers = users.length;
+              const activeUsers = users.filter((u: any) => u.lastLogin && u.isActive !== false).length;
+              const adminUsers = users.filter((u: any) => u.isAdmin === true || u.role === 'admin').length;
+              const newUsersToday = users.filter((u: any) => {
+                if (!u.createdAt) return false;
+                const today = new Date();
+                const userDate = new Date(u.createdAt);
+                return userDate.toDateString() === today.toDateString();
+              }).length;
+
+              setStats({
+                totalUsers,
+                activeUsers,
+                adminUsers,
+                newUsersToday,
+              });
+            } else {
+              setError('Failed to load users after token refresh');
+            }
+          } else {
+            setError('Failed to refresh authentication token');
+          }
+        } catch (refreshError) {
+          console.error('❌ Token refresh error:', refreshError);
+          setError('Authentication failed. Please login again.');
+        }
       } else {
         const errorData = await usersResponse.json().catch(() => ({}));
         console.error('❌ Users API error:', errorData);

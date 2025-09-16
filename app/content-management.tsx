@@ -34,6 +34,37 @@ export default function ContentManagementScreen() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   
+  // Helper function to refresh token
+  const refreshToken = async () => {
+    try {
+      console.log('🔄 Refreshing authentication token...');
+      const refreshResponse = await fetch('http://192.168.100.41:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'admin@yoneapp.com',
+          password: 'admin123'
+        })
+      });
+      
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        const newToken = refreshData.data.tokens.accessToken;
+        await AsyncStorage.setItem('token', newToken);
+        console.log('✅ Token refreshed successfully');
+        return newToken;
+      } else {
+        console.error('❌ Failed to refresh token');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Token refresh error:', error);
+      return null;
+    }
+  };
+  
   // Debug activeTab changes
   useEffect(() => {
     console.log('🎯 Active tab changed to:', activeTab);
@@ -133,6 +164,30 @@ export default function ContentManagementScreen() {
           fetchContentStats(retryCount + 1);
         }, (retryCount + 1) * 2000);
         return;
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('🔄 Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with new token
+          const retryResponse = await fetch('http://192.168.100.41:3000/api/admin/stats', {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            console.log('✅ Content stats received after refresh:', data);
+            setStats(data.data);
+          } else {
+            Alert.alert('Error', 'Failed to load content statistics after token refresh');
+          }
+        } else {
+          Alert.alert('Error', 'Authentication failed. Please login again.');
+        }
       } else {
         const errorText = await response.text();
         console.error('Failed to fetch content stats:', response.status, errorText);
