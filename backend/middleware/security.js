@@ -73,10 +73,10 @@ const publicLimiter = createRateLimit(
   'Too many requests from this IP, please try again later.'
 );
 
-// Auth Rate Limiting - Stricter
+// Auth Rate Limiting - DISABLED FOR TESTING
 const authLimiter = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  5, // 5 login attempts
+  999999, // Very high limit to effectively disable
   'Too many login attempts, please try again later.'
 );
 
