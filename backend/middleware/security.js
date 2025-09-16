@@ -1,123 +1,256 @@
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
+const helmet = require('helmet');
+const cors = require('cors');
 const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
+const compression = require('compression');
+const morgan = require('morgan');
+const winston = require('winston');
 
-// Rate limiting for authentication endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 requests per windowMs
-  message: {
-    status: 'error',
-    message: 'Too many authentication attempts, please try again later.',
-    retryAfter: '15 minutes'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true, // Don't count successful requests
+// Configure Winston Logger
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: { service: 'yone-app' },
+  transports: [
+    new winston.transports.File({ filename: process.env.ERROR_LOG_FILE || './logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: process.env.LOG_FILE || './logs/app.log' }),
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      )
+    })
+  ]
 });
 
-// General API rate limiting
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    status: 'error',
-    message: 'Too many requests, please try again later.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Public content rate limiting (more lenient)
-const publicContentLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Limit each IP to 500 requests per windowMs
-  message: {
-    status: 'error',
-    message: 'Too many requests, please try again later.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Slow down repeated requests
-const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 50, // Allow 50 requests per 15 minutes, then...
-  delayMs: 500, // Add 500ms delay per request above 50
-  maxDelayMs: 20000, // Maximum delay of 20 seconds
-});
-
-// Admin rate limiting (more restrictive)
-const adminLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per windowMs
-  message: {
-    status: 'error',
-    message: 'Too many admin requests, please try again later.'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// MongoDB injection protection
-const sanitizeInput = mongoSanitize({
-  replaceWith: '_',
-  onSanitize: ({ req, key }) => {
-    console.warn(`Sanitized key: ${key} in request:`, req.url);
-  }
-});
-
-// Security headers middleware
-const securityHeaders = (req, res, next) => {
-  // Remove X-Powered-By header
-  res.removeHeader('X-Powered-By');
-  
-  // Add security headers
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
-  next();
-};
-
-// Request logging for security monitoring
-const securityLogger = (req, res, next) => {
-  const start = Date.now();
-  
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    const logData = {
-      timestamp: new Date().toISOString(),
-      method: req.method,
-      url: req.url,
-      ip: req.ip || req.connection.remoteAddress,
-      userAgent: req.get('User-Agent'),
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      userId: req.user ? req.user._id : null
-    };
-    
-    // Log suspicious activities
-    if (res.statusCode >= 400) {
-      console.warn('🚨 Security Alert:', logData);
-    } else {
-      console.log('📊 Request:', logData);
+// Rate Limiting - Enterprise Level
+const createRateLimit = (windowMs, max, message) => {
+  return rateLimit({
+    windowMs: windowMs,
+    max: max,
+    message: {
+      status: 'error',
+      message: message,
+      retryAfter: Math.ceil(windowMs / 1000)
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: process.env.RATE_LIMIT_SKIP_SUCCESSFUL_REQUESTS === 'true',
+    handler: (req, res) => {
+      logger.warn(`Rate limit exceeded for IP: ${req.ip}`, {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        url: req.originalUrl,
+        method: req.method
+      });
+      res.status(429).json({
+        status: 'error',
+        message: message,
+        retryAfter: Math.ceil(windowMs / 1000)
+      });
     }
   });
+};
+
+// General Rate Limiting
+const generalLimiter = createRateLimit(
+  15 * 60 * 1000, // 15 minutes
+  parseInt(process.env.RATE_LIMIT_MAX) || 100,
+  'Too many requests from this IP, please try again later.'
+);
+
+// Auth Rate Limiting - Stricter
+const authLimiter = createRateLimit(
+  15 * 60 * 1000, // 15 minutes
+  5, // 5 login attempts
+  'Too many login attempts, please try again later.'
+);
+
+// Upload Rate Limiting
+const uploadLimiter = createRateLimit(
+  60 * 60 * 1000, // 1 hour
+  10, // 10 uploads per hour
+  'Too many file uploads, please try again later.'
+);
+
+// API Rate Limiting
+const apiLimiter = createRateLimit(
+  15 * 60 * 1000, // 15 minutes
+  200, // 200 API calls
+  'API rate limit exceeded, please try again later.'
+);
+
+// Slow Down - Gradual Slowdown
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 50, // allow 50 requests per 15 minutes, then...
+  delayMs: 500 // begin adding 500ms of delay per request above 50
+});
+
+// CORS Configuration - Secure
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:3000',
+      'http://192.168.100.41:3000'
+    ];
+    
+    // Allow requests with no origin (mobile apps, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: process.env.CORS_CREDENTIALS === 'true',
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+// Helmet Configuration - Maximum Security
+const helmetOptions = {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      manifestSrc: ["'self'"],
+      workerSrc: ["'self'", "blob:"],
+      childSrc: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      upgradeInsecureRequests: []
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  permissionsPolicy: {
+    camera: [],
+    microphone: [],
+    geolocation: [],
+    payment: []
+  }
+};
+
+// Morgan Logging Configuration
+const morganFormat = process.env.NODE_ENV === 'production' 
+  ? 'combined' 
+  : 'dev';
+
+// Security Middleware Stack
+const securityMiddleware = [
+  // Compression
+  compression(),
   
-  next();
+  // Helmet - Security Headers
+  helmet(helmetOptions),
+  
+  // CORS
+  cors(corsOptions),
+  
+  // Rate Limiting
+  generalLimiter,
+  speedLimiter,
+  
+  // Data Sanitization
+  mongoSanitize({
+    replaceWith: '_',
+    onSanitize: ({ req, key }) => {
+      logger.warn(`Sanitized malicious input: ${key}`, {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        url: req.originalUrl
+      });
+    }
+  }),
+  
+  // XSS Protection
+  xss({
+    onSanitize: ({ req, key }) => {
+      logger.warn(`XSS attack prevented: ${key}`, {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        url: req.originalUrl
+      });
+    }
+  }),
+  
+  // HTTP Parameter Pollution Protection
+  hpp(),
+  
+  // Request Logging
+  morgan(morganFormat, {
+    stream: {
+      write: (message) => logger.info(message.trim())
+    }
+  })
+];
+
+// Error Handling Middleware
+const errorHandler = (err, req, res, next) => {
+  logger.error('Unhandled error:', {
+    error: err.message,
+    stack: err.stack,
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+    url: req.originalUrl,
+    method: req.method
+  });
+
+  // Don't leak error details in production
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  res.status(err.status || 500).json({
+    status: 'error',
+    message: isDevelopment ? err.message : 'Internal server error',
+    ...(isDevelopment && { stack: err.stack })
+  });
+};
+
+// 404 Handler
+const notFoundHandler = (req, res) => {
+  logger.warn(`404 - Route not found: ${req.method} ${req.originalUrl}`, {
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
+  
+  res.status(404).json({
+    status: 'error',
+    message: 'Route not found'
+  });
 };
 
 module.exports = {
+  securityMiddleware,
   authLimiter,
+  uploadLimiter,
   apiLimiter,
-  publicContentLimiter,
-  speedLimiter,
-  adminLimiter,
-  sanitizeInput,
-  securityHeaders,
-  securityLogger
+  errorHandler,
+  notFoundHandler,
+  logger
 };

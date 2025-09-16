@@ -1,88 +1,148 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
+const path = require('path');
+const fs = require('fs');
 const { 
-  authLimiter, 
-  apiLimiter, 
-  speedLimiter, 
-  sanitizeInput, 
-  securityHeaders, 
-  securityLogger 
+  securityMiddleware,
+  authLimiter,
+  uploadLimiter,
+  apiLimiter,
+  errorHandler,
+  notFoundHandler,
+  logger
 } = require('./middleware/security');
 require('dotenv').config();
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
-app.use(securityHeaders);
-app.use(securityLogger);
+// Create logs directory if it doesn't exist
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
-// CORS configuration
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:8081',
-  credentials: true
+// Apply all security middleware
+app.use(securityMiddleware);
+
+// Body parsing middleware with size limits
+app.use(express.json({ 
+  limit: process.env.MAX_FILE_SIZE || '10mb',
+  verify: (req, res, buf) => {
+    // Additional JSON validation can be added here
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: process.env.MAX_FILE_SIZE || '10mb' 
 }));
 
-// Logging middleware
-app.use(morgan('combined'));
+// Static file serving for uploads with security headers
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res, path) => {
+    // Prevent execution of uploaded files
+    res.setHeader('Content-Disposition', 'attachment');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+}));
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Database connection with security options
+mongoose.connect(process.env.DB_CONNECTION_STRING || 'mongodb://localhost:27017/yoneapp', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+  bufferCommands: false,
+  bufferMaxEntries: 0
+})
+.then(() => {
+  logger.info('✅ MongoDB connected successfully');
+  console.log('✅ MongoDB connected successfully');
+})
+.catch(err => {
+  logger.error('❌ MongoDB connection error:', err);
+  console.error('❌ MongoDB connection error:', err);
+  process.exit(1);
+});
 
-// Static file serving for uploads
-app.use('/uploads', express.static('uploads'));
-
-// Security middleware
-app.use(sanitizeInput);
-app.use(speedLimiter);
-app.use(apiLimiter);
-
-// Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/yoneapp')
-.then(() => console.log('✅ MongoDB connected successfully'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
-
-// Routes
+// Routes with security middleware
 app.use('/api/auth', authLimiter, require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/courses', require('./routes/courses'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/admin/content', require('./routes/content'));
-app.use('/api/content', require('./routes/content'));
+app.use('/api/users', apiLimiter, require('./routes/users'));
+app.use('/api/courses', apiLimiter, require('./routes/courses'));
+app.use('/api/admin', apiLimiter, require('./routes/admin'));
+app.use('/api/admin/content', apiLimiter, require('./routes/content'));
+app.use('/api/public/content', apiLimiter, require('./routes/content'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'success',
-    message: 'YONE API is running',
+    message: 'YONE API is running securely',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Security status endpoint (for monitoring)
+app.get('/api/security/status', (req, res) => {
+  res.status(200).json({
+    status: 'success',
+    security: {
+      rateLimiting: 'enabled',
+      cors: 'enabled',
+      helmet: 'enabled',
+      sanitization: 'enabled',
+      xssProtection: 'enabled',
+      hppProtection: 'enabled',
+      compression: 'enabled',
+      logging: 'enabled'
+    },
     timestamp: new Date().toISOString()
   });
 });
 
 // 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    status: 'error',
-    message: 'Route not found'
-  });
-});
+app.use('*', notFoundHandler);
 
 // Global error handler
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    status: 'error',
-    message: err.message || 'Internal server error'
+app.use(errorHandler);
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  mongoose.connection.close(() => {
+    logger.info('MongoDB connection closed');
+    process.exit(0);
   });
 });
 
-const PORT = process.env.PORT || 3000;
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  mongoose.connection.close(() => {
+    logger.info('MongoDB connection closed');
+    process.exit(0);
+  });
+});
+
+const PORT = process.env.API_PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  logger.info(`🚀 YONE API Server started on port ${PORT}`);
+  logger.info(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`🔒 Security: Enterprise Level Enabled`);
+  
+  console.log(`🚀 YONE API Server started on port ${PORT}`);
   console.log(`📱 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔒 Security: Enterprise Level Enabled`);
+  console.log(`🛡️  Rate Limiting: Active`);
+  console.log(`🔐 Authentication: JWT Enabled`);
+  console.log(`📊 Logging: Winston Enabled`);
+  console.log(`🌐 CORS: Configured`);
+  console.log(`🛡️  Helmet: Security Headers Active`);
 });

@@ -10,7 +10,8 @@ const Roadmap = require('../models/Roadmap');
 const Advice = require('../models/Advice');
 const ProgrammingTerm = require('../models/ProgrammingTerm');
 const CVTemplate = require('../models/CVTemplate');
-const { requireAdmin } = require('../middleware/adminAuth');
+const { requireAuth, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
+const { uploadLimiter } = require('../middleware/security');
 const { publicContentLimiter } = require('../middleware/security');
 
 const router = express.Router();
@@ -59,7 +60,7 @@ const upload = multer({
 // @route   POST /api/admin/content/upload-image
 // @desc    Upload image for content
 // @access  Admin
-router.post('/upload-image', upload.single('image'), async (req, res) => {
+router.post('/upload-image', requireAuth, requireAdmin, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -89,7 +90,7 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
 // @route   POST /api/admin/content/upload-video
 // @desc    Upload video for content
 // @access  Admin
-router.post('/upload-video', upload.single('video'), async (req, res) => {
+router.post('/upload-video', requireAuth, requireAdmin, uploadLimiter, upload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -315,7 +316,7 @@ router.delete('/courses/:id', requireAdmin, async (req, res) => {
 // @route   GET /api/admin/content/podcasts
 // @desc    Get all podcasts with pagination and filtering
 // @access  Admin
-router.get('/podcasts', async (req, res) => {
+router.get('/podcasts', requireAuth, requireAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -1432,7 +1433,7 @@ router.get('/podcasts', async (req, res) => {
 // @route   GET /api/admin/content/podcasts/:id
 // @desc    Get single podcast by ID
 // @access  Admin
-router.get('/podcasts/:id', async (req, res) => {
+router.get('/podcasts/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const podcast = await Podcast.findById(req.params.id)
       .populate('createdBy', 'name email')
@@ -1463,7 +1464,7 @@ router.get('/podcasts/:id', async (req, res) => {
 // @route   POST /api/admin/content/podcasts
 // @desc    Create new podcast
 // @access  Admin
-router.post('/podcasts', async (req, res) => {
+router.post('/podcasts', requireAuth, requireAdmin, async (req, res) => {
   try {
     console.log('🎧 Creating podcast with data:', req.body);
     console.log('🎬 Video URL:', req.body.videoUrl);
@@ -1505,7 +1506,7 @@ router.post('/podcasts', async (req, res) => {
 // @route   PUT /api/admin/content/podcasts/:id
 // @desc    Update podcast
 // @access  Admin
-router.put('/podcasts/:id', async (req, res) => {
+router.put('/podcasts/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     console.log('🎧 Updating podcast with data:', req.body);
     console.log('🎬 Video URL:', req.body.videoUrl);
@@ -1552,7 +1553,7 @@ router.put('/podcasts/:id', async (req, res) => {
 // @route   DELETE /api/admin/content/podcasts/:id
 // @desc    Delete podcast
 // @access  Admin
-router.delete('/podcasts/:id', async (req, res) => {
+router.delete('/podcasts/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const podcast = await Podcast.findByIdAndDelete(req.params.id);
 
