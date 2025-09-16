@@ -48,6 +48,9 @@ export default function ContentManagementScreen() {
   const [cvTemplates, setCvTemplates] = useState([]);
   const [showCVModal, setShowCVModal] = useState(false);
   const [editingCV, setEditingCV] = useState(null);
+  const [advices, setAdvices] = useState([]);
+  const [showAdviceModal, setShowAdviceModal] = useState(false);
+  const [editingAdvice, setEditingAdvice] = useState(null);
   const [articles, setArticles] = useState([]);
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState(null);
@@ -96,6 +99,10 @@ export default function ContentManagementScreen() {
         console.log('🗺️ Fetching roadmaps...');
         fetchRoadmaps();
       }, 1500);
+      setTimeout(() => {
+        console.log('💡 Fetching advices...');
+        fetchAdvices();
+      }, 2000);
       setTimeout(() => {
         console.log('🎧 Fetching podcasts...');
         fetchPodcasts();
@@ -285,6 +292,59 @@ export default function ContentManagementScreen() {
       }
     } catch (error) {
       console.error('Error fetching CV templates:', error);
+    }
+  };
+
+  const fetchAdvices = async (retryCount = 0) => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        console.log('No token found for advices');
+        return;
+      }
+
+      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/advices');
+
+      if (response.ok) {
+        const data = await response.json();
+        setAdvices(data.data.advices || []);
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('🔄 Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        
+        if (newToken) {
+          // Retry the request with new token
+          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/advices', {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            setAdvices(data.data.advices || []);
+          } else {
+            console.error('❌ Failed to fetch advices after token refresh:', retryResponse.status);
+          }
+        } else {
+          console.error('Failed to refresh token for advices');
+        }
+      } else if (response.status === 429 && retryCount < 3) {
+        // Rate limited - retry after delay
+        console.log(`Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
+        setTimeout(() => {
+          fetchAdvices(retryCount + 1);
+        }, (retryCount + 1) * 2000);
+        return;
+      } else {
+        console.error('Failed to fetch advices:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching advices:', error);
     }
   };
 
@@ -740,6 +800,93 @@ export default function ContentManagementScreen() {
     );
   };
 
+  const renderAdviceManagement = () => {
+    return (
+      <View style={styles.contentSection}>
+        <View style={styles.contentHeader}>
+          <Text style={styles.sectionTitle}>Advice Management</Text>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => {
+              setEditingAdvice(null);
+              setShowAdviceModal(true);
+            }}
+          >
+            <Text style={styles.addButtonText}>+ Add Advice</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search advices..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor="#999"
+        />
+
+        <View style={styles.cvList}>
+          {advices.filter(advice => 
+            searchQuery === '' || 
+            advice.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            advice.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            advice.author.toLowerCase().includes(searchQuery.toLowerCase())
+          ).length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>💡</Text>
+              <Text style={styles.emptyTitle}>
+                {searchQuery ? 'No Advices Found' : 'No Advices'}
+              </Text>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'Try a different search term' : 'Start by adding your first advice'}
+              </Text>
+            </View>
+          ) : (
+            advices.filter(advice => 
+              searchQuery === '' || 
+              advice.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              advice.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              advice.author.toLowerCase().includes(searchQuery.toLowerCase())
+            ).map((advice, index) => (
+              <View key={advice._id || `advice-${index}`} style={styles.cvCard}>
+                <View style={styles.cvHeader}>
+                  <View style={styles.cvInfo}>
+                    <Text style={styles.cvName}>{advice.title}</Text>
+                    <Text style={styles.cvTitle}>by {advice.author}</Text>
+                    <Text style={styles.cvDescription} numberOfLines={2}>{advice.content}</Text>
+                  </View>
+                  <View style={styles.cvActions}>
+                    <TouchableOpacity 
+                      style={styles.editButton}
+                      onPress={() => {
+                        setEditingAdvice(advice);
+                        setShowAdviceModal(true);
+                      }}
+                    >
+                      <Text style={styles.editButtonText}>✏️</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteAdvice(advice._id)}
+                    >
+                      <Text style={styles.deleteButtonText}>🗑️</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.cvFooter}>
+                  <Text style={styles.cvExperience}>📚 {advice.category}</Text>
+                  <Text style={styles.cvDownloads}>⏱️ {advice.duration}</Text>
+                  {advice.isRecorded && (
+                    <Text style={styles.cvDownloads}>🎙️ Audio Available</Text>
+                  )}
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      </View>
+    );
+  };
+
   const renderArticleManagement = () => {
     console.log('🎨 Rendering Article Management...');
     console.log('📄 Articles state:', articles);
@@ -872,6 +1019,44 @@ export default function ContentManagementScreen() {
             } catch (error) {
               console.error('Error deleting CV template:', error);
               Alert.alert('Error', 'Failed to delete CV template');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteAdvice = async (adviceId: string) => {
+    Alert.alert(
+      'Delete Advice',
+      'Are you sure you want to delete this advice?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+              const token = await AsyncStorage.getItem('token');
+              
+              const response = await fetch(`http://192.168.100.42:3000/api/admin/content/advices/${adviceId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (response.ok) {
+                setAdvices(advices.filter(advice => advice._id !== adviceId));
+                Alert.alert('Success', 'Advice deleted successfully');
+              } else {
+                Alert.alert('Error', 'Failed to delete advice');
+              }
+            } catch (error) {
+              console.error('Error deleting advice:', error);
+              Alert.alert('Error', 'Failed to delete advice');
             }
           }
         }
@@ -1263,6 +1448,10 @@ export default function ContentManagementScreen() {
       case 'podcasts':
         console.log('🎧 Podcasts tab selected, rendering podcast management...');
         return renderPodcastManagement();
+      
+      case 'advices':
+        console.log('💡 Advices tab selected, rendering advice management...');
+        return renderAdviceManagement();
       
       default:
         return (
@@ -1725,6 +1914,77 @@ export default function ContentManagementScreen() {
                   onCancel={() => {
                     setShowPodcastModal(false);
                     setEditingPodcast(null);
+                  }}
+                />
+              </ScrollView>
+            </LinearGradient>
+          </Modal>
+        )}
+
+        {/* Advice Modal */}
+        {showAdviceModal && (
+          <Modal
+            visible={showAdviceModal}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => setShowAdviceModal(false)}
+          >
+            <LinearGradient
+              colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']}
+              style={styles.modalContainer}
+            >
+              <ScrollView style={styles.modalScrollView}>
+                <AdviceForm
+                  advice={editingAdvice}
+                  onSave={async (adviceData) => {
+                    try {
+                      console.log('💡 Saving advice:', JSON.stringify(adviceData, null, 2));
+                      
+                      const url = editingAdvice 
+                        ? `http://192.168.100.42:3000/api/admin/content/advices/${editingAdvice._id}`
+                        : 'http://192.168.100.42:3000/api/admin/content/advices';
+                      
+                      const method = editingAdvice ? 'PUT' : 'POST';
+                      
+                      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+                      const token = await AsyncStorage.getItem('token');
+                      
+                      const response = await fetch(url, {
+                        method,
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(adviceData),
+                      });
+
+                      if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Advice saved successfully:', result);
+                        
+                        if (editingAdvice) {
+                          setAdvices(advices.map(advice => 
+                            advice._id === editingAdvice._id ? result.data : advice
+                          ));
+                        } else {
+                          setAdvices([result.data, ...advices]);
+                        }
+                        setShowAdviceModal(false);
+                        setEditingAdvice(null);
+                        Alert.alert('Success', editingAdvice ? 'Advice updated successfully!' : 'Advice created successfully!');
+                      } else {
+                        const errorText = await response.text();
+                        console.error('❌ Advice save error:', errorText);
+                        Alert.alert('Error', `Failed to save advice: ${response.status} - ${errorText}`);
+                      }
+                    } catch (error) {
+                      console.error('Error saving advice:', error);
+                      Alert.alert('Error', 'Failed to save advice');
+                    }
+                  }}
+                  onCancel={() => {
+                    setShowAdviceModal(false);
+                    setEditingAdvice(null);
                   }}
                 />
               </ScrollView>
@@ -4791,3 +5051,463 @@ const styles = StyleSheet.create({
     </View>
   );
 };
+
+// Advice Form Component
+const AdviceForm = ({ advice, onSave, onCancel }) => {
+  const [formData, setFormData] = useState({
+    title: advice?.title || '',
+    content: advice?.content || '',
+    category: advice?.category || 'motivation',
+    author: advice?.author || '',
+    duration: advice?.duration || '',
+    thumbnail: advice?.thumbnail || '',
+    isRecorded: advice?.isRecorded || false,
+    audioUrl: advice?.audioUrl || '',
+    isActive: advice?.isActive !== undefined ? advice.isActive : true,
+    isFeatured: advice?.isFeatured || false
+  });
+
+  const [audioSource, setAudioSource] = useState('url'); // 'url' or 'record' or 'upload'
+  const [isRecording, setIsRecording] = useState(false);
+
+  const handleSubmit = async () => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('token');
+      
+      const url = advice 
+        ? `http://192.168.100.42:3000/api/admin/content/advices/${advice._id}`
+        : 'http://192.168.100.42:3000/api/admin/content/advices';
+      
+      const method = advice ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        onSave(result.data);
+        Alert.alert('Success', advice ? 'Advice updated successfully!' : 'Advice created successfully!');
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', error.message || 'Failed to save advice');
+      }
+    } catch (error) {
+      console.error('Error saving advice:', error);
+      Alert.alert('Error', 'Failed to save advice');
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const formData = new FormData();
+        formData.append('image', {
+          uri: result.assets[0].uri,
+          type: 'image/jpeg',
+          name: 'advice-thumbnail.jpg',
+        } as any);
+
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const token = await AsyncStorage.getItem('token');
+
+        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          setFormData({...formData, thumbnail: uploadResult.data.imageUrl});
+          Alert.alert('Success', 'Image uploaded successfully!');
+        } else {
+          Alert.alert('Error', 'Failed to upload image');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadAudioFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'audio/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const formData = new FormData();
+        formData.append('audio', {
+          uri: result.assets[0].uri,
+          type: result.assets[0].mimeType || 'audio/mpeg',
+          name: result.assets[0].name || 'advice-audio.mp3',
+        } as any);
+
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const token = await AsyncStorage.getItem('token');
+
+        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+          body: formData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          setFormData({...formData, audioUrl: uploadResult.data.audioUrl, isRecorded: true});
+          Alert.alert('Success', 'Audio uploaded successfully!');
+        } else {
+          Alert.alert('Error', 'Failed to upload audio');
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      Alert.alert('Error', 'Failed to upload audio');
+    }
+  };
+
+  return (
+    <View style={styles.formContainer}>
+      <ScrollView style={styles.formScrollView}>
+        <Text style={styles.formTitle}>
+          {advice ? 'Edit Advice' : 'Add New Advice'}
+        </Text>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Title *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.title}
+            onChangeText={(text) => setFormData({...formData, title: text})}
+            placeholder="Advice title"
+            placeholderTextColor="#666666"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Content *</Text>
+          <TextInput
+            style={[styles.formInput, styles.textArea]}
+            value={formData.content}
+            onChangeText={(text) => setFormData({...formData, content: text})}
+            placeholder="Advice content"
+            placeholderTextColor="#666666"
+            multiline={true}
+            numberOfLines={4}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Category *</Text>
+          <View style={styles.categoryContainer}>
+            {['career-shift', 'kids', 'motivation', 'success', 'programming', 'business'].map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.categoryButton,
+                  formData.category === category && styles.categoryButtonActive
+                ]}
+                onPress={() => setFormData({...formData, category})}
+              >
+                <Text style={[
+                  styles.categoryButtonText,
+                  formData.category === category && styles.categoryButtonTextActive
+                ]}>
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Author *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.author}
+            onChangeText={(text) => setFormData({...formData, author: text})}
+            placeholder="Author name"
+            placeholderTextColor="#666666"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Duration *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.duration}
+            onChangeText={(text) => setFormData({...formData, duration: text})}
+            placeholder="e.g., 5 min read"
+            placeholderTextColor="#666666"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Thumbnail Image</Text>
+          <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+            <Text style={styles.imagePickerButtonText}>📷 Pick Image</Text>
+          </TouchableOpacity>
+          {formData.thumbnail && (
+            <Text style={styles.imageUrlText}>{formData.thumbnail}</Text>
+          )}
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>Audio Content</Text>
+          
+          <View style={styles.audioSourceContainer}>
+            <TouchableOpacity
+              style={[styles.audioSourceButton, audioSource === 'url' && styles.audioSourceButtonActive]}
+              onPress={() => setAudioSource('url')}
+            >
+              <Text style={[styles.audioSourceButtonText, audioSource === 'url' && styles.audioSourceButtonTextActive]}>
+                🔗 URL Link
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.audioSourceButton, audioSource === 'upload' && styles.audioSourceButtonActive]}
+              onPress={() => setAudioSource('upload')}
+            >
+              <Text style={[styles.audioSourceButtonText, audioSource === 'upload' && styles.audioSourceButtonTextActive]}>
+                📁 Upload File
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.audioSourceButton, audioSource === 'record' && styles.audioSourceButtonActive]}
+              onPress={() => setAudioSource('record')}
+            >
+              <Text style={[styles.audioSourceButtonText, audioSource === 'record' && styles.audioSourceButtonTextActive]}>
+                🎙️ Record
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {audioSource === 'url' && (
+            <TextInput
+              style={styles.formInput}
+              value={formData.audioUrl}
+              onChangeText={(text) => setFormData({...formData, audioUrl: text, isRecorded: text.length > 0})}
+              placeholder="Audio URL (optional)"
+              placeholderTextColor="#666666"
+            />
+          )}
+
+          {audioSource === 'upload' && (
+            <TouchableOpacity style={styles.audioUploadButton} onPress={uploadAudioFile}>
+              <Text style={styles.audioUploadButtonText}>📁 Upload Audio File</Text>
+            </TouchableOpacity>
+          )}
+
+          {audioSource === 'record' && (
+            <View style={styles.recordContainer}>
+              <TouchableOpacity 
+                style={[styles.recordButton, isRecording && styles.recordButtonActive]}
+                onPress={() => {
+                  setIsRecording(!isRecording);
+                  // TODO: Implement actual recording functionality
+                  Alert.alert('Recording', 'Audio recording feature will be implemented soon!');
+                }}
+              >
+                <Text style={styles.recordButtonText}>
+                  {isRecording ? '⏹️ Stop Recording' : '🎙️ Start Recording'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {formData.audioUrl && (
+            <Text style={styles.audioUrlText}>Audio: {formData.audioUrl}</Text>
+          )}
+        </View>
+
+        <View style={styles.formGroup}>
+          <View style={styles.checkboxRow}>
+            <TouchableOpacity
+              style={styles.checkbox}
+              onPress={() => setFormData({...formData, isActive: !formData.isActive})}
+            >
+              <Text style={styles.checkboxText}>{formData.isActive ? '☑️' : '☐'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.checkboxLabel}>Active</Text>
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <View style={styles.checkboxRow}>
+            <TouchableOpacity
+              style={styles.checkbox}
+              onPress={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
+            >
+              <Text style={styles.checkboxText}>{formData.isFeatured ? '☑️' : '☐'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.checkboxLabel}>Featured</Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.formActions}>
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+          <Text style={styles.saveButtonText}>
+            {advice ? 'Update Advice' : 'Create Advice'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Advice Form Styles
+const adviceStyles = StyleSheet.create({
+  audioSourceContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+    gap: 10,
+  },
+  audioSourceButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  audioSourceButtonActive: {
+    backgroundColor: '#4ECDC4',
+    borderColor: '#4ECDC4',
+  },
+  audioSourceButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  audioSourceButtonTextActive: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  audioUploadButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  audioUploadButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  recordContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recordButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  recordButtonActive: {
+    backgroundColor: '#FF4444',
+  },
+  recordButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  audioUrlText: {
+    color: '#4ECDC4',
+    fontSize: 12,
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
+  // Advice Form Styles
+  audioSourceContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 15,
+    gap: 10,
+  },
+  audioSourceButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  audioSourceButtonActive: {
+    backgroundColor: '#4ECDC4',
+    borderColor: '#4ECDC4',
+  },
+  audioSourceButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  audioSourceButtonTextActive: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  audioUploadButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  audioUploadButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  recordContainer: {
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  recordButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  recordButtonActive: {
+    backgroundColor: '#FF4444',
+  },
+  recordButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+});

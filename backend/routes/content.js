@@ -24,6 +24,8 @@ const storage = multer.diskStorage({
       uploadPath = path.join(__dirname, '../uploads/images');
     } else if (file.fieldname === 'video') {
       uploadPath = path.join(__dirname, '../uploads/videos');
+    } else if (file.fieldname === 'audio') {
+      uploadPath = path.join(__dirname, '../uploads/audios');
     } else {
       uploadPath = path.join(__dirname, '../uploads/images');
     }
@@ -49,8 +51,10 @@ const upload = multer({
       cb(null, true);
     } else if (file.mimetype.startsWith('video/')) {
       cb(null, true);
+    } else if (file.mimetype.startsWith('audio/')) {
+      cb(null, true);
     } else {
-      cb(new Error('Only image and video files are allowed!'), false);
+      cb(new Error('Only image, video, and audio files are allowed!'), false);
     }
   }
 });
@@ -60,7 +64,7 @@ const upload = multer({
 // @route   POST /api/admin/content/upload-image
 // @desc    Upload image for content
 // @access  Admin
-router.post('/upload-image', requireAuth, requireAdmin, uploadLimiter, upload.single('image'), async (req, res) => {
+router.post('/upload-image', requireAuth, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -90,7 +94,7 @@ router.post('/upload-image', requireAuth, requireAdmin, uploadLimiter, upload.si
 // @route   POST /api/admin/content/upload-video
 // @desc    Upload video for content
 // @access  Admin
-router.post('/upload-video', requireAuth, requireAdmin, uploadLimiter, upload.single('video'), async (req, res) => {
+router.post('/upload-video', requireAuth, uploadLimiter, upload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -100,7 +104,7 @@ router.post('/upload-video', requireAuth, requireAdmin, uploadLimiter, upload.si
     }
 
     const videoUrl = `http://192.168.100.42:3000/uploads/videos/${req.file.filename}`;
-    
+
     res.json({
       status: 'success',
       data: {
@@ -113,6 +117,36 @@ router.post('/upload-video', requireAuth, requireAdmin, uploadLimiter, upload.si
     res.status(500).json({
       status: 'error',
       message: 'Failed to upload video'
+    });
+  }
+});
+
+// @route   POST /api/admin/content/upload-audio
+// @desc    Upload audio for content
+// @access  Admin
+router.post('/upload-audio', requireAuth, uploadLimiter, upload.single('audio'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No audio file provided'
+      });
+    }
+
+    const audioUrl = `http://192.168.100.42:3000/uploads/audios/${req.file.filename}`;
+
+    res.json({
+      status: 'success',
+      data: {
+        audioUrl: audioUrl,
+        filename: req.file.filename
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading audio:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to upload audio'
     });
   }
 });
@@ -505,7 +539,7 @@ router.get('/roadmaps', requireAuth, async (req, res) => {
 // @route   GET /api/admin/content/advices
 // @desc    Get all advices with pagination and filtering
 // @access  Admin
-router.get('/advices', requireAdmin, async (req, res) => {
+router.get('/advices', requireAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -558,6 +592,94 @@ router.get('/advices', requireAdmin, async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Server error'
+    });
+  }
+});
+
+// @route   POST /api/admin/content/advices
+// @desc    Create new advice
+// @access  Admin
+router.post('/advices', requireAuth, async (req, res) => {
+  try {
+    const adviceData = {
+      ...req.body,
+      createdBy: req.user.id
+    };
+
+    const advice = await Advice.create(adviceData);
+
+    res.status(201).json({
+      status: 'success',
+      data: advice
+    });
+  } catch (error) {
+    console.error('Create advice error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to create advice'
+    });
+  }
+});
+
+// @route   PUT /api/admin/content/advices/:id
+// @desc    Update advice
+// @access  Admin
+router.put('/advices/:id', requireAuth, async (req, res) => {
+  try {
+    const adviceData = {
+      ...req.body,
+      updatedBy: req.user.id
+    };
+
+    const advice = await Advice.findByIdAndUpdate(
+      req.params.id,
+      adviceData,
+      { new: true, runValidators: true }
+    );
+
+    if (!advice) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Advice not found'
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: advice
+    });
+  } catch (error) {
+    console.error('Update advice error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update advice'
+    });
+  }
+});
+
+// @route   DELETE /api/admin/content/advices/:id
+// @desc    Delete advice
+// @access  Admin
+router.delete('/advices/:id', requireAuth, async (req, res) => {
+  try {
+    const advice = await Advice.findByIdAndDelete(req.params.id);
+
+    if (!advice) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Advice not found'
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Advice deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete advice error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to delete advice'
     });
   }
 });
