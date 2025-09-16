@@ -66,6 +66,13 @@ const generalLimiter = createRateLimit(
   'Too many requests from this IP, please try again later.'
 );
 
+// Public Rate Limiting (more lenient)
+const publicLimiter = createRateLimit(
+  15 * 60 * 1000, // 15 minutes
+  500, // 500 requests per 15 minutes for public routes
+  'Too many requests from this IP, please try again later.'
+);
+
 // Auth Rate Limiting - Stricter
 const authLimiter = createRateLimit(
   15 * 60 * 1000, // 15 minutes
@@ -214,6 +221,51 @@ const securityMiddleware = [
   })
 ];
 
+// Public Security Middleware Stack (no rate limiting)
+const publicSecurityMiddleware = [
+  // Compression
+  compression(),
+  
+  // Helmet - Security Headers
+  helmet(helmetOptions),
+  
+  // CORS
+  cors(corsOptions),
+  
+  // Data Sanitization
+  mongoSanitize({
+    replaceWith: '_',
+    onSanitize: ({ req, key }) => {
+      logger.warn(`Sanitized malicious input: ${key}`, {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        url: req.originalUrl
+      });
+    }
+  }),
+  
+  // XSS Protection
+  xss({
+    onSanitize: ({ req, key }) => {
+      logger.warn(`XSS attack prevented: ${key}`, {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        url: req.originalUrl
+      });
+    }
+  }),
+  
+  // HTTP Parameter Pollution Protection
+  hpp(),
+  
+  // Request Logging
+  morgan(morganFormat, {
+    stream: {
+      write: (message) => logger.info(message.trim())
+    }
+  })
+];
+
 // Error Handling Middleware
 const errorHandler = (err, req, res, next) => {
   logger.error('Unhandled error:', {
@@ -250,9 +302,11 @@ const notFoundHandler = (req, res) => {
 
 module.exports = {
   securityMiddleware,
+  publicSecurityMiddleware,
   authLimiter,
   uploadLimiter,
   apiLimiter,
+  publicLimiter,
   errorHandler,
   notFoundHandler,
   logger

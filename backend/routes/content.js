@@ -1582,7 +1582,7 @@ router.delete('/podcasts/:id', requireAuth, requireAdmin, async (req, res) => {
 // @route   GET /api/content/public/podcasts
 // @desc    Get active podcasts for public
 // @access  Public
-router.get('/public/podcasts', apiLimiter, async (req, res) => {
+router.get('/public/podcasts', async (req, res) => {
   try {
     const { category, featured } = req.query;
     

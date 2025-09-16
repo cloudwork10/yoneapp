@@ -4,9 +4,11 @@ const path = require('path');
 const fs = require('fs');
 const { 
   securityMiddleware,
+  publicSecurityMiddleware,
   authLimiter,
   uploadLimiter,
   apiLimiter,
+  publicLimiter,
   errorHandler,
   notFoundHandler,
   logger
@@ -21,8 +23,8 @@ if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
 
-// Apply all security middleware
-app.use(securityMiddleware);
+// Apply security middleware to specific routes only
+// (Public routes will use publicSecurityMiddleware)
 
 // Body parsing middleware with size limits
 app.use(express.json({ 
@@ -98,13 +100,15 @@ app.get('/api/security/status', (req, res) => {
   });
 });
 
+// Public routes (no authentication required)
+app.use('/api/public', publicSecurityMiddleware, require('./routes/public'));
+
 // Routes with security middleware
-app.use('/api/auth', authLimiter, require('./routes/auth'));
-app.use('/api/users', apiLimiter, require('./routes/users'));
-app.use('/api/courses', apiLimiter, require('./routes/courses'));
-app.use('/api/admin', apiLimiter, require('./routes/admin'));
-app.use('/api/admin/content', apiLimiter, require('./routes/content'));
-app.use('/api/public/content', apiLimiter, require('./routes/content'));
+app.use('/api/auth', securityMiddleware, authLimiter, require('./routes/auth'));
+app.use('/api/users', securityMiddleware, apiLimiter, require('./routes/users'));
+app.use('/api/courses', securityMiddleware, apiLimiter, require('./routes/courses'));
+app.use('/api/admin', securityMiddleware, apiLimiter, require('./routes/admin'));
+app.use('/api/admin/content', securityMiddleware, apiLimiter, require('./routes/content'));
 
 // 404 handler
 app.use('*', notFoundHandler);
