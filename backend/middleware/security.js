@@ -66,10 +66,10 @@ const generalLimiter = createRateLimit(
   'Too many requests from this IP, please try again later.'
 );
 
-// Public Rate Limiting (more lenient)
+// Public Rate Limiting - DISABLED FOR TESTING
 const publicLimiter = createRateLimit(
   15 * 60 * 1000, // 15 minutes
-  500, // 500 requests per 15 minutes for public routes
+  999999, // Very high limit to effectively disable
   'Too many requests from this IP, please try again later.'
 );
 
@@ -80,10 +80,10 @@ const authLimiter = createRateLimit(
   'Too many login attempts, please try again later.'
 );
 
-// Upload Rate Limiting
+// Upload Rate Limiting - DISABLED FOR TESTING
 const uploadLimiter = createRateLimit(
   60 * 60 * 1000, // 1 hour
-  10, // 10 uploads per hour
+  999999, // Very high limit to effectively disable
   'Too many file uploads, please try again later.'
 );
 
@@ -172,7 +172,7 @@ const morganFormat = process.env.NODE_ENV === 'production'
   ? 'combined' 
   : 'dev';
 
-// Security Middleware Stack - RATE LIMITING DISABLED FOR TESTING
+// Security Middleware Stack - RATE LIMITING COMPLETELY DISABLED
 const securityMiddleware = [
   // Compression
   compression(),
@@ -183,7 +183,7 @@ const securityMiddleware = [
   // CORS
   cors(corsOptions),
   
-  // Rate Limiting - DISABLED
+  // Rate Limiting - COMPLETELY DISABLED
   // generalLimiter,
   // speedLimiter,
   

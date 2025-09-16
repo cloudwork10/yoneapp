@@ -103,7 +103,7 @@ app.get('/api/security/status', (req, res) => {
 // Public routes (no authentication required)
 app.use('/api/public', publicSecurityMiddleware, require('./routes/public'));
 
-// Routes with security middleware - RATE LIMITING DISABLED FOR TESTING
+// Routes with security middleware - RATE LIMITING COMPLETELY DISABLED
 app.use('/api/auth', securityMiddleware, require('./routes/auth'));
 app.use('/api/users', securityMiddleware, require('./routes/users'));
 app.use('/api/courses', securityMiddleware, require('./routes/courses'));
