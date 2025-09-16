@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 export default function DashboardScreen() {
   const { user, isAdmin } = useUser();
@@ -49,12 +50,7 @@ export default function DashboardScreen() {
       console.log('🔐 Fetching admin data with token:', token.substring(0, 20) + '...');
 
       // Fetch users
-      const usersResponse = await fetch('http://192.168.100.42:3000/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const usersResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/users');
 
       console.log('📊 Users response status:', usersResponse.status);
 

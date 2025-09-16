@@ -116,12 +116,7 @@ export default function ContentManagementScreen() {
 
       console.log('📊 Fetching content statistics...');
       console.log('🔗 URL: http://192.168.100.42:3000/api/admin/stats');
-      const response = await fetch('http://192.168.100.42:3000/api/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/stats');
 
       console.log('📡 Response status:', response.status);
       
@@ -227,12 +222,7 @@ export default function ContentManagementScreen() {
         return;
       }
 
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/cv-templates', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/cv-templates');
 
       if (response.ok) {
         const data = await response.json();
@@ -310,12 +300,7 @@ export default function ContentManagementScreen() {
       }
 
       console.log('✅ Token found, making request...');
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/articles', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/articles');
 
       console.log('📡 Response status:', response.status);
       
@@ -410,12 +395,7 @@ export default function ContentManagementScreen() {
       }
 
       console.log('✅ Token found, making request...');
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/roadmaps', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/roadmaps');
 
       console.log('📡 Response status:', response.status);
       
@@ -510,12 +490,7 @@ export default function ContentManagementScreen() {
       }
 
       console.log('✅ Token found, making request...');
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/podcasts', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/podcasts');
 
       console.log('📡 Response status:', response.status);
 
