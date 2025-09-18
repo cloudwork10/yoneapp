@@ -1,6 +1,7 @@
 import { useUser } from '@/contexts/UserContext';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -5083,6 +5084,8 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
 
   const [audioSource, setAudioSource] = useState('url'); // 'url' or 'record' or 'upload'
   const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
 
   const handleSubmit = async () => {
     try {
@@ -5191,15 +5194,121 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         if (uploadResponse.ok) {
           const uploadResult = await uploadResponse.json();
           setFormData({...formData, audioUrl: uploadResult.data.audioUrl, isRecorded: true});
-          Alert.alert('Success', 'Audio uploaded successfully!');
+          Alert.alert('تم بنجاح!', 'تم رفع الملف الصوتي بنجاح!');
         } else {
-          Alert.alert('Error', 'Failed to upload audio');
+          Alert.alert('خطأ', 'فشل في رفع الملف الصوتي');
         }
       }
     } catch (error) {
       console.error('Error uploading audio:', error);
-      Alert.alert('Error', 'Failed to upload audio');
+      Alert.alert('خطأ', 'فشل في رفع الملف الصوتي');
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      // Request permissions
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('تنبيه', 'يجب السماح بالوصول للميكروفون لتسجيل الصوت');
+        return;
+      }
+
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      // Start recording
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      
+      setRecording(recording);
+      setIsRecording(true);
+      setRecordingDuration(0);
+      
+      // Start timer
+      const timer = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      // Store timer reference
+      recording.timer = timer;
+
+      Alert.alert('بدء التسجيل', 'تم بدء تسجيل الصوت بنجاح!');
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      Alert.alert('خطأ', 'فشل في بدء التسجيل');
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      if (!recording) return;
+
+      // Clear timer
+      if (recording.timer) {
+        clearInterval(recording.timer);
+      }
+
+      setIsRecording(false);
+      await recording.stopAndUnloadAsync();
+      
+      const uri = recording.getURI();
+      
+      if (uri) {
+        // Upload recorded audio
+        await uploadRecordedAudio(uri);
+      }
+      
+      setRecording(null);
+      setRecordingDuration(0);
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      Alert.alert('خطأ', 'فشل في إيقاف التسجيل');
+    }
+  };
+
+  const uploadRecordedAudio = async (uri) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: uri,
+        type: 'audio/m4a',
+        name: `recorded-audio-${Date.now()}.m4a`,
+      } as any);
+
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('token');
+
+      const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      if (uploadResponse.ok) {
+        const uploadResult = await uploadResponse.json();
+        setFormData({...formData, audioUrl: uploadResult.data.audioUrl, isRecorded: true});
+        Alert.alert('تم بنجاح!', `تم حفظ التسجيل الصوتي! المدة: ${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60).toString().padStart(2, '0')}`);
+      } else {
+        Alert.alert('خطأ', 'فشل في حفظ التسجيل');
+      }
+    } catch (error) {
+      console.error('Error uploading recorded audio:', error);
+      Alert.alert('خطأ', 'فشل في حفظ التسجيل');
+    }
+  };
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -5338,23 +5447,52 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
 
           {audioSource === 'record' && (
             <View style={styles.recordContainer}>
+              {isRecording && (
+                <View style={styles.recordingIndicator}>
+                  <Text style={styles.recordingText}>🔴 جاري التسجيل...</Text>
+                  <Text style={styles.recordingDuration}>{formatDuration(recordingDuration)}</Text>
+                </View>
+              )}
+              
               <TouchableOpacity 
                 style={[styles.recordButton, isRecording && styles.recordButtonActive]}
-                onPress={() => {
-                  setIsRecording(!isRecording);
-                  // TODO: Implement actual recording functionality
-                  Alert.alert('Recording', 'Audio recording feature will be implemented soon!');
-                }}
+                onPress={isRecording ? stopRecording : startRecording}
               >
                 <Text style={styles.recordButtonText}>
                   {isRecording ? '⏹️ إيقاف التسجيل' : '🎙️ بدء التسجيل'}
                 </Text>
               </TouchableOpacity>
+              
+              {!isRecording && recordingDuration > 0 && (
+                <Text style={styles.lastRecordingText}>
+                  آخر تسجيل: {formatDuration(recordingDuration)}
+                </Text>
+              )}
             </View>
           )}
 
           {formData.audioUrl && (
-            <Text style={styles.audioUrlText}>Audio: {formData.audioUrl}</Text>
+            <View style={styles.audioPreviewContainer}>
+              <Text style={styles.audioPreviewLabel}>🎵 الملف الصوتي المختار:</Text>
+              <Text style={styles.audioUrlText} numberOfLines={2}>{formData.audioUrl}</Text>
+              <View style={styles.audioPreviewActions}>
+                <TouchableOpacity 
+                  style={styles.audioPreviewButton}
+                  onPress={() => {
+                    // TODO: Add audio preview functionality
+                    Alert.alert('معاينة الصوت', 'سيتم إضافة معاينة الصوت قريباً!');
+                  }}
+                >
+                  <Text style={styles.audioPreviewButtonText}>🎧 معاينة</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.audioRemoveButton}
+                  onPress={() => setFormData({...formData, audioUrl: '', isRecorded: false})}
+                >
+                  <Text style={styles.audioRemoveButtonText}>🗑️ حذف</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
         </View>
 
@@ -5549,5 +5687,81 @@ const adviceStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  // Audio Preview Styles
+  audioPreviewContainer: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#4ECDC4',
+  },
+  audioPreviewLabel: {
+    color: '#4ECDC4',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  audioPreviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 8,
+  },
+  audioPreviewButton: {
+    flex: 1,
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  audioPreviewButtonText: {
+    color: '#000',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  audioRemoveButton: {
+    flex: 1,
+    backgroundColor: '#E50914',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  audioRemoveButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  // Recording Indicator Styles
+  recordingIndicator: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#E50914',
+    alignItems: 'center',
+  },
+  recordingText: {
+    color: '#E50914',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  recordingDuration: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '700',
+    fontFamily: 'monospace',
+  },
+  lastRecordingText: {
+    color: '#4ECDC4',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
