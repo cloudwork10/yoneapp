@@ -1,6 +1,7 @@
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Dimensions,
     ImageBackground,
@@ -77,7 +78,7 @@ export default function AdvicesScreen() {
     }
   };
 
-  // Initialize audio mode and fetch data
+  // Initialize audio mode
   useEffect(() => {
     const setupAudio = async () => {
       try {
@@ -92,7 +93,6 @@ export default function AdvicesScreen() {
     };
     
     setupAudio();
-    fetchAdvices();
     
     return () => {
       // Cleanup all audio when component unmounts
@@ -103,6 +103,13 @@ export default function AdvicesScreen() {
       });
     };
   }, []);
+
+  // Fetch advices when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchAdvices();
+    }, [])
+  );
 
   const categories = [
     { id: 'all', name: 'All', icon: '🌟', color: '#E50914' },
