@@ -230,26 +230,38 @@ router.get('/cv-templates', async (req, res) => {
   }
 });
 
-// @route   GET /api/public/advice
-// @desc    Get active advice for public use
+// @route   GET /api/public/content/advices
+// @desc    Get active advices for public use
 // @access  Public
-router.get('/advice', async (req, res) => {
+router.get('/content/advices', async (req, res) => {
   try {
-    const advice = await Advice.find({ isActive: true })
+    const { category, featured } = req.query;
+    
+    let filter = { isActive: true };
+    
+    if (category && category !== 'All') {
+      filter.category = category;
+    }
+    
+    if (featured === 'true') {
+      filter.isFeatured = true;
+    }
+
+    const advices = await Advice.find(filter)
       .sort({ createdAt: -1 })
       .select('-createdBy -updatedBy -__v');
 
     res.json({
       status: 'success',
       data: {
-        advice
+        advices
       }
     });
   } catch (error) {
-    console.error('Error fetching public advice:', error);
+    console.error('Error fetching public advices:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Failed to fetch advice'
+      message: 'Failed to fetch advices'
     });
   }
 });

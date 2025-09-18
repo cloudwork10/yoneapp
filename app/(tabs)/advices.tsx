@@ -38,7 +38,46 @@ export default function AdvicesScreen() {
     sound: Audio.Sound | null;
   }}>({});
 
-  // Initialize audio mode
+  // Fetch advices from API
+  const fetchAdvices = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch('http://192.168.100.42:3000/api/public/content/advices');
+      
+      if (response.ok) {
+        const data = await response.json();
+        const fetchedAdvices = data.data.advices || [];
+        
+        // Transform data to match frontend interface
+        const transformedAdvices = fetchedAdvices.map((advice: any) => ({
+          id: advice._id,
+          title: advice.title || 'Untitled Advice',
+          category: advice.category || 'motivation',
+          content: advice.content || '',
+          author: advice.author || 'Unknown Author',
+          likes: advice.likes || 0,
+          isLiked: false, // Default to false, can be enhanced with user preferences
+          duration: advice.duration || '5 min read',
+          thumbnail: advice.thumbnail || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+          isRecorded: advice.isRecorded || false,
+          audioUrl: advice.audioUrl || ''
+        }));
+        
+        setAdvices(transformedAdvices);
+      } else {
+        setError('Failed to load advices');
+      }
+    } catch (error) {
+      console.error('Error fetching advices:', error);
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initialize audio mode and fetch data
   useEffect(() => {
     const setupAudio = async () => {
       try {
@@ -53,6 +92,7 @@ export default function AdvicesScreen() {
     };
     
     setupAudio();
+    fetchAdvices();
     
     return () => {
       // Cleanup all audio when component unmounts
@@ -72,99 +112,9 @@ export default function AdvicesScreen() {
     { id: 'success', name: 'Success Tips', icon: '🏆', color: '#96CEB4' },
   ];
 
-  const [advices, setAdvices] = useState<Advice[]>([
-    {
-      id: '1',
-      title: 'How to Successfully Change Your Career at 30',
-      category: 'career-shift',
-      content: 'Changing careers at 30 can be daunting but incredibly rewarding. Here are proven strategies to make a smooth transition...',
-      author: 'Sarah Johnson',
-      likes: 1247,
-      isLiked: false,
-      duration: '8 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: true,
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-    },
-    {
-      id: '2',
-      title: 'Balancing Work and Kids: A Parent\'s Guide',
-      category: 'kids',
-      content: 'Being a working parent is challenging. Learn how to create harmony between your career and family life...',
-      author: 'Michael Chen',
-      likes: 892,
-      isLiked: true,
-      duration: '6 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: true,
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-    },
-    {
-      id: '3',
-      title: 'From Corporate to Entrepreneurship: My Journey',
-      category: 'career-shift',
-      content: 'Leaving a stable corporate job to start your own business requires courage and planning. Here\'s how I did it...',
-      author: 'Emma Rodriguez',
-      likes: 2156,
-      isLiked: false,
-      duration: '12 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: true,
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-    },
-    {
-      id: '4',
-      title: 'Teaching Kids About Money and Success',
-      category: 'kids',
-      content: 'Financial literacy starts young. Discover age-appropriate ways to teach your children about money...',
-      author: 'David Park',
-      likes: 743,
-      isLiked: false,
-      duration: '9 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: true,
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-    },
-    {
-      id: '5',
-      title: 'Building Confidence for Career Transitions',
-      category: 'motivation',
-      content: 'Confidence is key when making career changes. Learn techniques to build and maintain self-confidence...',
-      author: 'Lisa Thompson',
-      likes: 1534,
-      isLiked: true,
-      duration: '7 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: true,
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-    },
-    {
-      id: '6',
-      title: 'Creating Quality Time with Your Children',
-      category: 'kids',
-      content: 'Quality over quantity. Learn how to make the most of the time you spend with your kids...',
-      author: 'Jennifer Lee',
-      likes: 1089,
-      isLiked: false,
-      duration: '5 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: true,
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-    },
-    {
-      id: '7',
-      title: 'Raising Confident and Independent Kids',
-      category: 'kids',
-      content: 'Help your children develop confidence and independence from an early age with these proven strategies...',
-      author: 'Maria Garcia',
-      likes: 1456,
-      isLiked: true,
-      duration: '10 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: true,
-      audioUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-    }
-  ]);
+  const [advices, setAdvices] = useState<Advice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const filteredAdvices = selectedCategory === 'all' 
     ? advices 
@@ -451,10 +401,41 @@ export default function AdvicesScreen() {
             ))}
           </ScrollView>
 
+          {/* Loading State */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>🔄 جاري تحميل النصائح...</Text>
+            </View>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>❌ {error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={fetchAdvices}>
+                <Text style={styles.retryButtonText}>🔄 إعادة المحاولة</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Empty State */}
+          {!loading && !error && filteredAdvices.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>💡</Text>
+              <Text style={styles.emptyTitle}>لا توجد نصائح متاحة</Text>
+              <Text style={styles.emptyText}>سيتم إضافة النصائح قريباً</Text>
+              <TouchableOpacity style={styles.refreshButton} onPress={fetchAdvices}>
+                <Text style={styles.refreshButtonText}>🔄 تحديث</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Advice Cards */}
-          <View style={styles.advicesContainer}>
-            {filteredAdvices.map(renderAdviceCard)}
-          </View>
+          {!loading && !error && filteredAdvices.length > 0 && (
+            <View style={styles.advicesContainer}>
+              {filteredAdvices.map(renderAdviceCard)}
+            </View>
+          )}
         </ScrollView>
 
       </LinearGradient>
@@ -700,6 +681,83 @@ const styles = StyleSheet.create({
   likeCount: {
     fontSize: 14,
     color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  // Loading, Error, and Empty States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    marginHorizontal: 20,
+  },
+  loadingText: {
+    color: '#4ECDC4',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(229, 9, 20, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  errorText: {
+    color: '#E50914',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    marginHorizontal: 20,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyText: {
+    color: '#999',
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  refreshButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  refreshButtonText: {
+    color: '#000',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
