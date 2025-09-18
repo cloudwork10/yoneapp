@@ -601,8 +601,11 @@ router.get('/advices', requireAuth, async (req, res) => {
 // @access  Admin
 router.post('/advices', requireAuth, async (req, res) => {
   try {
+    // Remove _id from req.body to prevent duplicate key error
+    const { _id, ...bodyData } = req.body;
+    
     const adviceData = {
-      ...req.body,
+      ...bodyData,
       createdBy: req.user.id
     };
 
@@ -626,8 +629,11 @@ router.post('/advices', requireAuth, async (req, res) => {
 // @access  Admin
 router.put('/advices/:id', requireAuth, async (req, res) => {
   try {
+    // Remove _id from req.body to prevent issues
+    const { _id, ...bodyData } = req.body;
+    
     const adviceData = {
-      ...req.body,
+      ...bodyData,
       updatedBy: req.user.id
     };
 

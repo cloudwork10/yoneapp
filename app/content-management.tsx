@@ -5098,26 +5098,47 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
       
       const method = advice ? 'PUT' : 'POST';
       
+      // Clean form data by removing any unwanted fields
+      const cleanFormData = {
+        title: formData.title,
+        content: formData.content,
+        category: formData.category,
+        author: formData.author,
+        duration: formData.duration,
+        thumbnail: formData.thumbnail,
+        isRecorded: formData.isRecorded,
+        audioUrl: formData.audioUrl,
+        isActive: formData.isActive,
+        isFeatured: formData.isFeatured
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(cleanFormData),
       });
 
       if (response.ok) {
         const result = await response.json();
         onSave(result.data);
-        Alert.alert('Success', advice ? 'Advice updated successfully!' : 'Advice created successfully!');
+        Alert.alert('تم بنجاح!', advice ? 'تم تحديث النصيحة بنجاح!' : 'تم إنشاء النصيحة بنجاح!');
       } else {
-        const error = await response.json();
-        Alert.alert('Error', error.message || 'Failed to save advice');
+        let errorMessage = 'فشل في حفظ النصيحة';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use default message
+          errorMessage = `خطأ ${response.status}: ${response.statusText}`;
+        }
+        Alert.alert('خطأ', errorMessage);
       }
     } catch (error) {
       console.error('Error saving advice:', error);
-      Alert.alert('Error', 'Failed to save advice');
+      Alert.alert('خطأ', 'فشل في حفظ النصيحة');
     }
   };
 
