@@ -5100,16 +5100,16 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
       
       // Clean form data by removing any unwanted fields
       const cleanFormData = {
-        title: formData.title,
-        content: formData.content,
-        category: formData.category,
-        author: formData.author,
-        duration: formData.duration,
-        thumbnail: formData.thumbnail,
-        isRecorded: formData.isRecorded,
-        audioUrl: formData.audioUrl,
-        isActive: formData.isActive,
-        isFeatured: formData.isFeatured
+        title: formData.title || '',
+        content: formData.content || '',
+        category: formData.category || 'motivation',
+        author: formData.author || '',
+        duration: formData.duration || '',
+        thumbnail: formData.thumbnail || '',
+        isRecorded: formData.isRecorded || false,
+        audioUrl: formData.audioUrl || '',
+        isActive: formData.isActive !== undefined ? formData.isActive : true,
+        isFeatured: formData.isFeatured || false
       };
 
       const response = await fetch(url, {

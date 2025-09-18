@@ -3,27 +3,27 @@ const mongoose = require('mongoose');
 const adviceSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: [true, 'Advice title is required'],
     trim: true,
-    maxlength: [100, 'Title cannot be more than 100 characters']
+    maxlength: [100, 'Title cannot be more than 100 characters'],
+    default: ''
   },
   content: {
     type: String,
-    required: [true, 'Advice content is required']
+    default: ''
   },
   category: {
     type: String,
-    required: [true, 'Advice category is required'],
-    enum: ['career-shift', 'kids', 'motivation', 'success', 'programming', 'business']
+    enum: ['career-shift', 'kids', 'motivation', 'success', 'programming', 'business'],
+    default: 'motivation'
   },
   author: {
     type: String,
-    required: [true, 'Author name is required'],
-    trim: true
+    trim: true,
+    default: ''
   },
   duration: {
     type: String,
-    required: [true, 'Reading duration is required']
+    default: ''
   },
   likes: {
     type: Number,
@@ -31,7 +31,7 @@ const adviceSchema = new mongoose.Schema({
   },
   thumbnail: {
     type: String,
-    required: [true, 'Advice thumbnail is required']
+    default: ''
   },
   isRecorded: {
     type: Boolean,
@@ -51,8 +51,7 @@ const adviceSchema = new mongoose.Schema({
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
