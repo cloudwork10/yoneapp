@@ -112,11 +112,13 @@ export default function AdvicesScreen() {
   );
 
   const categories = [
-    { id: 'all', name: 'All', icon: '🌟', color: '#E50914' },
-    { id: 'career-shift', name: 'Career Shift', icon: '🚀', color: '#FF6B35' },
-    { id: 'kids', name: 'Kids & Family', icon: '👶', color: '#4ECDC4' },
-    { id: 'motivation', name: 'Motivation', icon: '💪', color: '#45B7D1' },
-    { id: 'success', name: 'Success Tips', icon: '🏆', color: '#96CEB4' },
+    { id: 'all', name: 'الكل', icon: '🌟', color: '#E50914' },
+    { id: 'career-shift', name: 'تغيير المهنة', icon: '🚀', color: '#FF6B35' },
+    { id: 'kids', name: 'الأطفال والعائلة', icon: '👶', color: '#4ECDC4' },
+    { id: 'motivation', name: 'التحفيز', icon: '💪', color: '#45B7D1' },
+    { id: 'success', name: 'نصائح النجاح', icon: '🏆', color: '#96CEB4' },
+    { id: 'programming', name: 'البرمجة', icon: '💻', color: '#9B59B6' },
+    { id: 'business', name: 'الأعمال', icon: '💼', color: '#F39C12' },
   ];
 
   const [advices, setAdvices] = useState<Advice[]>([]);
@@ -282,7 +284,7 @@ export default function AdvicesScreen() {
              <Text style={styles.adviceTitle} numberOfLines={2}>
                {advice.title}
              </Text>
-             <Text style={styles.adviceAuthor}>By {advice.author}</Text>
+             <Text style={styles.adviceAuthor}>بواسطة {advice.author}</Text>
            </View>
          </LinearGradient>
        </ImageBackground>
@@ -376,8 +378,8 @@ export default function AdvicesScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Advice Hub</Text>
-            <Text style={styles.subtitle}>Expert guidance for life transitions</Text>
+            <Text style={styles.title}>مركز النصائح</Text>
+            <Text style={styles.subtitle}>إرشادات الخبراء لتطوير الحياة والمهنة</Text>
             
           </View>
 
