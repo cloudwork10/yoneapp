@@ -1,12 +1,16 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { router, Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-import { UserProvider } from '@/contexts/UserContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { UserProvider } from '@/contexts/UserContext';
+import * as Notifications from 'expo-notifications';
+import NotificationService from '../services/NotificationService';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -14,35 +18,98 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
+  const notificationListener = useRef<Notifications.Subscription>();
+  const responseListener = useRef<Notifications.Subscription>();
+
+  useEffect(() => {
+    // Initialize notifications
+    const initializeNotifications = async () => {
+      try {
+        // Register for push notifications
+        await NotificationService.registerForPushNotifications();
+        
+        // Schedule prayer notifications
+        await NotificationService.schedulePrayerNotifications();
+        
+        console.log('✅ Notifications initialized');
+      } catch (error) {
+        console.error('Error initializing notifications:', error);
+      }
+    };
+
+    initializeNotifications();
+
+    // Listen for notifications
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('🔔 Notification received:', notification);
+    });
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('👆 Notification tapped:', response);
+      
+      // Handle notification tap
+      const data = response.notification.request.content.data;
+      if (data?.type === 'new_content') {
+        // Navigate to content based on type
+        switch (data.contentType) {
+          case 'advice':
+            router.push('/advices');
+            break;
+          case 'podcast':
+            router.push('/podcasts');
+            break;
+          case 'article':
+            router.push('/articles');
+            break;
+          case 'roadmap':
+            router.push('/roadmaps');
+            break;
+        }
+      } else if (data?.type === 'prayer') {
+        // Could navigate to prayer times or Islamic content
+        console.log('🕌 Prayer notification tapped');
+      }
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        Notifications.removeNotificationSubscription(notificationListener.current);
+      }
+      if (responseListener.current) {
+        Notifications.removeNotificationSubscription(responseListener.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [loaded]);
+
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
 
   return (
-    <SafeAreaProvider>
-      <UserProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack initialRouteName="loading">
-            <Stack.Screen name="loading" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="register" options={{ headerShown: false }} />
-            <Stack.Screen name="profile" options={{ headerShown: false }} />
-            <Stack.Screen name="prayer-times" options={{ headerShown: false }} />
-            <Stack.Screen name="movies" options={{ headerShown: false }} />
-            <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-            <Stack.Screen name="content-management" options={{ headerShown: false }} />
-                  <Stack.Screen name="course-details" options={{ headerShown: false }} />
-                  <Stack.Screen name="podcast-details" options={{ headerShown: false }} />
-                  <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
-                  <Stack.Screen name="article-details" options={{ headerShown: false }} />
-                  <Stack.Screen name="video-player" options={{ headerShown: false }} />
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </UserProvider>
-    </SafeAreaProvider>
+    <UserProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+          <Stack.Screen name="content-management" options={{ headerShown: false }} />
+          <Stack.Screen name="notification-settings" options={{ headerShown: false }} />
+          <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
+          <Stack.Screen name="article-details" options={{ headerShown: false }} />
+          <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
+          <Stack.Screen name="podcast-details" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="register" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="top-cv" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </ThemeProvider>
+    </UserProvider>
   );
 }
