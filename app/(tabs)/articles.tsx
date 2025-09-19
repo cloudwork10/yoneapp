@@ -12,6 +12,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LoadingScreen from '../../components/LoadingScreen';
+import { ArticleCardSkeleton } from '../../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 
@@ -219,7 +221,19 @@ export default function ArticlesScreen() {
               {selectedCategory === 'All' ? 'All Articles' : `${selectedCategory} Articles`}
             </Text>
             <View style={styles.articlesContainer}>
-              {filteredArticles.map((article, index) => (
+              {loading ? (
+                <>
+                  <LoadingScreen 
+                    message="جاري تحميل المقالات..." 
+                    type="content"
+                    color="#96CEB4"
+                  />
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <ArticleCardSkeleton key={`skeleton-${index}`} />
+                  ))}
+                </>
+              ) : (
+                filteredArticles.map((article, index) => (
                 <TouchableOpacity 
                   key={article._id || article.id || `article-${index}`} 
                   style={styles.articleCard}
@@ -267,7 +281,8 @@ export default function ArticlesScreen() {
                     </View>
                   </View>
                 </TouchableOpacity>
-              ))}
+                ))
+              )}
             </View>
           </View>
         </ScrollView>

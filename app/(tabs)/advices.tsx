@@ -12,6 +12,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LoadingScreen from '../../components/LoadingScreen';
+import { AdviceCardSkeleton } from '../../components/SkeletonLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -412,9 +414,18 @@ export default function AdvicesScreen() {
 
           {/* Loading State */}
           {loading && (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>🔄 جاري تحميل النصائح...</Text>
-            </View>
+            <>
+              <LoadingScreen 
+                message="جاري تحميل النصائح الصوتية..." 
+                type="content"
+                color="#4ECDC4"
+              />
+              <View style={styles.skeletonContainer}>
+                {Array.from({ length: 3 }, (_, index) => (
+                  <AdviceCardSkeleton key={`skeleton-${index}`} />
+                ))}
+              </View>
+            </>
           )}
 
           {/* Error State */}
@@ -768,5 +779,11 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 14,
     fontWeight: '600',
+  },
+  // Skeleton Styles
+  skeletonContainer: {
+    paddingHorizontal: 20,
+    gap: 20,
+    marginTop: 20,
   },
 });

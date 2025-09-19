@@ -13,6 +13,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LoadingScreen from '../../components/LoadingScreen';
+import { RoadmapCardSkeleton } from '../../components/SkeletonLoader';
 
 const { width } = Dimensions.get('window');
 
@@ -389,7 +391,19 @@ export default function RoadmapsScreen() {
               {selectedCategory === 'All' ? 'All Roadmaps' : `${selectedCategory} Roadmaps`}
             </Text>
             <View style={styles.roadmapsContainer}>
-              {filteredRoadmaps.map((roadmap, index) => (
+              {loading ? (
+                <>
+                  <LoadingScreen 
+                    message="جاري تحميل خرائط الطريق..." 
+                    type="content"
+                    color="#9B59B6"
+                  />
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <RoadmapCardSkeleton key={`skeleton-${index}`} />
+                  ))}
+                </>
+              ) : (
+                filteredRoadmaps.map((roadmap, index) => (
                 <TouchableOpacity 
                   key={roadmap._id || roadmap.id || `roadmap-${index}`} 
                   style={styles.roadmapCard}
@@ -436,7 +450,8 @@ export default function RoadmapsScreen() {
                     </View>
                   </View>
                 </TouchableOpacity>
-              ))}
+                ))
+              )}
             </View>
           </View>
         </ScrollView>

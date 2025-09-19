@@ -2,10 +2,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
+import LoadingScreen from '../components/LoadingScreen';
 
 const { width, height } = Dimensions.get('window');
 
-export default function LoadingScreen() {
+export default function AppLoadingScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const logoScaleAnim = useRef(new Animated.Value(0)).current;
@@ -114,6 +115,15 @@ export default function LoadingScreen() {
     outputRange: [-100, 100],
   });
 
+  return (
+    <LoadingScreen 
+      message="مرحباً بك في YONE - منصة التعلم الذكية" 
+      type="general"
+      color="#4ECDC4"
+    />
+  );
+
+  /* Original loading screen - keeping as backup
   return (
     <LinearGradient
       colors={['#0F0F23', '#1A1A2E', '#16213E', '#0F0F23']}
@@ -369,4 +379,4 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     fontWeight: '500',
   },
-});
+}); */

@@ -13,6 +13,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LoadingScreen from '../../components/LoadingScreen';
+import { PodcastCardSkeleton } from '../../components/SkeletonLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -237,9 +239,18 @@ export default function PodcastsScreen() {
       {/* Podcasts List */}
       <View style={styles.podcastsContainer}>
         {loading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading podcasts...</Text>
-          </View>
+          <>
+            <LoadingScreen 
+              message="جاري تحميل البودكاست..." 
+              type="audio"
+              color="#E50914"
+            />
+            <View style={styles.skeletonContainer}>
+              {Array.from({ length: 4 }, (_, index) => (
+                <PodcastCardSkeleton key={`skeleton-${index}`} />
+              ))}
+            </View>
+          </>
         ) : filteredPodcasts.length > 0 ? (
           filteredPodcasts.map((podcast) => (
             <View key={`podcast-${podcast._id}`}>
@@ -524,5 +535,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+  },
+  // Skeleton Styles
+  skeletonContainer: {
+    paddingHorizontal: 20,
+    gap: 16,
+    marginTop: 20,
   },
 });
