@@ -55,6 +55,9 @@ export default function RoadmapsScreen() {
       setLoading(true);
       console.log('🗺️ Fetching roadmaps...');
       
+      // Show loading for at least 1.5 seconds for better UX
+      const startTime = Date.now();
+      
       const response = await fetch('http://192.168.100.42:3000/api/public/roadmaps');
       
       if (response.ok) {
@@ -62,18 +65,30 @@ export default function RoadmapsScreen() {
         console.log('✅ Roadmaps received:', data);
         console.log('📊 Roadmaps count:', data.data.roadmaps?.length || 0);
         console.log('🔍 First roadmap:', data.data.roadmaps?.[0]);
-        setRoadmaps(data.data.roadmaps || []);
+        
+        // Ensure minimum loading time for better UX
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 1500 - elapsedTime);
+        
+        setTimeout(() => {
+          setRoadmaps(data.data.roadmaps || []);
+          setLoading(false);
+        }, remainingTime);
       } else {
         console.error('❌ Failed to fetch roadmaps:', response.status);
         // Fallback data
-        setRoadmaps([]);
+        setTimeout(() => {
+          setRoadmaps([]);
+          setLoading(false);
+        }, 1500);
       }
     } catch (error) {
       console.error('❌ Error fetching roadmaps:', error);
       // Fallback data
-      setRoadmaps([]);
-    } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setRoadmaps([]);
+        setLoading(false);
+      }, 1500);
     }
   };
 

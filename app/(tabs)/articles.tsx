@@ -31,21 +31,38 @@ export default function ArticlesScreen() {
 
   const fetchArticles = async () => {
     try {
+      setLoading(true);
+      
+      // Show loading for at least 1.5 seconds for better UX
+      const startTime = Date.now();
+      
       const response = await fetch('http://192.168.100.42:3000/api/public/articles');
       if (response.ok) {
         const data = await response.json();
-        setArticles(data.data.articles || []);
+        
+        // Ensure minimum loading time for better UX
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 1500 - elapsedTime);
+        
+        setTimeout(() => {
+          setArticles(data.data.articles || []);
+          setLoading(false);
+        }, remainingTime);
       } else {
         console.error('Failed to fetch articles:', response.status);
         // Fallback to sample data if API fails
-        setArticles(getSampleArticles());
+        setTimeout(() => {
+          setArticles(getSampleArticles());
+          setLoading(false);
+        }, 1500);
       }
     } catch (error) {
       console.error('Error fetching articles:', error);
       // Fallback to sample data if API fails
-      setArticles(getSampleArticles());
-    } finally {
-      setLoading(false);
+      setTimeout(() => {
+        setArticles(getSampleArticles());
+        setLoading(false);
+      }, 1500);
     }
   };
 

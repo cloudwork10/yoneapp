@@ -40,20 +40,31 @@ export default function PodcastsScreen() {
       setLoading(true);
       console.log('🎧 Fetching podcasts from API...');
       
+      // Show loading for at least 1.5 seconds for better UX
+      const startTime = Date.now();
+      
       const response = await fetch('http://192.168.100.42:3000/api/public/podcasts');
       
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Podcasts fetched:', result.data.podcasts.length);
-        setPodcasts(result.data.podcasts);
+        
+        // Ensure minimum loading time for better UX
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 1500 - elapsedTime);
+        
+        setTimeout(() => {
+          setPodcasts(result.data.podcasts);
+          setLoading(false);
+        }, remainingTime);
       } else {
         console.error('❌ Failed to fetch podcasts:', response.status);
-        Alert.alert('Error', 'Failed to load podcasts');
+        Alert.alert('خطأ', 'فشل في تحميل البودكاست');
+        setLoading(false);
       }
     } catch (error) {
       console.error('❌ Network error:', error);
-      Alert.alert('Network Error', 'Failed to connect to server');
-    } finally {
+      Alert.alert('خطأ شبكة', 'فشل في الاتصال بالخادم');
       setLoading(false);
     }
   };
@@ -152,6 +163,17 @@ export default function PodcastsScreen() {
               <View style={styles.heroContent}>
                 <Text style={styles.heroTitle}>Listen & Learn</Text>
                 <Text style={styles.heroSubtitle}>Discover expert insights through video podcasts</Text>
+                
+                {/* Test Loading Button */}
+                <TouchableOpacity 
+                  style={styles.testLoadingButton}
+                  onPress={() => {
+                    setLoading(true);
+                    setTimeout(() => setLoading(false), 3000);
+                  }}
+                >
+                  <Text style={styles.testLoadingButtonText}>🎭 اختبار التحميل</Text>
+                </TouchableOpacity>
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
                     <Text style={styles.heroStatNumber}>200+</Text>
@@ -541,5 +563,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 16,
     marginTop: 20,
+  },
+  // Test Loading Button
+  testLoadingButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginTop: 16,
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  testLoadingButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

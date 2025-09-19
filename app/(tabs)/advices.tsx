@@ -47,6 +47,9 @@ export default function AdvicesScreen() {
       setLoading(true);
       setError('');
       
+      // Show loading for at least 1.5 seconds for better UX
+      const startTime = Date.now();
+      
       const response = await fetch('http://192.168.100.42:3000/api/public/content/advices');
       
       if (response.ok) {
@@ -68,14 +71,21 @@ export default function AdvicesScreen() {
           audioUrl: advice.audioUrl || ''
         }));
         
-        setAdvices(transformedAdvices);
+        // Ensure minimum loading time for better UX
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 1500 - elapsedTime);
+        
+        setTimeout(() => {
+          setAdvices(transformedAdvices);
+          setLoading(false);
+        }, remainingTime);
       } else {
         setError('Failed to load advices');
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error fetching advices:', error);
       setError('Network error');
-    } finally {
       setLoading(false);
     }
   };
@@ -383,6 +393,16 @@ export default function AdvicesScreen() {
             <Text style={styles.title}>مركز النصائح</Text>
             <Text style={styles.subtitle}>إرشادات الخبراء لتطوير الحياة والمهنة</Text>
             
+            {/* Test Loading Button */}
+            <TouchableOpacity 
+              style={styles.testLoadingButton}
+              onPress={() => {
+                setLoading(true);
+                setTimeout(() => setLoading(false), 3000);
+              }}
+            >
+              <Text style={styles.testLoadingButtonText}>🎭 اختبار التحميل</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Categories */}
@@ -785,5 +805,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     gap: 20,
     marginTop: 20,
+  },
+  // Test Loading Button
+  testLoadingButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginTop: 16,
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  testLoadingButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
