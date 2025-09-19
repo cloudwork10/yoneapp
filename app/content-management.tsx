@@ -1889,7 +1889,7 @@ export default function ContentManagementScreen() {
                       console.log('🎬 Sending to URL:', url);
                       console.log('🎬 Method:', method);
 
-                      const response = await fetch(url, {
+                      const response = await makeAuthenticatedRequest(url, {
                         method,
                         headers: {
                           'Content-Type': 'application/json',
