@@ -36,10 +36,27 @@ export default function ContentManagementScreen() {
   const [stats, setStats] = useState<ContentStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Initialize notifications on component mount
+  useEffect(() => {
+    if (isAdmin && user) {
+      initializeNotifications();
+    }
+  }, [isAdmin, user]);
   
   // Use shared refresh token function
   const refreshToken = refreshAuthToken;
   
+  // Initialize notifications
+  const initializeNotifications = async () => {
+    try {
+      await NotificationService.registerForPushNotifications();
+      console.log('✅ Notifications initialized in content management');
+    } catch (error) {
+      console.error('Error initializing notifications:', error);
+    }
+  };
+
   // Debug activeTab changes
   useEffect(() => {
     console.log('🎯 Active tab changed to:', activeTab);
@@ -5185,11 +5202,15 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         const token = await AsyncStorage.getItem('token');
 
+        if (!token) {
+          Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
+          return;
+        }
+
         const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
           },
           body: formData,
         });
@@ -5226,11 +5247,15 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         const token = await AsyncStorage.getItem('token');
 
+        if (!token) {
+          Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
+          return;
+        }
+
         const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
           },
           body: formData,
         });
@@ -5327,11 +5352,15 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const token = await AsyncStorage.getItem('token');
 
+      if (!token) {
+        Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
+        return;
+      }
+
       const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
         body: formData,
       });
