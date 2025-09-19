@@ -57,11 +57,14 @@ export const makeAuthenticatedRequest = async (url, options = {}, retryCount = 0
       return null;
     }
 
+    // Don't add Content-Type for FormData uploads
+    const isFormData = options.body instanceof FormData;
+    
     const response = await fetch(url, {
       ...options,
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
     });

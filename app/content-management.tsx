@@ -5199,19 +5199,8 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
           name: 'advice-thumbnail.jpg',
         } as any);
 
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        const token = await AsyncStorage.getItem('token');
-
-        if (!token) {
-          Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
-          return;
-        }
-
-        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+        const uploadResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/upload-image', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
           body: formData,
         });
 
@@ -5244,19 +5233,8 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
           name: result.assets[0].name || 'advice-audio.mp3',
         } as any);
 
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        const token = await AsyncStorage.getItem('token');
-
-        if (!token) {
-          Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
-          return;
-        }
-
-        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+        const uploadResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/upload-audio', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
           body: formData,
         });
 
@@ -5349,19 +5327,8 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         name: `recorded-audio-${Date.now()}.m4a`,
       } as any);
 
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const token = await AsyncStorage.getItem('token');
-
-      if (!token) {
-        Alert.alert('خطأ', 'يجب تسجيل الدخول أولاً');
-        return;
-      }
-
-      const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+      const uploadResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/upload-audio', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         body: formData,
       });
 
