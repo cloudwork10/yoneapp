@@ -109,6 +109,7 @@ app.use('/api/users', securityMiddleware, require('./routes/users'));
 app.use('/api/courses', securityMiddleware, require('./routes/courses'));
 app.use('/api/admin', securityMiddleware, require('./routes/admin'));
 app.use('/api/admin/content', securityMiddleware, require('./routes/content'));
+app.use('/api/admin', securityMiddleware, require('./routes/notifications'));
 
 // 404 handler
 app.use('*', notFoundHandler);

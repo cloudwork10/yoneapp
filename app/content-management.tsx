@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Clipboard, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { refreshAuthToken, makeAuthenticatedRequest } from '../utils/tokenRefresh';
+import NotificationService from '../services/NotificationService';
 
 interface ContentStats {
   total: {
@@ -1510,6 +1511,14 @@ export default function ContentManagementScreen() {
               <Text style={styles.backText}>‹ Back</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Content Management</Text>
+            
+            {/* Notification Settings Button */}
+            <TouchableOpacity 
+              style={styles.notificationButton}
+              onPress={() => router.push('/notification-settings')}
+            >
+              <Text style={styles.notificationButtonText}>🔔 إعدادات الإشعارات</Text>
+            </TouchableOpacity>
           </View>
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>Failed to load content statistics</Text>
@@ -1898,10 +1907,17 @@ export default function ContentManagementScreen() {
                           setPodcasts(podcasts.map(p => p._id === editingPodcast._id ? result.data.podcast : p));
                         } else {
                           setPodcasts([result.data.podcast, ...podcasts]);
+                          
+                          // Send notification for new content
+                          await NotificationService.sendContentNotification(
+                            'podcast',
+                            result.data.podcast?.title || 'بودكاست جديد',
+                            result.data.podcast?.host
+                          );
                         }
                         setShowPodcastModal(false);
                         setEditingPodcast(null);
-                        Alert.alert('Success', editingPodcast ? 'Podcast updated successfully!' : 'Podcast created successfully!');
+                        Alert.alert('تم بنجاح!', editingPodcast ? 'تم تحديث البودكاست بنجاح!' : 'تم إنشاء البودكاست وإرسال إشعار!');
                       } else {
                         const errorText = await response.text();
                         console.error('❌ Podcast save error:', errorText);
@@ -1969,10 +1985,17 @@ export default function ContentManagementScreen() {
                           ));
                         } else {
                           setAdvices([result.data, ...advices]);
+                          
+                          // Send notification for new content
+                          await NotificationService.sendContentNotification(
+                            'advice',
+                            result.data.title || 'نصيحة جديدة',
+                            result.data.author
+                          );
                         }
                         setShowAdviceModal(false);
                         setEditingAdvice(null);
-                        Alert.alert('Success', editingAdvice ? 'Advice updated successfully!' : 'Advice created successfully!');
+                        Alert.alert('تم بنجاح!', editingAdvice ? 'تم تحديث النصيحة بنجاح!' : 'تم إنشاء النصيحة وإرسال إشعار!');
                       } else {
                         const errorText = await response.text();
                         console.error('❌ Advice save error:', errorText);
@@ -5708,6 +5731,25 @@ const adviceStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  // Notification Button
+  notificationButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginTop: 12,
+    shadowColor: '#4ECDC4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  notificationButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
   },
   // Audio Preview Styles
   audioPreviewContainer: {

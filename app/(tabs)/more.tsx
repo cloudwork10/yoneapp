@@ -53,6 +53,13 @@ export default function MoreScreen() {
     },
     {
       id: 7,
+      title: 'Notification Settings',
+      description: 'Manage your notification preferences',
+      icon: '🔔',
+      route: '/notification-settings'
+    },
+    {
+      id: 8,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
@@ -63,7 +70,7 @@ export default function MoreScreen() {
   // Add Dashboard only for admin users
   const adminMenuItems = [
     {
-      id: 8,
+      id: 9,
       title: 'Admin Dashboard',
       description: 'Manage users and monitor system',
       icon: '👑',
@@ -71,7 +78,7 @@ export default function MoreScreen() {
       isAdmin: true
     },
     {
-      id: 9,
+      id: 10,
       title: 'Content Management',
       description: 'Manage courses, articles, and all content',
       icon: '📝',

@@ -129,6 +129,37 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     default: null
+  },
+  // Push notification token
+  pushToken: {
+    type: String,
+    default: null
+  },
+  // User preferences
+  preferences: {
+    notifications: {
+      email: {
+        type: Boolean,
+        default: true
+      },
+      push: {
+        type: Boolean,
+        default: true
+      },
+      prayer: {
+        type: Boolean,
+        default: true
+      }
+    },
+    language: {
+      type: String,
+      default: 'ar',
+      enum: ['ar', 'en']
+    },
+    timezone: {
+      type: String,
+      default: 'Africa/Cairo'
+    }
   }
 }, {
   timestamps: true
