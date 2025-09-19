@@ -1,14 +1,14 @@
 import { useUser } from '@/contexts/UserContext';
+import { Audio } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Clipboard, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { refreshAuthToken, makeAuthenticatedRequest } from '../utils/tokenRefresh';
 import NotificationService from '../services/NotificationService';
+import { makeAuthenticatedRequest, refreshAuthToken } from '../utils/tokenRefresh';
 
 interface ContentStats {
   total: {
@@ -79,6 +79,9 @@ export default function ContentManagementScreen() {
   const [podcasts, setPodcasts] = useState([]);
   const [showPodcastModal, setShowPodcastModal] = useState(false);
   const [editingPodcast, setEditingPodcast] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
   
   // Debug articles state changes
   useEffect(() => {
@@ -126,6 +129,10 @@ export default function ContentManagementScreen() {
         console.log('🎧 Fetching podcasts...');
         fetchPodcasts();
       }, 2000);
+      setTimeout(() => {
+        console.log('📚 Fetching courses...');
+        fetchCourses();
+      }, 2500);
     }
   }, [isAdmin]);
 
@@ -648,6 +655,55 @@ export default function ContentManagementScreen() {
         // Set fallback podcasts if all retries failed
         setPodcasts([]);
       }
+    }
+  };
+
+  const fetchCourses = async (retryCount = 0) => {
+    try {
+      console.log('📚 Starting fetchCourses...');
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        console.log('No token found for courses');
+        return;
+      }
+
+      const response = await fetch('http://192.168.100.42:3000/api/public/courses');
+
+      if (response.ok) {
+        const data = await response.json();
+        setCourses(data.data.courses || []);
+      } else if (response.status === 401) {
+        console.log('🔄 Token expired, attempting to refresh...');
+        const newToken = await refreshToken();
+        if (newToken) {
+          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/courses', {
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (retryResponse.ok) {
+            const data = await retryResponse.json();
+            setCourses(data.data.courses || []);
+          } else {
+            console.error('❌ Failed to fetch courses after token refresh:', retryResponse.status);
+          }
+        } else {
+          console.error('Failed to refresh token for courses');
+        }
+      } else if (response.status === 429 && retryCount < 3) {
+        console.log(`Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
+        setTimeout(() => {
+          fetchCourses(retryCount + 1);
+        }, (retryCount + 1) * 2000);
+        return;
+      } else {
+        console.error('Failed to fetch courses:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
     }
   };
 
@@ -1403,6 +1459,151 @@ export default function ContentManagementScreen() {
     );
   };
 
+  const handleDeleteCourse = async (courseId: string) => {
+    Alert.alert(
+      'Delete Course',
+      'Are you sure you want to delete this course?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+              const token = await AsyncStorage.getItem('token');
+              
+              const response = await fetch(`http://192.168.100.42:3000/api/public/courses/${courseId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (response.ok) {
+                setCourses(courses.filter(course => course._id !== courseId));
+                Alert.alert('Success', 'Course deleted successfully');
+              } else {
+                Alert.alert('Error', 'Failed to delete course');
+              }
+            } catch (error) {
+              console.error('Error deleting course:', error);
+              Alert.alert('Error', 'Failed to delete course');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const renderCourseManagement = () => {
+    console.log('🎨 Rendering Course Management...');
+    console.log('📚 Courses state:', courses);
+    console.log('📚 Courses length:', courses.length);
+    
+    const filteredCourses = courses.filter(course =>
+      course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.instructor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      course.category?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    console.log('🔍 Filtered courses:', filteredCourses.length);
+
+    return (
+      <View style={styles.contentSection}>
+        <View style={styles.contentHeader}>
+          <Text style={styles.sectionTitle}>Course Management</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.refreshButton} 
+              onPress={() => fetchCourses()}
+            >
+              <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.addButton} 
+              onPress={() => {
+                setEditingCourse(null);
+                setShowCourseModal(true);
+              }}
+            >
+              <Text style={styles.addButtonText}>+ Add Course</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search courses..."
+          placeholderTextColor="#666666"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {filteredCourses.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>
+              {courses.length === 0 
+                ? 'No courses found. Add your first course!' 
+                : 'No courses match your search.'}
+            </Text>
+            <Text style={styles.emptyStateSubtext}>
+              {courses.length === 0 
+                ? 'Click "Add Course" to get started.' 
+                : 'Try adjusting your search terms.'}
+            </Text>
+            <Text style={styles.emptyStateDebug}>
+              Debug: {courses.length} total courses, {filteredCourses.length} filtered
+            </Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.contentList} showsVerticalScrollIndicator={false}>
+            {filteredCourses.map((course) => (
+              <View key={course._id} style={styles.contentCard}>
+                <View style={styles.contentHeader}>
+                  <Text style={styles.contentTitle}>{course.title || 'Untitled Course'}</Text>
+                  <View style={styles.contentActions}>
+                    <TouchableOpacity 
+                      style={styles.editButton}
+                      onPress={() => {
+                        setEditingCourse(course);
+                        setShowCourseModal(true);
+                      }}
+                    >
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteCourse(course._id)}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Text style={styles.contentMetaText}>Instructor: {course.instructor || 'Unknown'}</Text>
+                <Text style={styles.contentMetaText}>Category: {course.category || 'Uncategorized'}</Text>
+                <Text style={styles.contentMetaText}>Level: {course.level || 'Unknown'}</Text>
+                <Text style={styles.contentMetaText}>Duration: {course.duration || 'Unknown'}</Text>
+                <Text style={styles.contentMetaText}>Students: {course.students || 0}</Text>
+                <Text style={styles.contentMetaText}>Rating: {course.rating || 0}/5</Text>
+                <Text style={styles.contentMetaText}>Price: ${course.price || 0}</Text>
+                <Text style={styles.contentMetaText}>
+                  Sections: {course.sections?.length || 0} | 
+                  Lessons: {course.sections?.reduce((total, section) => total + (section.lessons?.length || 0), 0) || 0}
+                </Text>
+                <Text style={styles.contentMetaText}>
+                  Status: {course.isActive ? '✅ Active' : '❌ Inactive'} 
+                  {course.isFeatured ? ' | 🌟 Featured' : ''}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    );
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -1428,30 +1629,8 @@ export default function ContentManagementScreen() {
         );
       
       case 'courses':
-        return (
-          <View style={styles.contentSection}>
-            <View style={styles.contentHeader}>
-              <Text style={styles.sectionTitle}>Courses Management</Text>
-              <TouchableOpacity 
-                style={styles.addButton}
-                onPress={() => {
-                  setSelectedContentType('courses');
-                  setShowAddModal(true);
-                }}
-              >
-                <Text style={styles.addButtonText}>+ Add Course</Text>
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search courses..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#999"
-            />
-            <Text style={styles.comingSoon}>Course management interface coming soon...</Text>
-          </View>
-        );
+        console.log('📚 Courses tab selected, rendering course management...');
+        return renderCourseManagement();
       
       case 'cvTemplates':
         return renderCVManagement();
@@ -1643,20 +1822,15 @@ export default function ContentManagementScreen() {
                 cv={editingCV}
                 onSave={async (cvData) => {
                   try {
-                    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                    const token = await AsyncStorage.getItem('token');
-                    
                     console.log('Saving CV data:', cvData);
-                    console.log('Token exists:', !!token);
                     
                     let response;
                     if (editingCV) {
                       // Update existing CV
                       console.log('Updating CV:', editingCV._id);
-                      response = await fetch(`http://192.168.100.42:3000/api/admin/content/cv-templates/${editingCV._id}`, {
+                      response = await makeAuthenticatedRequest(`http://192.168.100.42:3000/api/admin/content/cv-templates/${editingCV._id}`, {
                         method: 'PUT',
                         headers: {
-                          'Authorization': `Bearer ${token}`,
                           'Content-Type': 'application/json',
                         },
                         body: JSON.stringify(cvData),
@@ -1664,10 +1838,9 @@ export default function ContentManagementScreen() {
                     } else {
                       // Add new CV
                       console.log('Creating new CV');
-                      response = await fetch('http://192.168.100.42:3000/api/admin/content/cv-templates', {
+                      response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/cv-templates', {
                         method: 'POST',
                         headers: {
-                          'Authorization': `Bearer ${token}`,
                           'Content-Type': 'application/json',
                         },
                         body: JSON.stringify(cvData),
@@ -1948,6 +2121,88 @@ export default function ContentManagementScreen() {
                   onCancel={() => {
                     setShowPodcastModal(false);
                     setEditingPodcast(null);
+                  }}
+                />
+              </ScrollView>
+            </LinearGradient>
+          </Modal>
+        )}
+
+        {/* Course Form Modal */}
+        {showCourseModal && (
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showCourseModal}
+            onRequestClose={() => setShowCourseModal(false)}
+          >
+            <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {editingCourse ? 'Edit Course' : 'Add New Course'}
+                </Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowCourseModal(false)}
+                >
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.modalContent}>
+                <CourseForm 
+                  course={editingCourse}
+                  onSave={async (courseData) => {
+                    try {
+                      console.log('📚 Saving course:', JSON.stringify(courseData, null, 2));
+                      
+                      const response = await fetch(
+                        editingCourse 
+                          ? `http://192.168.100.42:3000/api/public/courses/${editingCourse._id}`
+                          : 'http://192.168.100.42:3000/api/public/courses',
+                        {
+                          method: editingCourse ? 'PUT' : 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify(courseData),
+                        }
+                      );
+
+                      console.log('📡 Course save response status:', response.status);
+                      
+                      if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Course save result:', result);
+                        
+                        if (editingCourse) {
+                          setCourses(courses.map(course => 
+                            course._id === editingCourse._id ? result.data : course
+                          ));
+                        } else {
+                          setCourses([...courses, result.data]);
+                          // Send notification for new course
+                          await NotificationService.sendContentNotification(
+                            'course',
+                            result.data?.title || 'كورس جديد',
+                            result.data?.instructor
+                          );
+                        }
+                        setShowCourseModal(false);
+                        setEditingCourse(null);
+                        Alert.alert('تم بنجاح!', editingCourse ? 'تم تحديث الكورس بنجاح!' : 'تم إنشاء الكورس وإرسال إشعار!');
+                      } else {
+                        const errorText = await response.text();
+                        console.error('❌ Course save error:', errorText);
+                        Alert.alert('Error', `Failed to save course: ${response.status} - ${errorText}`);
+                      }
+                    } catch (error) {
+                      console.error('Error saving course:', error);
+                      Alert.alert('Error', 'Failed to save course');
+                    }
+                  }}
+                  onCancel={() => {
+                    setShowCourseModal(false);
+                    setEditingCourse(null);
                   }}
                 />
               </ScrollView>
@@ -2474,7 +2729,7 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+          // Don't set Content-Type for FormData - let fetch set it automatically
         },
         body: formData,
       });
@@ -2781,6 +3036,497 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
         </TouchableOpacity>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save Roadmap</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+// Course Form Component
+const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: any) => void, onCancel: () => void }) => {
+  console.log('📚 CourseForm mounted with course:', course);
+  
+  const [formData, setFormData] = useState({
+    title: course?.title || '',
+    description: course?.description || '',
+    instructor: course?.instructor || '',
+    duration: course?.duration || '',
+    level: course?.level || 'Beginner',
+    category: course?.category || 'Programming',
+    rating: course?.rating || 0,
+    students: course?.students || 0,
+    price: course?.price || 0,
+    thumbnail: course?.thumbnail || '',
+    previewVideo: course?.previewVideo || '',
+    requirements: course?.requirements || [],
+    learningOutcomes: course?.learningOutcomes || [],
+    sections: course?.sections || [],
+    isActive: course?.isActive !== undefined ? course.isActive : true,
+    isFeatured: course?.isFeatured || false,
+  });
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [newRequirement, setNewRequirement] = useState('');
+  const [newOutcome, setNewOutcome] = useState('');
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        console.log('📷 Course image selected:', imageUri);
+        
+        // Upload image to server
+        const uploadResult = await uploadImageToServer(imageUri);
+        if (uploadResult) {
+          setFormData({...formData, thumbnail: uploadResult});
+          Alert.alert('تم', 'تم رفع الصورة بنجاح!');
+        }
+      }
+    } catch (error) {
+      console.error('📷 Course image picker error:', error);
+      Alert.alert('خطأ', 'فشل في اختيار الصورة');
+    }
+  };
+
+  const uploadImageToServer = async (imageUri: string) => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        Alert.alert('خطأ', 'يرجى تسجيل الدخول مرة أخرى');
+        return null;
+      }
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', {
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: 'course-thumbnail.jpg',
+      } as any);
+
+      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formDataUpload,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('📷 Course image upload result:', result);
+        return result.data.imageUrl;
+      } else {
+        console.error('📷 Course image upload failed:', response.status);
+        Alert.alert('خطأ', 'فشل في رفع الصورة');
+        return null;
+      }
+    } catch (error) {
+      console.error('📷 Course image upload error:', error);
+      Alert.alert('خطأ', 'فشل في رفع الصورة');
+      return null;
+    }
+  };
+
+  const addRequirement = () => {
+    if (newRequirement.trim()) {
+      setFormData({
+        ...formData,
+        requirements: [...formData.requirements, newRequirement.trim()]
+      });
+      setNewRequirement('');
+    }
+  };
+
+  const removeRequirement = (index: number) => {
+    setFormData({
+      ...formData,
+      requirements: formData.requirements.filter((_, i) => i !== index)
+    });
+  };
+
+  const addLearningOutcome = () => {
+    if (newOutcome.trim()) {
+      setFormData({
+        ...formData,
+        learningOutcomes: [...formData.learningOutcomes, newOutcome.trim()]
+      });
+      setNewOutcome('');
+    }
+  };
+
+  const removeLearningOutcome = (index: number) => {
+    setFormData({
+      ...formData,
+      learningOutcomes: formData.learningOutcomes.filter((_, i) => i !== index)
+    });
+  };
+
+  const addSection = () => {
+    setFormData({
+      ...formData,
+      sections: [...formData.sections, {
+        title: 'New Section',
+        description: '',
+        lessons: [],
+        order: formData.sections.length
+      }]
+    });
+  };
+
+  const updateSection = (sectionIndex: number, field: string, value: any) => {
+    const updatedSections = [...formData.sections];
+    updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], [field]: value };
+    setFormData({ ...formData, sections: updatedSections });
+  };
+
+  const removeSection = (sectionIndex: number) => {
+    setFormData({
+      ...formData,
+      sections: formData.sections.filter((_, i) => i !== sectionIndex)
+    });
+  };
+
+  const addLesson = (sectionIndex: number) => {
+    const updatedSections = [...formData.sections];
+    updatedSections[sectionIndex].lessons.push({
+      title: 'New Lesson',
+      description: '',
+      videoUrl: '',
+      duration: '',
+      thumbnail: '',
+      isCompleted: false,
+      order: updatedSections[sectionIndex].lessons.length
+    });
+    setFormData({ ...formData, sections: updatedSections });
+  };
+
+  const updateLesson = (sectionIndex: number, lessonIndex: number, field: string, value: any) => {
+    const updatedSections = [...formData.sections];
+    updatedSections[sectionIndex].lessons[lessonIndex] = {
+      ...updatedSections[sectionIndex].lessons[lessonIndex],
+      [field]: value
+    };
+    setFormData({ ...formData, sections: updatedSections });
+  };
+
+  const removeLesson = (sectionIndex: number, lessonIndex: number) => {
+    const updatedSections = [...formData.sections];
+    updatedSections[sectionIndex].lessons = updatedSections[sectionIndex].lessons.filter((_, i) => i !== lessonIndex);
+    setFormData({ ...formData, sections: updatedSections });
+  };
+
+  const handleSubmit = () => {
+    if (!formData.title.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال عنوان الكورس');
+      return;
+    }
+
+    console.log('📚 Course form data before save:', JSON.stringify(formData, null, 2));
+    onSave(formData);
+  };
+
+  return (
+    <View style={styles.formContainer}>
+      {/* Basic Course Information */}
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Course Title *</Text>
+        <TextInput
+          style={styles.formInput}
+          value={formData.title}
+          onChangeText={(text) => setFormData({...formData, title: text})}
+          placeholder="Enter course title"
+          placeholderTextColor="#666"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Description *</Text>
+        <TextInput
+          style={[styles.formInput, { height: 80 }]}
+          value={formData.description}
+          onChangeText={(text) => setFormData({...formData, description: text})}
+          placeholder="Enter course description"
+          placeholderTextColor="#666"
+          multiline
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Instructor *</Text>
+        <TextInput
+          style={styles.formInput}
+          value={formData.instructor}
+          onChangeText={(text) => setFormData({...formData, instructor: text})}
+          placeholder="Enter instructor name"
+          placeholderTextColor="#666"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Duration</Text>
+        <TextInput
+          style={styles.formInput}
+          value={formData.duration}
+          onChangeText={(text) => setFormData({...formData, duration: text})}
+          placeholder="e.g., 10 hours"
+          placeholderTextColor="#666"
+        />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Level</Text>
+        <TouchableOpacity
+          style={styles.formInput}
+          onPress={() => {
+            Alert.alert(
+              'Select Level',
+              'Choose course level',
+              [
+                { text: 'Beginner', onPress: () => setFormData({...formData, level: 'Beginner'}) },
+                { text: 'Intermediate', onPress: () => setFormData({...formData, level: 'Intermediate'}) },
+                { text: 'Advanced', onPress: () => setFormData({...formData, level: 'Advanced'}) },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.dropdownText}>{formData.level}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Category</Text>
+        <TouchableOpacity
+          style={styles.formInput}
+          onPress={() => {
+            Alert.alert(
+              'Select Category',
+              'Choose course category',
+              [
+                { text: 'Programming', onPress: () => setFormData({...formData, category: 'Programming'}) },
+                { text: 'Design', onPress: () => setFormData({...formData, category: 'Design'}) },
+                { text: 'Business', onPress: () => setFormData({...formData, category: 'Business'}) },
+                { text: 'Marketing', onPress: () => setFormData({...formData, category: 'Marketing'}) },
+                { text: 'Data Science', onPress: () => setFormData({...formData, category: 'Data Science'}) },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.dropdownText}>{formData.category}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Price ($)</Text>
+        <TextInput
+          style={styles.formInput}
+          value={formData.price.toString()}
+          onChangeText={(text) => setFormData({...formData, price: parseFloat(text) || 0})}
+          placeholder="0"
+          placeholderTextColor="#666"
+          keyboardType="numeric"
+        />
+      </View>
+
+      {/* Course Thumbnail */}
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Course Thumbnail</Text>
+        <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+          <Text style={styles.imagePickerButtonText}>
+            {formData.thumbnail ? '📷 Change Image' : '📷 Select Image'}
+          </Text>
+        </TouchableOpacity>
+        {formData.thumbnail && (
+          <Text style={styles.imageSelectedText}>✅ Image selected</Text>
+        )}
+      </View>
+
+      {/* Preview Video URL */}
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Preview Video URL</Text>
+        <TextInput
+          style={styles.formInput}
+          value={formData.previewVideo}
+          onChangeText={(text) => setFormData({...formData, previewVideo: text})}
+          placeholder="Enter preview video URL"
+          placeholderTextColor="#666"
+        />
+      </View>
+
+      {/* Course Requirements */}
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Course Requirements</Text>
+        <View style={styles.listInputContainer}>
+          <TextInput
+            style={styles.listInput}
+            value={newRequirement}
+            onChangeText={setNewRequirement}
+            placeholder="Add requirement"
+            placeholderTextColor="#666"
+          />
+          <TouchableOpacity style={styles.addListItemButton} onPress={addRequirement}>
+            <Text style={styles.addListItemButtonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
+        {formData.requirements.map((req, index) => (
+          <View key={index} style={styles.listItem}>
+            <Text style={styles.listItemText}>• {req}</Text>
+            <TouchableOpacity onPress={() => removeRequirement(index)}>
+              <Text style={styles.removeItemText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Learning Outcomes */}
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>What Students Will Learn</Text>
+        <View style={styles.listInputContainer}>
+          <TextInput
+            style={styles.listInput}
+            value={newOutcome}
+            onChangeText={setNewOutcome}
+            placeholder="Add learning outcome"
+            placeholderTextColor="#666"
+          />
+          <TouchableOpacity style={styles.addListItemButton} onPress={addLearningOutcome}>
+            <Text style={styles.addListItemButtonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
+        {formData.learningOutcomes.map((outcome, index) => (
+          <View key={index} style={styles.listItem}>
+            <Text style={styles.listItemText}>• {outcome}</Text>
+            <TouchableOpacity onPress={() => removeLearningOutcome(index)}>
+              <Text style={styles.removeItemText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Course Sections */}
+      <View style={styles.formGroup}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.formLabel}>Course Sections</Text>
+          <TouchableOpacity style={styles.addSectionButton} onPress={addSection}>
+            <Text style={styles.addSectionButtonText}>+ Add Section</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {formData.sections.map((section, sectionIndex) => (
+          <View key={sectionIndex} style={styles.sectionContainer}>
+            <View style={styles.sectionTitleContainer}>
+              <Text style={styles.sectionTitle}>Section {sectionIndex + 1}</Text>
+              <TouchableOpacity onPress={() => removeSection(sectionIndex)}>
+                <Text style={styles.removeItemText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TextInput
+              style={styles.formInput}
+              value={section.title}
+              onChangeText={(text) => updateSection(sectionIndex, 'title', text)}
+              placeholder="Section title"
+              placeholderTextColor="#666"
+            />
+            
+            <TextInput
+              style={[styles.formInput, { height: 60 }]}
+              value={section.description}
+              onChangeText={(text) => updateSection(sectionIndex, 'description', text)}
+              placeholder="Section description"
+              placeholderTextColor="#666"
+              multiline
+            />
+
+            {/* Section Lessons */}
+            <View style={styles.lessonsContainer}>
+              <View style={styles.lessonHeader}>
+                <Text style={styles.lessonHeaderText}>Lessons</Text>
+                <TouchableOpacity 
+                  style={styles.addLessonButton} 
+                  onPress={() => addLesson(sectionIndex)}
+                >
+                  <Text style={styles.addLessonButtonText}>+ Add Lesson</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {section.lessons.map((lesson, lessonIndex) => (
+                <View key={lessonIndex} style={styles.lessonContainer}>
+                  <View style={styles.lessonTitleContainer}>
+                    <Text style={styles.lessonTitle}>Lesson {lessonIndex + 1}</Text>
+                    <TouchableOpacity onPress={() => removeLesson(sectionIndex, lessonIndex)}>
+                      <Text style={styles.removeItemText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <TextInput
+                    style={styles.formInput}
+                    value={lesson.title}
+                    onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'title', text)}
+                    placeholder="Lesson title"
+                    placeholderTextColor="#666"
+                  />
+                  
+                  <TextInput
+                    style={styles.formInput}
+                    value={lesson.videoUrl}
+                    onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'videoUrl', text)}
+                    placeholder="Video URL"
+                    placeholderTextColor="#666"
+                  />
+                  
+                  <TextInput
+                    style={styles.formInput}
+                    value={lesson.duration}
+                    onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'duration', text)}
+                    placeholder="Duration (e.g., 15:30)"
+                    placeholderTextColor="#666"
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Course Status */}
+      <View style={styles.formGroup}>
+        <View style={styles.switchContainer}>
+          <Text style={styles.formLabel}>Active</Text>
+          <TouchableOpacity
+            style={[styles.switch, formData.isActive && styles.switchActive]}
+            onPress={() => setFormData({...formData, isActive: !formData.isActive})}
+          >
+            <Text style={styles.switchText}>{formData.isActive ? 'ON' : 'OFF'}</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.switchContainer}>
+          <Text style={styles.formLabel}>Featured</Text>
+          <TouchableOpacity
+            style={[styles.switch, formData.isFeatured && styles.switchActive]}
+            onPress={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
+          >
+            <Text style={styles.switchText}>{formData.isFeatured ? 'ON' : 'OFF'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Form Actions */}
+      <View style={styles.formActions}>
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+          <Text style={styles.saveButtonText}>Save Course</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -3954,6 +4700,15 @@ const styles = StyleSheet.create({
 
   const uploadImageToServer = async (imageUri: string) => {
     try {
+      // Get token manually for FormData uploads
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('token');
+      
+      if (!token) {
+        Alert.alert('خطأ', 'يرجى تسجيل الدخول مرة أخرى');
+        return null;
+      }
+
       const formData = new FormData();
       formData.append('image', {
         uri: imageUri,
@@ -3963,10 +4718,11 @@ const styles = StyleSheet.create({
 
       const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
         method: 'POST',
-        body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type for FormData - let fetch set it automatically
         },
+        body: formData,
       });
 
       if (response.ok) {
@@ -5199,8 +5955,16 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
           name: 'advice-thumbnail.jpg',
         } as any);
 
-        const uploadResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/upload-image', {
+        // Get token manually for FormData uploads
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const token = await AsyncStorage.getItem('token');
+        
+        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            // Don't set Content-Type for FormData - let fetch set it automatically
+          },
           body: formData,
         });
 
@@ -5233,8 +5997,16 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
           name: result.assets[0].name || 'advice-audio.mp3',
         } as any);
 
-        const uploadResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+        // Get token manually for FormData uploads
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const token = await AsyncStorage.getItem('token');
+        
+        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            // Don't set Content-Type for FormData - let fetch set it automatically
+          },
           body: formData,
         });
 
@@ -5327,8 +6099,16 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         name: `recorded-audio-${Date.now()}.m4a`,
       } as any);
 
-      const uploadResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+      // Get token manually for FormData uploads
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      const token = await AsyncStorage.getItem('token');
+      
+      const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type for FormData - let fetch set it automatically
+        },
         body: formData,
       });
 
@@ -5822,5 +6602,172 @@ const adviceStyles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  // Course Form Styles
+  dropdownText: {
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  listInputContainer: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  listInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    color: '#ffffff',
+    fontSize: 16,
+    marginRight: 10,
+  },
+  addListItemButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
+  addListItemButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  listItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 5,
+  },
+  listItemText: {
+    color: '#ffffff',
+    fontSize: 14,
+    flex: 1,
+  },
+  removeItemText: {
+    color: '#E50914',
+    fontSize: 18,
+    fontWeight: 'bold',
+    padding: 5,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  addSectionButton: {
+    backgroundColor: '#9B59B6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  addSectionButtonText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  sectionContainer: {
+    backgroundColor: 'rgba(155, 89, 182, 0.1)',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(155, 89, 182, 0.3)',
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    color: '#9B59B6',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  lessonsContainer: {
+    marginTop: 10,
+  },
+  lessonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  lessonHeaderText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addLessonButton: {
+    backgroundColor: '#E67E22',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 5,
+  },
+  addLessonButtonText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  lessonContainer: {
+    backgroundColor: 'rgba(230, 126, 34, 0.1)',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(230, 126, 34, 0.3)',
+  },
+  lessonTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  lessonTitle: {
+    color: '#E67E22',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  switch: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  switchActive: {
+    backgroundColor: '#4ECDC4',
+    borderColor: '#4ECDC4',
+  },
+  switchText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  imagePickerButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  imageSelectedText: {
+    color: '#4ECDC4',
+    fontSize: 12,
+    marginTop: 5,
+    textAlign: 'center',
   },
 });

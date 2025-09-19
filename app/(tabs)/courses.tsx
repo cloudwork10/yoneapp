@@ -35,8 +35,43 @@ export default function CoursesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const categories = ['All', 'Programming', 'Design', 'Business', 'Marketing', 'Data Science'];
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('http://192.168.100.42:3000/api/public/courses');
+      
+      if (response.ok) {
+        const data = await response.json();
+        const fetchedCourses = data.data.courses.map(course => ({
+          id: course._id,
+          title: course.title,
+          instructor: course.instructor,
+          duration: course.duration,
+          level: course.level,
+          rating: course.rating,
+          students: course.students,
+          thumbnail: course.thumbnail || 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=Course+Image',
+          description: course.description,
+          price: course.price,
+          category: course.category
+        }));
+        setCourses(fetchedCourses);
+      } else {
+        setError('Failed to load courses');
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      setError('Failed to load courses');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCoursePress = (course: Course) => {
     router.push({
@@ -128,12 +163,7 @@ export default function CoursesScreen() {
   ];
 
   useEffect(() => {
-    // Simulate loading courses from API
-    setTimeout(() => {
-      setCourses(sampleCourses);
-      setFilteredCourses(sampleCourses);
-      setLoading(false);
-    }, 1000);
+    fetchCourses();
   }, []);
 
   useEffect(() => {
@@ -218,6 +248,21 @@ export default function CoursesScreen() {
         <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading courses...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>❌ {error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchCourses}>
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -645,5 +690,18 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  retryButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

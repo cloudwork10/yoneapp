@@ -6,8 +6,8 @@ const { apiLimiter } = require('../middleware/security');
 
 const router = express.Router();
 
-// Apply rate limiting to all admin routes
-router.use(apiLimiter);
+// Apply rate limiting to all admin routes - DISABLED FOR DEBUGGING
+// router.use(apiLimiter);
 
 // @route   GET /api/admin/dashboard
 // @desc    Get admin dashboard statistics

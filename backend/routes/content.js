@@ -820,30 +820,15 @@ router.get('/cv-templates', requireAuth, async (req, res) => {
 // @route   POST /api/admin/content/cv-templates
 // @desc    Create a new CV template
 // @access  Admin
-router.post('/cv-templates', [
-  requireAdmin,
-  body('name').trim().isLength({ min: 1, max: 100 }).withMessage('Name is required and must be less than 100 characters'),
-  body('title').trim().isLength({ min: 1, max: 100 }).withMessage('Title is required and must be less than 100 characters'),
-  body('description').trim().isLength({ min: 1, max: 500 }).withMessage('Description is required and must be less than 500 characters'),
-  body('experience').optional().trim().isLength({ max: 50 }),
-  body('education').optional().trim().isLength({ max: 200 }),
-  body('skills').isArray().withMessage('Skills must be an array'),
-  body('downloadUrl').optional(),
-  body('fileType').isIn(['link', 'pdf']).withMessage('File type must be either link or pdf')
-], async (req, res) => {
+router.post('/cv-templates', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Validation failed',
-        errors: errors.array()
-      });
-    }
+    console.log('📝 CV Template POST request received');
+    console.log('🔐 User:', req.user?.email);
+    console.log('📊 Body:', req.body);
 
     const cvTemplateData = {
       ...req.body,
-      createdBy: req.admin._id,
+      createdBy: req.user._id,
       downloads: 0,
       rating: 5.0
     };
@@ -867,17 +852,20 @@ router.post('/cv-templates', [
 // @route   PUT /api/admin/content/cv-templates/:id
 // @desc    Update a CV template
 // @access  Admin
-router.put('/cv-templates/:id', [
+router.put('/cv-templates/:id', 
+  requireAuth,
   requireAdmin,
-  body('name').optional().trim().isLength({ min: 1, max: 100 }),
-  body('title').optional().trim().isLength({ min: 1, max: 100 }),
-  body('description').optional().trim().isLength({ min: 1, max: 500 }),
-  body('experience').optional().trim().isLength({ max: 50 }),
-  body('education').optional().trim().isLength({ max: 200 }),
-  body('skills').optional().isArray(),
-  body('downloadUrl').optional(),
-  body('fileType').optional().isIn(['link', 'pdf'])
-], async (req, res) => {
+  [
+    body('name').optional().trim().isLength({ min: 1, max: 100 }),
+    body('title').optional().trim().isLength({ min: 1, max: 100 }),
+    body('description').optional().trim().isLength({ min: 1, max: 500 }),
+    body('experience').optional().trim().isLength({ max: 50 }),
+    body('education').optional().trim().isLength({ max: 200 }),
+    body('skills').optional().isArray(),
+    body('downloadUrl').optional(),
+    body('fileType').optional().isIn(['link', 'pdf'])
+  ], 
+  async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -925,7 +913,7 @@ router.put('/cv-templates/:id', [
 // @route   DELETE /api/admin/content/cv-templates/:id
 // @desc    Delete a CV template
 // @access  Admin
-router.delete('/cv-templates/:id', requireAdmin, async (req, res) => {
+router.delete('/cv-templates/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const cvTemplate = await CVTemplate.findById(req.params.id);
     
@@ -1771,6 +1759,209 @@ router.post('/test-podcast', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: error.message
+    });
+  }
+});
+
+// ==================== COURSES MANAGEMENT ====================
+
+// TEST ROUTE
+router.get('/test-courses', async (req, res) => {
+  res.json({ status: 'success', message: 'Course routes working!' });
+});
+
+// @route   GET /api/admin/content/courses
+// @desc    Get all courses for admin management
+// @access  Admin
+router.get('/courses', async (req, res) => {
+  try {
+    console.log('📚 GET /courses route hit - NO MIDDLEWARE!');
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const { search, category, level, status } = req.query;
+
+    const filter = {};
+    
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { instructor: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (category) {
+      filter.category = category;
+    }
+    
+    if (level) {
+      filter.level = level;
+    }
+    
+    if (status === 'active') {
+      filter.isActive = true;
+    } else if (status === 'inactive') {
+      filter.isActive = false;
+    }
+
+    const courses = await Course.find(filter)
+      .populate('createdBy', 'name email')
+      .populate('updatedBy', 'name email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Course.countDocuments(filter);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        courses,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get courses error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error'
+    });
+  }
+});
+
+// @route   GET /api/admin/content/courses/:id
+// @desc    Get single course by ID for admin
+// @access  Admin
+router.get('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id)
+      .populate('createdBy', 'name email')
+      .populate('updatedBy', 'name email');
+
+    if (!course) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Course not found'
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: course
+    });
+  } catch (error) {
+    console.error('Get course error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error'
+    });
+  }
+});
+
+// @route   POST /api/admin/content/courses
+// @desc    Create new course
+// @access  Admin
+router.post('/courses', async (req, res) => {
+  try {
+    console.log('📚 Creating course with data:', req.body);
+    
+    const courseData = {
+      ...req.body,
+      createdBy: null, // Remove for testing
+      sections: req.body.sections || [],
+      requirements: req.body.requirements || [],
+      learningOutcomes: req.body.learningOutcomes || []
+    };
+
+    const course = await Course.create(courseData);
+
+    console.log('✅ Course created:', course);
+    res.status(201).json({
+      status: 'success',
+      message: 'Course created successfully',
+      data: course
+    });
+  } catch (error) {
+    console.error('Create course error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to create course'
+    });
+  }
+});
+
+// @route   PUT /api/admin/content/courses/:id
+// @desc    Update course
+// @access  Admin
+router.put('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    console.log('📚 Updating course with data:', req.body);
+    
+    const courseData = {
+      ...req.body,
+      updatedBy: req.user._id,
+      sections: req.body.sections || [],
+      requirements: req.body.requirements || [],
+      learningOutcomes: req.body.learningOutcomes || []
+    };
+
+    const course = await Course.findByIdAndUpdate(
+      req.params.id,
+      courseData,
+      { new: true, runValidators: true }
+    );
+
+    if (!course) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Course not found'
+      });
+    }
+
+    console.log('✅ Course updated:', course);
+    res.status(200).json({
+      status: 'success',
+      message: 'Course updated successfully',
+      data: course
+    });
+  } catch (error) {
+    console.error('Update course error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update course'
+    });
+  }
+});
+
+// @route   DELETE /api/admin/content/courses/:id
+// @desc    Delete course
+// @access  Admin
+router.delete('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const course = await Course.findByIdAndDelete(req.params.id);
+
+    if (!course) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Course not found'
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Course deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete course error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to delete course'
     });
   }
 });

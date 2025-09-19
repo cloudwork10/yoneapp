@@ -47,8 +47,75 @@ const courseSchema = new mongoose.Schema({
   },
   thumbnail: {
     type: String,
-    required: [true, 'Course thumbnail is required']
+    default: ''
   },
+  // Course sections and lessons
+  sections: [{
+    title: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    description: {
+      type: String,
+      default: ''
+    },
+    lessons: [{
+      title: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      description: {
+        type: String,
+        default: ''
+      },
+      videoUrl: {
+        type: String,
+        default: ''
+      },
+      duration: {
+        type: String,
+        default: ''
+      },
+      thumbnail: {
+        type: String,
+        default: ''
+      },
+      isCompleted: {
+        type: Boolean,
+        default: false
+      },
+      order: {
+        type: Number,
+        default: 0
+      }
+    }],
+    order: {
+      type: Number,
+      default: 0
+    }
+  }],
+  // Course preview video
+  previewVideo: {
+    type: String,
+    default: ''
+  },
+  // Course completion certificate
+  certificateTemplate: {
+    type: String,
+    default: ''
+  },
+  // Course requirements
+  requirements: [{
+    type: String,
+    trim: true
+  }],
+  // What students will learn
+  learningOutcomes: [{
+    type: String,
+    trim: true
+  }],
   isActive: {
     type: Boolean,
     default: true
@@ -60,7 +127,7 @@ const courseSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
