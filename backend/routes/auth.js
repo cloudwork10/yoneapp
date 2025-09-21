@@ -8,6 +8,32 @@ const { logger } = require('../middleware/security');
 
 const router = express.Router();
 
+// @route   GET /api/auth/verify
+// @desc    Verify token validity
+// @access  Private
+router.get('/verify', requireAuth, async (req, res) => {
+  try {
+    // If middleware passes, token is valid
+    res.json({
+      status: 'success',
+      message: 'Token is valid',
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        name: req.user.name,
+        isAdmin: req.user.isAdmin,
+        adminLevel: req.user.adminLevel
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({
+      status: 'error',
+      message: 'Token verification failed'
+    });
+  }
+});
+
 // Validation rules
 const registerValidation = [
   body('name')

@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Dimensions,
     ImageBackground,
@@ -9,7 +9,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -34,10 +34,12 @@ export default function CoursesScreen() {
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+
   const categories = ['All', 'Programming', 'Design', 'Business', 'Marketing', 'Data Science'];
+
 
   const fetchCourses = async () => {
     try {
@@ -48,6 +50,7 @@ export default function CoursesScreen() {
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📚 Courses fetched from API:', data.data.courses.length, 'courses');
         const fetchedCourses = data.data.courses.map(course => ({
           id: course._id,
           title: course.title,
@@ -61,6 +64,7 @@ export default function CoursesScreen() {
           price: course.price,
           category: course.category
         }));
+        console.log('📚 Mapped courses:', fetchedCourses.length, 'courses');
         setCourses(fetchedCourses);
       } else {
         setError('Failed to load courses');
@@ -166,11 +170,27 @@ export default function CoursesScreen() {
     fetchCourses();
   }, []);
 
+  // Add refresh functionality
+  const handleRefresh = () => {
+    setLoading(true);
+    setError(null);
+    fetchCourses();
+  };
+
+  // Reload courses when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔍 CoursesScreen focused, starting beautiful 2-second loading...');
+      fetchCourses();
+    }, [])
+  );
+
   useEffect(() => {
     filterCourses();
   }, [searchQuery, selectedCategory, courses]);
 
   const filterCourses = () => {
+    console.log('🔍 Filtering courses. Total courses:', courses.length);
     let filtered = courses;
 
     // Filter by category
@@ -187,6 +207,7 @@ export default function CoursesScreen() {
       );
     }
 
+    console.log('🔍 Filtered courses result:', filtered.length, 'courses');
     setFilteredCourses(filtered);
   };
 
@@ -197,12 +218,20 @@ export default function CoursesScreen() {
       onPress={() => handleCoursePress(item)}
     >
       <View style={styles.courseImageContainer}>
-        <LinearGradient
-          colors={['#E50914', '#FF6B6B', '#FF8E53']}
-          style={styles.courseImageGradient}
-        >
-          <Text style={styles.courseThumbnail}>{item.thumbnail}</Text>
-        </LinearGradient>
+        {item.thumbnail && item.thumbnail.startsWith('http') ? (
+          <ImageBackground
+            source={{ uri: item.thumbnail }}
+            style={styles.courseImageGradient}
+            imageStyle={styles.courseImage}
+          />
+        ) : (
+          <LinearGradient
+            colors={['#E50914', '#FF6B6B', '#FF8E53']}
+            style={styles.courseImageGradient}
+          >
+            <Text style={styles.courseThumbnail}>📚</Text>
+          </LinearGradient>
+        )}
         <View style={styles.courseOverlay}>
           <View style={styles.playButton}>
             <Text style={styles.playIcon}>▶</Text>
@@ -246,8 +275,8 @@ export default function CoursesScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading courses...</Text>
+          <View style={styles.simpleLoadingContainer}>
+            <Text style={styles.simpleLoadingText}>Loading courses...</Text>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -260,9 +289,9 @@ export default function CoursesScreen() {
         <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>❌ {error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={fetchCourses}>
-              <Text style={styles.retryButtonText}>Try Again</Text>
-            </TouchableOpacity>
+                        <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+                          <Text style={styles.retryButtonText}>Try Again</Text>
+                        </TouchableOpacity>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -578,6 +607,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  courseImage: {
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
   courseThumbnail: {
     fontSize: 48,
     color: '#FFFFFF',
@@ -703,5 +736,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Simple Loading Styles
+  simpleLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  simpleLoadingText: {
+    color: '#CCCCCC',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

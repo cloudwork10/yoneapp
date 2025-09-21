@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Clipboard, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Clipboard, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import NotificationService from '../services/NotificationService';
 import { makeAuthenticatedRequest, refreshAuthToken } from '../utils/tokenRefresh';
@@ -70,6 +70,12 @@ export default function ContentManagementScreen() {
   const [advices, setAdvices] = useState([]);
   const [showAdviceModal, setShowAdviceModal] = useState(false);
   const [editingAdvice, setEditingAdvice] = useState(null);
+  const [terms, setTerms] = useState([]);
+  const [showTermModal, setShowTermModal] = useState(false);
+  const [editingTerm, setEditingTerm] = useState(null);
+  const [thoughts, setThoughts] = useState([]);
+  const [showThoughtModal, setShowThoughtModal] = useState(false);
+  const [editingThought, setEditingThought] = useState(null);
   const [articles, setArticles] = useState([]);
   const [showArticleModal, setShowArticleModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState(null);
@@ -133,6 +139,14 @@ export default function ContentManagementScreen() {
         console.log('📚 Fetching courses...');
         fetchCourses();
       }, 2500);
+      setTimeout(() => {
+        console.log('⚡ Fetching programming terms...');
+        fetchTerms();
+      }, 3000);
+      setTimeout(() => {
+        console.log('💭 Fetching programmer thoughts...');
+        fetchThoughts();
+      }, 3500);
     }
   }, [isAdmin]);
 
@@ -707,6 +721,55 @@ export default function ContentManagementScreen() {
     }
   };
 
+
+  const fetchTerms = async (retryCount = 0) => {
+    try {
+      console.log('⚡ Fetching programming terms...');
+      
+      const response = await fetch('http://192.168.100.42:3000/api/public/programming-terms');
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('⚡ Terms data received:', data);
+        setTerms(data.data.terms || []);
+        console.log('✅ Terms state updated');
+      } else if (response.status === 429 && retryCount < 3) {
+        console.log(`⏳ Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
+        setTimeout(() => {
+          fetchTerms(retryCount + 1);
+        }, (retryCount + 1) * 2000);
+      } else {
+        console.error('❌ Failed to fetch terms:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching terms:', error);
+    }
+  };
+
+  const fetchThoughts = async (retryCount = 0) => {
+    try {
+      console.log('💭 Fetching programmer thoughts...');
+      
+      const response = await fetch('http://192.168.100.42:3000/api/public/programmer-thoughts');
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('💭 Thoughts data received:', data);
+        setThoughts(data.data.thoughts || []);
+        console.log('✅ Thoughts state updated');
+      } else if (response.status === 429 && retryCount < 3) {
+        console.log(`⏳ Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
+        setTimeout(() => {
+          fetchThoughts(retryCount + 1);
+        }, (retryCount + 1) * 2000);
+      } else {
+        console.error('❌ Failed to fetch thoughts:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching thoughts:', error);
+    }
+  };
+
   const contentTypes = [
     { id: 'courses', name: 'Courses', icon: '📚', color: '#E50914' },
     { id: 'podcasts', name: 'Podcasts', icon: '🎧', color: '#FF6B35' },
@@ -714,6 +777,7 @@ export default function ContentManagementScreen() {
     { id: 'roadmaps', name: 'Roadmaps', icon: '🗺️', color: '#9B59B6' },
     { id: 'advices', name: 'Advices', icon: '💡', color: '#96CEB4' },
     { id: 'terms', name: 'Programming Terms', icon: '⚡', color: '#FF9F43' },
+    { id: 'thoughts', name: 'Programmer Thoughts', icon: '💭', color: '#8E44AD' },
     { id: 'cvTemplates', name: 'CV Templates', icon: '📋', color: '#6C5CE7' }
   ];
 
@@ -725,6 +789,7 @@ export default function ContentManagementScreen() {
     { id: 'roadmaps', name: 'Roadmaps', icon: '🗺️' },
     { id: 'advices', name: 'Advices', icon: '💡' },
     { id: 'terms', name: 'Terms', icon: '⚡' },
+    { id: 'thoughts', name: 'Thoughts', icon: '💭' },
     { id: 'cvTemplates', name: 'CV Templates', icon: '📋' }
   ];
 
@@ -962,6 +1027,217 @@ export default function ContentManagementScreen() {
     );
   };
 
+
+  const renderTermsManagement = () => {
+    console.log('🎨 Rendering Terms Management...');
+    console.log('⚡ Terms state:', terms);
+    console.log('⚡ Terms length:', terms.length);
+    
+    const filteredTerms = terms.filter(term => 
+      searchQuery === '' || 
+      term.term.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      term.definition.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      term.language.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    console.log('🔍 Filtered terms:', filteredTerms.length);
+    
+    return (
+      <View style={styles.contentSection}>
+        <View style={styles.contentHeader}>
+          <Text style={styles.sectionTitle}>⚡ Programming Terms Management</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={() => {
+                console.log('🔄 Manual refresh triggered');
+                fetchTerms();
+              }}
+            >
+              <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => {
+                setEditingTerm(null);
+                setShowTermModal(true);
+              }}
+            >
+              <Text style={styles.addButtonText}>+ Add Term</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search programming terms..."
+          placeholderTextColor="#666666"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {filteredTerms.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>
+              {terms.length === 0 
+                ? 'No programming terms found. Add your first term!' 
+                : 'No terms match your search.'}
+            </Text>
+            <Text style={styles.emptyStateSubtext}>
+              {terms.length === 0 
+                ? 'Click "Add Term" to get started.' 
+                : 'Try adjusting your search terms.'}
+            </Text>
+            <Text style={styles.emptyStateDebug}>
+              Debug: {terms.length} total terms, {filteredTerms.length} filtered
+            </Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.contentList} showsVerticalScrollIndicator={false}>
+            {filteredTerms.map((term) => (
+              <View key={term._id} style={styles.contentCard}>
+                <View style={styles.contentHeader}>
+                  <Text style={styles.contentTitle}>{term.term || 'Untitled Term'}</Text>
+                  <View style={styles.contentActions}>
+                    <TouchableOpacity 
+                      style={styles.editButton}
+                      onPress={() => {
+                        setEditingTerm(term);
+                        setShowTermModal(true);
+                      }}
+                    >
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteTerm(term._id)}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Text style={styles.contentMetaText}>Language: {term.language || 'Unknown'}</Text>
+                <Text style={styles.contentMetaText}>Category: {term.category || 'Uncategorized'}</Text>
+                <Text style={styles.contentMetaText}>Difficulty: {term.difficulty || 'Beginner'}</Text>
+                <Text style={styles.contentMetaText}>Duration: {term.duration || 'Unknown'}</Text>
+                <Text style={styles.contentMetaText}>Definition: {term.definition?.substring(0, 100)}...</Text>
+                <Text style={styles.contentMetaText}>
+                  Status: {term.isActive ? '✅ Active' : '❌ Inactive'} 
+                  {term.isFeatured ? ' | 🌟 Featured' : ''}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    );
+  };
+
+  const renderThoughtsManagement = () => {
+    console.log('🎨 Rendering Thoughts Management...');
+    console.log('💭 Thoughts state:', thoughts);
+    console.log('💭 Thoughts length:', thoughts.length);
+    
+    const filteredThoughts = thoughts.filter(thought => 
+      searchQuery === '' || 
+      thought.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      thought.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      thought.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    console.log('🔍 Filtered thoughts:', filteredThoughts.length);
+    
+    return (
+      <View style={styles.contentSection}>
+        <View style={styles.contentHeader}>
+          <Text style={styles.sectionTitle}>💭 Programmer Thoughts Management</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={() => {
+                console.log('🔄 Manual refresh triggered');
+                fetchThoughts();
+              }}
+            >
+              <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.addButton}
+              onPress={() => {
+                setEditingThought(null);
+                setShowThoughtModal(true);
+              }}
+            >
+              <Text style={styles.addButtonText}>+ Add Episode</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search programmer thoughts..."
+          placeholderTextColor="#666666"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+
+        {filteredThoughts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>
+              {thoughts.length === 0 
+                ? 'No programmer thoughts found. Add your first episode!' 
+                : 'No episodes match your search.'}
+            </Text>
+            <Text style={styles.emptyStateSubtext}>
+              {thoughts.length === 0 
+                ? 'Click "Add Episode" to get started.' 
+                : 'Try adjusting your search terms.'}
+            </Text>
+            <Text style={styles.emptyStateDebug}>
+              Debug: {thoughts.length} total episodes, {filteredThoughts.length} filtered
+            </Text>
+          </View>
+        ) : (
+          <ScrollView style={styles.contentList} showsVerticalScrollIndicator={false}>
+            {filteredThoughts.map((thought) => (
+              <View key={thought._id} style={styles.contentCard}>
+                <View style={styles.contentHeader}>
+                  <Text style={styles.contentTitle}>{thought.title || 'Untitled Episode'}</Text>
+                  <View style={styles.contentActions}>
+                    <TouchableOpacity 
+                      style={styles.editButton}
+                      onPress={() => {
+                        setEditingThought(thought);
+                        setShowThoughtModal(true);
+                      }}
+                    >
+                      <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteThought(thought._id)}
+                    >
+                      <Text style={styles.deleteButtonText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <Text style={styles.contentMetaText}>Season: {thought.season || 1} | Episode: {thought.episodeNumber || 'N/A'}</Text>
+                <Text style={styles.contentMetaText}>Category: {thought.category || 'Uncategorized'}</Text>
+                <Text style={styles.contentMetaText}>Duration: {thought.duration || 'Unknown'}</Text>
+                <Text style={styles.contentMetaText}>Views: {thought.views || 0} | Likes: {thought.likes || 0}</Text>
+                <Text style={styles.contentMetaText}>Description: {thought.description?.substring(0, 100)}...</Text>
+                <Text style={styles.contentMetaText}>
+                  Status: {thought.isActive ? '✅ Active' : '❌ Inactive'} 
+                  {thought.isFeatured ? ' | 🌟 Featured' : ''}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+    );
+  };
+
   const renderArticleManagement = () => {
     console.log('🎨 Rendering Article Management...');
     console.log('📄 Articles state:', articles);
@@ -1132,6 +1408,75 @@ export default function ContentManagementScreen() {
             } catch (error) {
               console.error('Error deleting advice:', error);
               Alert.alert('Error', 'Failed to delete advice');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+
+  const handleDeleteTerm = async (termId: string) => {
+    Alert.alert(
+      'Delete Programming Term',
+      'Are you sure you want to delete this programming term?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`http://192.168.100.42:3000/api/public/programming-terms/${termId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (response.ok) {
+                setTerms(terms.filter(term => term._id !== termId));
+                Alert.alert('Success', 'Programming term deleted successfully');
+              } else {
+                Alert.alert('Error', 'Failed to delete programming term');
+              }
+            } catch (error) {
+              console.error('Delete term error:', error);
+              Alert.alert('Error', 'Failed to delete programming term');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteThought = async (thoughtId: string) => {
+    Alert.alert(
+      'Delete Programmer Thought',
+      'Are you sure you want to delete this episode?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`http://192.168.100.42:3000/api/public/programmer-thoughts/${thoughtId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (response.ok) {
+                setThoughts(thoughts.filter(thought => thought._id !== thoughtId));
+                Alert.alert('Success', 'Programmer thought deleted successfully');
+              } else {
+                Alert.alert('Error', 'Failed to delete programmer thought');
+              }
+            } catch (error) {
+              console.error('Delete thought error:', error);
+              Alert.alert('Error', 'Failed to delete programmer thought');
             }
           }
         }
@@ -1470,13 +1815,9 @@ export default function ContentManagementScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-              const token = await AsyncStorage.getItem('token');
-              
               const response = await fetch(`http://192.168.100.42:3000/api/public/courses/${courseId}`, {
                 method: 'DELETE',
                 headers: {
-                  'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json',
                 },
               });
@@ -1650,6 +1991,14 @@ export default function ContentManagementScreen() {
       case 'advices':
         console.log('💡 Advices tab selected, rendering advice management...');
         return renderAdviceManagement();
+      
+      case 'terms':
+        console.log('⚡ Terms tab selected, rendering terms management...');
+        return renderTermsManagement();
+      
+      case 'thoughts':
+        console.log('💭 Thoughts tab selected, rendering thoughts management...');
+        return renderThoughtsManagement();
       
       default:
         return (
@@ -2281,6 +2630,156 @@ export default function ContentManagementScreen() {
                   onCancel={() => {
                     setShowAdviceModal(false);
                     setEditingAdvice(null);
+                  }}
+                />
+              </ScrollView>
+            </LinearGradient>
+          </Modal>
+        )}
+
+        {/* Programmer Thoughts Modal */}
+        {showThoughtModal && (
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showThoughtModal}
+            onRequestClose={() => {
+              setShowThoughtModal(false);
+              setEditingThought(null);
+            }}
+          >
+            <LinearGradient colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.95)']} style={styles.modalContainer}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <ThoughtForm 
+                  thought={editingThought}
+                  onSave={async (thoughtData) => {
+                    try {
+                      console.log('💭 Saving programmer thought:', JSON.stringify(thoughtData, null, 2));
+                      
+                      const response = await fetch(
+                        editingThought 
+                          ? `http://192.168.100.42:3000/api/public/programmer-thoughts/${editingThought._id}`
+                          : 'http://192.168.100.42:3000/api/public/programmer-thoughts',
+                        {
+                          method: editingThought ? 'PUT' : 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify(thoughtData),
+                        }
+                      );
+
+                      console.log('📡 Thought save response status:', response.status);
+                      
+                      if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Thought saved successfully:', result);
+                        
+                        if (editingThought) {
+                          setThoughts(thoughts.map(thought => 
+                            thought._id === editingThought._id ? result.data : thought
+                          ));
+                        } else {
+                          setThoughts([result.data, ...thoughts]);
+                          
+                          // Send notification for new content
+                          await NotificationService.sendContentNotification(
+                            'thought',
+                            result.data?.title || 'حلقة جديدة',
+                            result.data?.category
+                          );
+                        }
+                        setShowThoughtModal(false);
+                        setEditingThought(null);
+                        Alert.alert('تم بنجاح!', editingThought ? 'تم تحديث الحلقة بنجاح!' : 'تم إنشاء الحلقة وإرسال إشعار!');
+                      } else {
+                        const errorText = await response.text();
+                        console.error('❌ Thought save error:', errorText);
+                        Alert.alert('Error', `Failed to save thought: ${response.status} - ${errorText}`);
+                      }
+                    } catch (error) {
+                      console.error('Error saving thought:', error);
+                      Alert.alert('Error', 'Failed to save thought');
+                    }
+                  }}
+                  onCancel={() => {
+                    setShowThoughtModal(false);
+                    setEditingThought(null);
+                  }}
+                />
+              </ScrollView>
+            </LinearGradient>
+          </Modal>
+        )}
+
+        {/* Programming Terms Modal */}
+        {showTermModal && (
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showTermModal}
+            onRequestClose={() => {
+              setShowTermModal(false);
+              setEditingTerm(null);
+            }}
+          >
+            <LinearGradient colors={['rgba(0,0,0,0.9)', 'rgba(0,0,0,0.95)']} style={styles.modalContainer}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <TermForm 
+                  term={editingTerm}
+                  onSave={async (termData) => {
+                    try {
+                      console.log('⚡ Saving programming term:', JSON.stringify(termData, null, 2));
+                      
+                      const response = await fetch(
+                        editingTerm 
+                          ? `http://192.168.100.42:3000/api/public/programming-terms/${editingTerm._id}`
+                          : 'http://192.168.100.42:3000/api/public/programming-terms',
+                        {
+                          method: editingTerm ? 'PUT' : 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify(termData),
+                        }
+                      );
+
+                      console.log('📡 Term save response status:', response.status);
+                      
+                      if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Term saved successfully:', result);
+                        
+                        if (editingTerm) {
+                          setTerms(terms.map(term => 
+                            term._id === editingTerm._id ? result.data : term
+                          ));
+                        } else {
+                          setTerms([result.data, ...terms]);
+                          
+                          // Send notification for new content
+                          await NotificationService.sendContentNotification(
+                            'term',
+                            result.data?.term || 'مصطلح جديد',
+                            result.data?.language
+                          );
+                        }
+                        setShowTermModal(false);
+                        setEditingTerm(null);
+                        Alert.alert('تم بنجاح!', editingTerm ? 'تم تحديث المصطلح بنجاح!' : 'تم إنشاء المصطلح وإرسال إشعار!');
+                      } else {
+                        const errorText = await response.text();
+                        console.error('❌ Term save error:', errorText);
+                        Alert.alert('Error', `Failed to save term: ${response.status} - ${errorText}`);
+                      }
+                    } catch (error) {
+                      console.error('Error saving term:', error);
+                      Alert.alert('Error', 'Failed to save term');
+                    }
+                  }}
+                  onCancel={() => {
+                    setShowTermModal(false);
+                    setEditingTerm(null);
                   }}
                 />
               </ScrollView>
@@ -3050,24 +3549,54 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
     title: course?.title || '',
     description: course?.description || '',
     instructor: course?.instructor || '',
+    instructorBio: course?.instructorBio || '',
+    instructorAvatar: course?.instructorAvatar || '👨‍💻',
+    instructorRating: course?.instructorRating || 4.9,
+    instructorStudents: course?.instructorStudents || 25000,
     duration: course?.duration || '',
     level: course?.level || 'Beginner',
     category: course?.category || 'Programming',
     rating: course?.rating || 0,
+    totalRatings: course?.totalRatings || 15420,
     students: course?.students || 0,
     price: course?.price || 0,
+    originalPrice: course?.originalPrice || 0,
+    language: course?.language || 'Arabic',
     thumbnail: course?.thumbnail || '',
+    image: course?.image || '',
     previewVideo: course?.previewVideo || '',
+    certificateTemplate: course?.certificateTemplate || '',
     requirements: course?.requirements || [],
     learningOutcomes: course?.learningOutcomes || [],
     sections: course?.sections || [],
+    challenges: course?.challenges || [],
     isActive: course?.isActive !== undefined ? course.isActive : true,
     isFeatured: course?.isFeatured || false,
+    tags: course?.tags || [],
+    lastUpdated: course?.lastUpdated || '2 weeks ago'
   });
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [newRequirement, setNewRequirement] = useState('');
   const [newOutcome, setNewOutcome] = useState('');
+  const [newTag, setNewTag] = useState('');
+  const [activeSection, setActiveSection] = useState<number | null>(null);
+  const [newChallenge, setNewChallenge] = useState({
+    title: '',
+    description: '',
+    type: 'project',
+    difficulty: 'easy',
+    points: 10,
+    duration: '1 week',
+    requirements: [],
+    deliverables: [],
+    guidelines: [],
+    evaluationCriteria: []
+  });
+  const [newChallengeRequirement, setNewChallengeRequirement] = useState('');
+  const [newChallengeDeliverable, setNewChallengeDeliverable] = useState('');
+  const [newChallengeGuideline, setNewChallengeGuideline] = useState('');
+  const [newChallengeCriteria, setNewChallengeCriteria] = useState('');
 
   const pickImage = async () => {
     try {
@@ -3084,14 +3613,48 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
         
         // Upload image to server
         const uploadResult = await uploadImageToServer(imageUri);
+        console.log('📷 Course image upload result:', uploadResult);
         if (uploadResult) {
+          console.log('📷 Setting thumbnail in formData:', uploadResult);
           setFormData({...formData, thumbnail: uploadResult});
           Alert.alert('تم', 'تم رفع الصورة بنجاح!');
+        } else {
+          console.log('📷 Course image upload failed or returned null');
         }
       }
     } catch (error) {
       console.error('📷 Course image picker error:', error);
       Alert.alert('خطأ', 'فشل في اختيار الصورة');
+    }
+  };
+
+  const pickHeroImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        console.log('🖼️ Course hero image selected:', imageUri);
+        
+        // Upload image to server
+        const uploadResult = await uploadImageToServer(imageUri);
+        console.log('🖼️ Course hero image upload result:', uploadResult);
+        if (uploadResult) {
+          console.log('🖼️ Setting hero image in formData:', uploadResult);
+          setFormData({...formData, image: uploadResult});
+          Alert.alert('تم', 'تم رفع صورة البانر بنجاح!');
+        } else {
+          console.log('🖼️ Course hero image upload failed or returned null');
+        }
+      }
+    } catch (error) {
+      console.error('🖼️ Course hero image picker error:', error);
+      Alert.alert('خطأ', 'فشل في اختيار صورة البانر');
     }
   };
 
@@ -3137,13 +3700,136 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
   };
 
   const addRequirement = () => {
+    console.log('📋 addRequirement called with:', newRequirement);
+    console.log('📋 Current requirements before:', formData.requirements);
+    
     if (newRequirement.trim()) {
+      const updatedRequirements = [...formData.requirements, newRequirement.trim()];
+      console.log('📋 New requirements array:', updatedRequirements);
+      
       setFormData({
         ...formData,
-        requirements: [...formData.requirements, newRequirement.trim()]
+        requirements: updatedRequirements
       });
       setNewRequirement('');
+      console.log('📋 Requirement added successfully!');
+    } else {
+      console.log('📋 Requirement is empty, not adding');
     }
+  };
+
+  const addTag = () => {
+    if (newTag.trim()) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, newTag.trim()]
+      });
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (index: number) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((_, i) => i !== index)
+    });
+  };
+
+  // Challenge Management Functions
+  const addChallengeRequirement = () => {
+    if (newChallengeRequirement.trim()) {
+      setNewChallenge({
+        ...newChallenge,
+        requirements: [...newChallenge.requirements, newChallengeRequirement.trim()]
+      });
+      setNewChallengeRequirement('');
+    }
+  };
+
+  const removeChallengeRequirement = (index: number) => {
+    setNewChallenge({
+      ...newChallenge,
+      requirements: newChallenge.requirements.filter((_, i) => i !== index)
+    });
+  };
+
+  const addChallengeDeliverable = () => {
+    if (newChallengeDeliverable.trim()) {
+      setNewChallenge({
+        ...newChallenge,
+        deliverables: [...newChallenge.deliverables, newChallengeDeliverable.trim()]
+      });
+      setNewChallengeDeliverable('');
+    }
+  };
+
+  const removeChallengeDeliverable = (index: number) => {
+    setNewChallenge({
+      ...newChallenge,
+      deliverables: newChallenge.deliverables.filter((_, i) => i !== index)
+    });
+  };
+
+  const addChallengeGuideline = () => {
+    if (newChallengeGuideline.trim()) {
+      setNewChallenge({
+        ...newChallenge,
+        guidelines: [...newChallenge.guidelines, newChallengeGuideline.trim()]
+      });
+      setNewChallengeGuideline('');
+    }
+  };
+
+  const removeChallengeGuideline = (index: number) => {
+    setNewChallenge({
+      ...newChallenge,
+      guidelines: newChallenge.guidelines.filter((_, i) => i !== index)
+    });
+  };
+
+  const addChallengeCriteria = () => {
+    if (newChallengeCriteria.trim()) {
+      setNewChallenge({
+        ...newChallenge,
+        evaluationCriteria: [...newChallenge.evaluationCriteria, newChallengeCriteria.trim()]
+      });
+      setNewChallengeCriteria('');
+    }
+  };
+
+  const removeChallengeCriteria = (index: number) => {
+    setNewChallenge({
+      ...newChallenge,
+      evaluationCriteria: newChallenge.evaluationCriteria.filter((_, i) => i !== index)
+    });
+  };
+
+  const addChallenge = () => {
+    if (newChallenge.title.trim() && newChallenge.description.trim()) {
+      setFormData({
+        ...formData,
+        challenges: [...formData.challenges, { ...newChallenge, id: Date.now().toString() }]
+      });
+      setNewChallenge({
+        title: '',
+        description: '',
+        type: 'project',
+        difficulty: 'easy',
+        points: 10,
+        duration: '1 week',
+        requirements: [],
+        deliverables: [],
+        guidelines: [],
+        evaluationCriteria: []
+      });
+    }
+  };
+
+  const removeChallenge = (challengeId: string) => {
+    setFormData({
+      ...formData,
+      challenges: formData.challenges.filter(challenge => challenge.id !== challengeId)
+    });
   };
 
   const removeRequirement = (index: number) => {
@@ -3154,12 +3840,21 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
   };
 
   const addLearningOutcome = () => {
+    console.log('🎯 addLearningOutcome called with:', newOutcome);
+    console.log('🎯 Current outcomes before:', formData.learningOutcomes);
+    
     if (newOutcome.trim()) {
+      const updatedOutcomes = [...formData.learningOutcomes, newOutcome.trim()];
+      console.log('🎯 New outcomes array:', updatedOutcomes);
+      
       setFormData({
         ...formData,
-        learningOutcomes: [...formData.learningOutcomes, newOutcome.trim()]
+        learningOutcomes: updatedOutcomes
       });
       setNewOutcome('');
+      console.log('🎯 Learning outcome added successfully!');
+    } else {
+      console.log('🎯 Learning outcome is empty, not adding');
     }
   };
 
@@ -3231,75 +3926,530 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
     }
 
     console.log('📚 Course form data before save:', JSON.stringify(formData, null, 2));
+    console.log('🎯 Requirements data:', formData.requirements);
+    console.log('🎯 Learning outcomes data:', formData.learningOutcomes);
+    console.log('🎯 Requirements length:', formData.requirements.length);
+    console.log('🎯 Learning outcomes length:', formData.learningOutcomes.length);
     onSave(formData);
   };
 
   return (
-    <View style={styles.formContainer}>
-      {/* Basic Course Information */}
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Course Title *</Text>
-        <TextInput
-          style={styles.formInput}
-          value={formData.title}
-          onChangeText={(text) => setFormData({...formData, title: text})}
-          placeholder="Enter course title"
-          placeholderTextColor="#666"
-        />
+    <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
+      {/* Header Section */}
+      <View style={styles.formHeader}>
+        <Text style={styles.formHeaderTitle}>
+          {course ? 'تعديل الكورس' : 'إضافة كورس جديد'}
+        </Text>
+        <Text style={styles.formHeaderSubtitle}>
+          {course ? 'قم بتعديل تفاصيل الكورس' : 'املأ التفاصيل التالية لإضافة كورس جديد'}
+        </Text>
       </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Description *</Text>
-        <TextInput
-          style={[styles.formInput, { height: 80 }]}
-          value={formData.description}
-          onChangeText={(text) => setFormData({...formData, description: text})}
-          placeholder="Enter course description"
-          placeholderTextColor="#666"
-          multiline
-        />
+      {/* Basic Information Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>📚 المعلومات الأساسية</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>عنوان الكورس *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.title}
+            onChangeText={(text) => setFormData({...formData, title: text})}
+            placeholder="أدخل عنوان الكورس"
+            placeholderTextColor="#666"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>وصف الكورس *</Text>
+          <TextInput
+            style={[styles.formInput, { height: 100, textAlignVertical: 'top' }]}
+            value={formData.description}
+            onChangeText={(text) => setFormData({...formData, description: text})}
+            placeholder="اكتب وصفاً مفصلاً للكورس..."
+            placeholderTextColor="#666"
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>المدرب *</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.instructor}
+              onChangeText={(text) => setFormData({...formData, instructor: text})}
+              placeholder="اسم المدرب"
+              placeholderTextColor="#666"
+            />
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>المدة الزمنية</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.duration}
+              onChangeText={(text) => setFormData({...formData, duration: text})}
+              placeholder="مثال: 10 ساعات"
+              placeholderTextColor="#666"
+            />
+          </View>
+        </View>
       </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Instructor *</Text>
-        <TextInput
-          style={styles.formInput}
-          value={formData.instructor}
-          onChangeText={(text) => setFormData({...formData, instructor: text})}
-          placeholder="Enter instructor name"
-          placeholderTextColor="#666"
-        />
+      {/* Pricing Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>💰 التسعير والإحصائيات</Text>
+        
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>السعر الحالي</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.price.toString()}
+              onChangeText={(text) => setFormData({...formData, price: parseFloat(text) || 0})}
+              placeholder="0"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>السعر الأصلي</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.originalPrice.toString()}
+              onChangeText={(text) => setFormData({...formData, originalPrice: parseFloat(text) || 0})}
+              placeholder="0"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>تقييم الكورس</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.rating.toString()}
+              onChangeText={(text) => setFormData({...formData, rating: Math.min(5, Math.max(0, parseFloat(text) || 0))})}
+              placeholder="4.5"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>عدد الطلاب</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.students.toString()}
+              onChangeText={(text) => setFormData({...formData, students: parseInt(text) || 0})}
+              placeholder="100"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>إجمالي التقييمات</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.totalRatings.toString()}
+            onChangeText={(text) => setFormData({...formData, totalRatings: parseInt(text) || 0})}
+            placeholder="15420"
+            placeholderTextColor="#666"
+            keyboardType="numeric"
+          />
+        </View>
       </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Duration</Text>
-        <TextInput
-          style={styles.formInput}
-          value={formData.duration}
-          onChangeText={(text) => setFormData({...formData, duration: text})}
-          placeholder="e.g., 10 hours"
-          placeholderTextColor="#666"
-        />
+      {/* Instructor Details Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>👨‍🏫 تفاصيل المدرب</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>نبذة عن المدرب</Text>
+          <TextInput
+            style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
+            value={formData.instructorBio}
+            onChangeText={(text) => setFormData({...formData, instructorBio: text})}
+            placeholder="اكتب نبذة مختصرة عن المدرب..."
+            placeholderTextColor="#666"
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>تقييم المدرب</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.instructorRating.toString()}
+              onChangeText={(text) => setFormData({...formData, instructorRating: Math.min(5, Math.max(0, parseFloat(text) || 4.9))})}
+              placeholder="4.9"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>عدد طلاب المدرب</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.instructorStudents.toString()}
+              onChangeText={(text) => setFormData({...formData, instructorStudents: parseInt(text) || 25000})}
+              placeholder="25000"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>أيقونة المدرب</Text>
+          <View style={styles.avatarSelector}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {['👨‍💻', '👩‍💻', '👨‍🏫', '👩‍🏫', '👨‍🎓', '👩‍🎓', '🧑‍💼', '👩‍💼', '👨‍🔬', '👩‍🔬'].map((avatar, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.avatarOption,
+                    formData.instructorAvatar === avatar && styles.avatarOptionSelected
+                  ]}
+                  onPress={() => setFormData({...formData, instructorAvatar: avatar})}
+                >
+                  <Text style={styles.avatarText}>{avatar}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Level</Text>
-        <TouchableOpacity
-          style={styles.formInput}
-          onPress={() => {
-            Alert.alert(
-              'Select Level',
-              'Choose course level',
-              [
-                { text: 'Beginner', onPress: () => setFormData({...formData, level: 'Beginner'}) },
-                { text: 'Intermediate', onPress: () => setFormData({...formData, level: 'Intermediate'}) },
-                { text: 'Advanced', onPress: () => setFormData({...formData, level: 'Advanced'}) },
+      {/* Course Challenges Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>🏆 تحديات الكورس</Text>
+        <Text style={styles.formSubtitle}>أضف تحديات عملية لتطبيق ما تعلمه الطلاب في الكورس</Text>
+        
+        {/* Current Challenges */}
+        {formData.challenges.length > 0 && (
+          <View style={styles.challengesList}>
+            <Text style={styles.listTitle}>التحديات المضافة:</Text>
+            {formData.challenges.map((challenge, index) => (
+              <View key={challenge.id} style={styles.challengeItem}>
+                <View style={styles.challengeHeader}>
+                  <Text style={styles.challengeTitle}>{challenge.title}</Text>
+                  <View style={styles.challengeBadges}>
+                    <Text style={[styles.challengeBadge, { backgroundColor: 
+                      challenge.difficulty === 'easy' ? '#2ECC71' : 
+                      challenge.difficulty === 'medium' ? '#F39C12' : '#E74C3C'
+                    }]}>
+                      {challenge.difficulty === 'easy' ? 'سهل' : 
+                       challenge.difficulty === 'medium' ? 'متوسط' : 'صعب'}
+                    </Text>
+                    <Text style={[styles.challengeBadge, { backgroundColor: '#9B59B6' }]}>
+                      {challenge.type === 'project' ? 'مشروع' : 
+                       challenge.type === 'quiz' ? 'اختبار' : 
+                       challenge.type === 'coding' ? 'برمجة' : 
+                       challenge.type === 'design' ? 'تصميم' : 'بحث'}
+                    </Text>
+                    <Text style={[styles.challengeBadge, { backgroundColor: '#3498DB' }]}>
+                      {challenge.points} نقطة
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.removeChallengeButton}
+                    onPress={() => removeChallenge(challenge.id)}
+                  >
+                    <Text style={styles.removeChallengeText}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.challengeDescription}>{challenge.description}</Text>
+                <Text style={styles.challengeMeta}>المدة: {challenge.duration}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* New Challenge Form */}
+        <View style={styles.newChallengeForm}>
+          <Text style={styles.formLabel}>إضافة تحدي جديد</Text>
+          
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>عنوان التحدي *</Text>
+            <TextInput
+              style={styles.formInput}
+              value={newChallenge.title}
+              onChangeText={(text) => setNewChallenge({...newChallenge, title: text})}
+              placeholder="مثال: بناء تطبيق إدارة المهام"
+              placeholderTextColor="#666"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>وصف التحدي *</Text>
+            <TextInput
+              style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
+              value={newChallenge.description}
+              onChangeText={(text) => setNewChallenge({...newChallenge, description: text})}
+              placeholder="اكتب وصفاً مفصلاً للتحدي وما هو المطلوب من الطلاب..."
+              placeholderTextColor="#666"
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+              <Text style={styles.formLabel}>نوع التحدي</Text>
+              <TouchableOpacity
+                style={styles.formInput}
+                onPress={() => {
+                  Alert.alert(
+                    'اختر نوع التحدي',
+                    'اختر النوع المناسب للتحدي',
+                    [
+                      { text: 'مشروع', onPress: () => setNewChallenge({...newChallenge, type: 'project'}) },
+                      { text: 'اختبار', onPress: () => setNewChallenge({...newChallenge, type: 'quiz'}) },
+                      { text: 'برمجة', onPress: () => setNewChallenge({...newChallenge, type: 'coding'}) },
+                      { text: 'تصميم', onPress: () => setNewChallenge({...newChallenge, type: 'design'}) },
+                      { text: 'بحث', onPress: () => setNewChallenge({...newChallenge, type: 'research'}) },
+                    ]
+                  );
+                }}
+              >
+                <Text style={styles.dropdownText}>
+                  {newChallenge.type === 'project' ? 'مشروع' : 
+                   newChallenge.type === 'quiz' ? 'اختبار' : 
+                   newChallenge.type === 'coding' ? 'برمجة' : 
+                   newChallenge.type === 'design' ? 'تصميم' : 'بحث'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+              <Text style={styles.formLabel}>مستوى الصعوبة</Text>
+              <TouchableOpacity
+                style={styles.formInput}
+                onPress={() => {
+                  Alert.alert(
+                    'اختر مستوى الصعوبة',
+                    'اختر مستوى صعوبة التحدي',
+                    [
+                      { text: 'سهل', onPress: () => setNewChallenge({...newChallenge, difficulty: 'easy'}) },
+                      { text: 'متوسط', onPress: () => setNewChallenge({...newChallenge, difficulty: 'medium'}) },
+                      { text: 'صعب', onPress: () => setNewChallenge({...newChallenge, difficulty: 'hard'}) },
+                    ]
+                  );
+                }}
+              >
+                <Text style={styles.dropdownText}>
+                  {newChallenge.difficulty === 'easy' ? 'سهل' : 
+                   newChallenge.difficulty === 'medium' ? 'متوسط' : 'صعب'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+              <Text style={styles.formLabel}>النقاط</Text>
+              <TextInput
+                style={styles.formInput}
+                value={newChallenge.points.toString()}
+                onChangeText={(text) => setNewChallenge({...newChallenge, points: parseInt(text) || 0})}
+                placeholder="10"
+                placeholderTextColor="#666"
+                keyboardType="numeric"
+              />
+            </View>
+            
+            <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+              <Text style={styles.formLabel}>المدة المقترحة</Text>
+              <TextInput
+                style={styles.formInput}
+                value={newChallenge.duration}
+                onChangeText={(text) => setNewChallenge({...newChallenge, duration: text})}
+                placeholder="1 week"
+                placeholderTextColor="#666"
+              />
+            </View>
+          </View>
+
+          {/* Challenge Requirements */}
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>متطلبات التحدي</Text>
+            <View style={styles.inputWithButton}>
+              <TextInput
+                style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+                value={newChallengeRequirement}
+                onChangeText={setNewChallengeRequirement}
+                placeholder="مثال: معرفة أساسيات JavaScript"
+                placeholderTextColor="#666"
+                onSubmitEditing={addChallengeRequirement}
+              />
+              <TouchableOpacity style={styles.addListItemButton} onPress={addChallengeRequirement}>
+                <Text style={styles.addListItemButtonText}>➕</Text>
+              </TouchableOpacity>
+            </View>
+            {newChallenge.requirements.map((req, index) => (
+              <View key={index} style={styles.listItem}>
+                <Text style={styles.listItemText}>• {req}</Text>
+                <TouchableOpacity 
+                  style={styles.removeItemButton}
+                  onPress={() => removeChallengeRequirement(index)}
+                >
+                  <Text style={styles.removeItemText}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          {/* Challenge Deliverables */}
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>المخرجات المطلوبة</Text>
+            <View style={styles.inputWithButton}>
+              <TextInput
+                style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+                value={newChallengeDeliverable}
+                onChangeText={setNewChallengeDeliverable}
+                placeholder="مثال: كود المشروع على GitHub"
+                placeholderTextColor="#666"
+                onSubmitEditing={addChallengeDeliverable}
+              />
+              <TouchableOpacity style={styles.addListItemButton} onPress={addChallengeDeliverable}>
+                <Text style={styles.addListItemButtonText}>➕</Text>
+              </TouchableOpacity>
+            </View>
+            {newChallenge.deliverables.map((del, index) => (
+              <View key={index} style={styles.listItem}>
+                <Text style={styles.listItemText}>• {del}</Text>
+                <TouchableOpacity 
+                  style={styles.removeItemButton}
+                  onPress={() => removeChallengeDeliverable(index)}
+                >
+                  <Text style={styles.removeItemText}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity style={styles.addChallengeButton} onPress={addChallenge}>
+            <Text style={styles.addChallengeButtonText}>🏆 إضافة التحدي</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Course Settings Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>⚙️ إعدادات الكورس</Text>
+        
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>المستوى</Text>
+            <TouchableOpacity
+              style={styles.formInput}
+              onPress={() => {
+                Alert.alert(
+                  'اختر المستوى',
+                  'اختر مستوى صعوبة الكورس',
+                  [
+                    { text: 'مبتدئ', onPress: () => setFormData({...formData, level: 'Beginner'}) },
+                    { text: 'متوسط', onPress: () => setFormData({...formData, level: 'Intermediate'}) },
+                    { text: 'متقدم', onPress: () => setFormData({...formData, level: 'Advanced'}) },
               ]
             );
           }}
         >
-          <Text style={styles.dropdownText}>{formData.level}</Text>
+          <Text style={styles.dropdownText}>
+            {formData.level === 'Beginner' ? 'مبتدئ' : 
+             formData.level === 'Intermediate' ? 'متوسط' : 'متقدم'}
+          </Text>
         </TouchableOpacity>
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>التصنيف</Text>
+            <TouchableOpacity
+              style={styles.formInput}
+              onPress={() => {
+                Alert.alert(
+                  'اختر التصنيف',
+                  'اختر تصنيف الكورس',
+                  [
+                    { text: 'برمجة', onPress: () => setFormData({...formData, category: 'Programming'}) },
+                    { text: 'تصميم', onPress: () => setFormData({...formData, category: 'Design'}) },
+                    { text: 'أعمال', onPress: () => setFormData({...formData, category: 'Business'}) },
+                    { text: 'تسويق', onPress: () => setFormData({...formData, category: 'Marketing'}) },
+                    { text: 'علم البيانات', onPress: () => setFormData({...formData, category: 'Data Science'}) },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.dropdownText}>
+                {formData.category === 'Programming' ? 'برمجة' : 
+                 formData.category === 'Design' ? 'تصميم' :
+                 formData.category === 'Business' ? 'أعمال' :
+                 formData.category === 'Marketing' ? 'تسويق' : 'علم البيانات'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>السعر الحالي ($)</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.price.toString()}
+              onChangeText={(text) => setFormData({...formData, price: parseInt(text) || 0})}
+              placeholder="0"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>السعر الأصلي ($)</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.originalPrice.toString()}
+              onChangeText={(text) => setFormData({...formData, originalPrice: parseInt(text) || 0})}
+              placeholder="199"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>اللغة</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.language}
+              onChangeText={(text) => setFormData({...formData, language: text})}
+              placeholder="Arabic"
+              placeholderTextColor="#666"
+            />
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>عدد الطلاب</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.students.toString()}
+              onChangeText={(text) => setFormData({...formData, students: parseInt(text) || 0})}
+              placeholder="0"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
       </View>
 
       <View style={styles.formGroup}>
@@ -3361,62 +4511,213 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
         />
       </View>
 
-      {/* Course Requirements */}
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Course Requirements</Text>
-        <View style={styles.listInputContainer}>
+      {/* Requirements and Outcomes Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>📋 المتطلبات والنتائج</Text>
+        
+        {/* Course Requirements */}
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>📋 متطلبات الكورس</Text>
+          <Text style={styles.formHint}>أضف المتطلبات الأساسية التي يحتاجها الطالب قبل البدء</Text>
+          
+          <View style={styles.listInputContainer}>
+            <TextInput
+              style={styles.listInput}
+              value={newRequirement}
+              onChangeText={(text) => {
+                console.log('📋 Requirement input changed:', text);
+                setNewRequirement(text);
+              }}
+              placeholder="مثال: معرفة أساسية بالبرمجة"
+              placeholderTextColor="#666"
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                console.log('📋 Enter pressed, adding requirement:', newRequirement);
+                addRequirement();
+              }}
+            />
+            <TouchableOpacity 
+              style={[styles.addListItemButton, !newRequirement.trim() && styles.addListItemButtonDisabled]} 
+              onPress={() => {
+                console.log('📋 Add button pressed, requirement:', newRequirement);
+                console.log('📋 Current requirements:', formData.requirements);
+                addRequirement();
+              }}
+              disabled={!newRequirement.trim()}
+            >
+              <Text style={styles.addListItemButtonText}>➕ إضافة</Text>
+            </TouchableOpacity>
+          </View>
+
+          {formData.requirements.length === 0 ? (
+            <View style={styles.emptyListState}>
+              <Text style={styles.emptyListText}>لم يتم إضافة أي متطلبات بعد</Text>
+            </View>
+          ) : (
+            <View style={styles.listItemsContainer}>
+              {formData.requirements.map((req, index) => (
+                <View key={index} style={styles.enhancedListItem}>
+                  <View style={styles.listItemContent}>
+                    <Text style={styles.listItemBullet}>📌</Text>
+                    <Text style={styles.listItemText}>{req}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.removeItemButton}
+                    onPress={() => {
+                      console.log('📋 Removing requirement at index:', index);
+                      removeRequirement(index);
+                    }}
+                  >
+                    <Text style={styles.removeItemText}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Learning Outcomes */}
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>🎯 ما سيتعلمه الطلاب</Text>
+          <Text style={styles.formHint}>أضف النتائج والمهارات التي سيكتسبها الطالب</Text>
+          
+          <View style={styles.listInputContainer}>
+            <TextInput
+              style={styles.listInput}
+              value={newOutcome}
+              onChangeText={(text) => {
+                console.log('🎯 Outcome input changed:', text);
+                setNewOutcome(text);
+              }}
+              placeholder="مثال: بناء تطبيقات الجوال باستخدام React Native"
+              placeholderTextColor="#666"
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                console.log('🎯 Enter pressed, adding outcome:', newOutcome);
+                addLearningOutcome();
+              }}
+            />
+            <TouchableOpacity 
+              style={[styles.addListItemButton, !newOutcome.trim() && styles.addListItemButtonDisabled]} 
+              onPress={() => {
+                console.log('🎯 Add button pressed, outcome:', newOutcome);
+                console.log('🎯 Current outcomes:', formData.learningOutcomes);
+                addLearningOutcome();
+              }}
+              disabled={!newOutcome.trim()}
+            >
+              <Text style={styles.addListItemButtonText}>➕ إضافة</Text>
+            </TouchableOpacity>
+          </View>
+
+          {formData.learningOutcomes.length === 0 ? (
+            <View style={styles.emptyListState}>
+              <Text style={styles.emptyListText}>لم يتم إضافة أي نتائج تعلم بعد</Text>
+            </View>
+          ) : (
+            <View style={styles.listItemsContainer}>
+              {formData.learningOutcomes.map((outcome, index) => (
+                <View key={index} style={styles.enhancedListItem}>
+                  <View style={styles.listItemContent}>
+                    <Text style={styles.listItemBullet}>✅</Text>
+                    <Text style={styles.listItemText}>{outcome}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.removeItemButton}
+                    onPress={() => {
+                      console.log('🎯 Removing outcome at index:', index);
+                      removeLearningOutcome(index);
+                    }}
+                  >
+                    <Text style={styles.removeItemText}>🗑️</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Tags Section */}
+        <Text style={styles.formLabel}>🏷️ العلامات (Tags)</Text>
+        <View style={styles.addItemContainer}>
           <TextInput
-            style={styles.listInput}
-            value={newRequirement}
-            onChangeText={setNewRequirement}
-            placeholder="Add requirement"
+            style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+            value={newTag}
+            onChangeText={setNewTag}
+            placeholder="أدخل علامة جديدة"
             placeholderTextColor="#666"
           />
-          <TouchableOpacity style={styles.addListItemButton} onPress={addRequirement}>
-            <Text style={styles.addListItemButtonText}>Add</Text>
+          <TouchableOpacity style={styles.addListItemButton} onPress={addTag}>
+            <Text style={styles.addListItemButtonText}>إضافة</Text>
           </TouchableOpacity>
         </View>
-        {formData.requirements.map((req, index) => (
-          <View key={index} style={styles.listItem}>
-            <Text style={styles.listItemText}>• {req}</Text>
-            <TouchableOpacity onPress={() => removeRequirement(index)}>
+        {formData.tags.map((tag, index) => (
+          <View key={index} style={styles.tagItem}>
+            <Text style={styles.tagText}>#{tag}</Text>
+            <TouchableOpacity onPress={() => removeTag(index)}>
               <Text style={styles.removeItemText}>✕</Text>
             </TouchableOpacity>
           </View>
         ))}
       </View>
 
-      {/* Learning Outcomes */}
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>What Students Will Learn</Text>
-        <View style={styles.listInputContainer}>
+      {/* Media Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>🎬 الوسائط والملفات</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>رابط الفيديو التعريفي</Text>
           <TextInput
-            style={styles.listInput}
-            value={newOutcome}
-            onChangeText={setNewOutcome}
-            placeholder="Add learning outcome"
+            style={styles.formInput}
+            value={formData.previewVideo}
+            onChangeText={(text) => setFormData({...formData, previewVideo: text})}
+            placeholder="https://youtube.com/watch?v=..."
             placeholderTextColor="#666"
           />
-          <TouchableOpacity style={styles.addListItemButton} onPress={addLearningOutcome}>
-            <Text style={styles.addListItemButtonText}>Add</Text>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>قالب الشهادة</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.certificateTemplate}
+            onChangeText={(text) => setFormData({...formData, certificateTemplate: text})}
+            placeholder="رابط قالب الشهادة"
+            placeholderTextColor="#666"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>اللغة</Text>
+          <TouchableOpacity
+            style={styles.formInput}
+            onPress={() => {
+              Alert.alert(
+                'اختر اللغة',
+                'اختر لغة الكورس',
+                [
+                  { text: 'العربية', onPress: () => setFormData({...formData, language: 'Arabic'}) },
+                  { text: 'الإنجليزية', onPress: () => setFormData({...formData, language: 'English'}) },
+                  { text: 'الفرنسية', onPress: () => setFormData({...formData, language: 'French'}) },
+                ]
+              );
+            }}
+          >
+            <Text style={styles.dropdownText}>
+              {formData.language === 'Arabic' ? 'العربية' : 
+               formData.language === 'English' ? 'الإنجليزية' : 
+               formData.language === 'French' ? 'الفرنسية' : formData.language}
+            </Text>
           </TouchableOpacity>
         </View>
-        {formData.learningOutcomes.map((outcome, index) => (
-          <View key={index} style={styles.listItem}>
-            <Text style={styles.listItemText}>• {outcome}</Text>
-            <TouchableOpacity onPress={() => removeLearningOutcome(index)}>
-              <Text style={styles.removeItemText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
       </View>
 
       {/* Course Sections */}
-      <View style={styles.formGroup}>
+      <View style={styles.formSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.formLabel}>Course Sections</Text>
+          <Text style={styles.sectionTitle}>📚 أقسام الكورس</Text>
           <TouchableOpacity style={styles.addSectionButton} onPress={addSection}>
-            <Text style={styles.addSectionButtonText}>+ Add Section</Text>
+            <Text style={styles.addSectionButtonText}>+ إضافة قسم</Text>
           </TouchableOpacity>
         </View>
         
@@ -3498,38 +4799,44 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
       </View>
 
       {/* Course Status */}
-      <View style={styles.formGroup}>
-        <View style={styles.switchContainer}>
-          <Text style={styles.formLabel}>Active</Text>
-          <TouchableOpacity
-            style={[styles.switch, formData.isActive && styles.switchActive]}
-            onPress={() => setFormData({...formData, isActive: !formData.isActive})}
-          >
-            <Text style={styles.switchText}>{formData.isActive ? 'ON' : 'OFF'}</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>⚙️ إعدادات الحالة</Text>
         
-        <View style={styles.switchContainer}>
-          <Text style={styles.formLabel}>Featured</Text>
-          <TouchableOpacity
-            style={[styles.switch, formData.isFeatured && styles.switchActive]}
-            onPress={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
-          >
-            <Text style={styles.switchText}>{formData.isFeatured ? 'ON' : 'OFF'}</Text>
-          </TouchableOpacity>
+        <View style={styles.statusRow}>
+          <View style={styles.switchContainer}>
+            <Text style={styles.formLabel}>نشط</Text>
+            <TouchableOpacity
+              style={[styles.switch, formData.isActive && styles.switchActive]}
+              onPress={() => setFormData({...formData, isActive: !formData.isActive})}
+            >
+              <Text style={styles.switchText}>{formData.isActive ? 'نعم' : 'لا'}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.switchContainer}>
+            <Text style={styles.formLabel}>مميز</Text>
+            <TouchableOpacity
+              style={[styles.switch, formData.isFeatured && styles.switchActive]}
+              onPress={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
+            >
+              <Text style={styles.switchText}>{formData.isFeatured ? 'نعم' : 'لا'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
       {/* Form Actions */}
       <View style={styles.formActions}>
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.cancelButtonText}>إلغاء</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
-          <Text style={styles.saveButtonText}>Save Course</Text>
+          <Text style={styles.saveButtonText}>
+            {course ? 'تحديث الكورس' : 'حفظ الكورس'}
+          </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -3866,25 +5173,87 @@ const styles = StyleSheet.create({
   },
   // Form Styles
   formContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+  },
+  formHeader: {
     padding: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    marginBottom: 20,
+  },
+  formHeaderTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  formHeaderSubtitle: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  formSection: {
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 15,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: '#4ECDC4',
+  },
+  formRow: {
+    flexDirection: 'row',
+    marginBottom: 15,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 10,
+  },
+  mediaPickerContainer: {
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 8,
+    padding: 15,
+    backgroundColor: '#2a2a2a',
+  },
+  imagePreview: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#1a4a1a',
+    borderRadius: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  imagePreviewText: {
+    color: '#4CAF50',
+    fontSize: 14,
   },
   formGroup: {
     marginBottom: 20,
   },
   formLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 8,
   },
   formInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 15,
     color: '#FFFFFF',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   textArea: {
     height: 80,
@@ -4579,6 +5948,99 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     lineHeight: 16,
   },
+  // Avatar Selector Styles
+  avatarSelector: {
+    marginTop: 10,
+  },
+  avatarOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginRight: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  avatarOptionSelected: {
+    backgroundColor: '#4ECDC4',
+    borderColor: '#4ECDC4',
+  },
+  avatarText: {
+    fontSize: 24,
+  },
+  // Tag Styles
+  tagItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(78, 205, 196, 0.2)',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#4ECDC4',
+  },
+  tagText: {
+    color: '#4ECDC4',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Enhanced Requirements and Outcomes Styles
+  formHint: {
+    color: '#AAAAAA',
+    fontSize: 12,
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
+  addListItemButtonDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    opacity: 0.5,
+  },
+  emptyListState: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 20,
+    marginTop: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderStyle: 'dashed',
+  },
+  emptyListText: {
+    color: '#888',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  listItemsContainer: {
+    marginTop: 10,
+  },
+  enhancedListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  listItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  listItemBullet: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  removeItemButton: {
+    backgroundColor: 'rgba(255, 59, 48, 0.2)',
+    borderRadius: 6,
+    padding: 6,
+    marginLeft: 10,
+  },
 });
 
 // Podcast Form Component
@@ -4859,31 +6321,52 @@ const styles = StyleSheet.create({
                       />
                     </View>
 
-                    <View style={styles.formGroup}>
-                      <Text style={styles.formLabel}>Thumbnail Image</Text>
-                      <TouchableOpacity
-                        style={styles.imagePickerButton}
-                        onPress={pickImage}
-                      >
-                        <Text style={styles.imagePickerText}>
-                          {formData.thumbnail ? '📷 Change Image' : '📷 Select Image'}
-                        </Text>
-                      </TouchableOpacity>
-                      
-                      {formData.thumbnail && (
-                        <View style={styles.imageInfo}>
-                          <Text style={styles.imageInfoText}>
-                            ✅ Image selected: {formData.thumbnail.split('/').pop()}
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.clearImageButton}
-                            onPress={() => setFormData({...formData, thumbnail: ''})}
-                          >
-                            <Text style={styles.clearImageText}>🗑️ Remove</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
+      {/* Media Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>🎬 الوسائط</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>صورة الكورس الرئيسية</Text>
+          <View style={styles.mediaPickerContainer}>
+            <TouchableOpacity
+              style={styles.imagePickerButton}
+              onPress={pickImage}
+            >
+              <Text style={styles.imagePickerText}>
+                {formData.thumbnail ? '📷 تغيير الصورة' : '📷 اختيار صورة'}
+              </Text>
+            </TouchableOpacity>
+            
+            {formData.thumbnail && (
+              <View style={styles.imagePreview}>
+                <Text style={styles.imagePreviewText}>
+                  ✅ تم اختيار الصورة
+                </Text>
+                <Text style={styles.imagePreviewText}>
+                  URL: {formData.thumbnail}
+                </Text>
+                <TouchableOpacity
+                  style={styles.clearImageButton}
+                  onPress={() => setFormData({...formData, thumbnail: ''})}
+                >
+                  <Text style={styles.clearImageText}>🗑️ حذف</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>فيديو معاينة الكورس</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.previewVideo}
+            onChangeText={(text) => setFormData({...formData, previewVideo: text})}
+            placeholder="أدخل رابط فيديو المعاينة (اختياري)"
+            placeholderTextColor="#666"
+          />
+        </View>
+      </View>
 
                     <View style={styles.formGroup}>
                       <Text style={styles.formLabel}>Video Source</Text>
@@ -6217,6 +7700,165 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
           )}
         </View>
 
+        {/* Course Hero Image */}
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>صورة البانر الرئيسية</Text>
+          <TouchableOpacity style={styles.imagePickerButton} onPress={pickHeroImage}>
+            <Text style={styles.imagePickerButtonText}>
+              {formData.image ? '📷 تغيير صورة البانر' : '📷 اختيار صورة البانر'}
+            </Text>
+          </TouchableOpacity>
+          {formData.image && (
+            <View style={styles.imagePreview}>
+              <Text style={styles.imagePreviewText}>
+                ✅ تم اختيار صورة البانر
+              </Text>
+              <Text style={styles.imagePreviewText}>
+                URL: {formData.image}
+              </Text>
+              <TouchableOpacity
+                style={styles.clearImageButton}
+                onPress={() => setFormData({...formData, image: ''})}
+              >
+                <Text style={styles.clearImageText}>🗑️ حذف</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Instructor Details */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>معلومات المدرب</Text>
+          
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>اسم المدرب</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.instructor}
+              onChangeText={(text) => setFormData({...formData, instructor: text})}
+              placeholder="اسم المدرب..."
+              placeholderTextColor="#666666"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>نبذة عن المدرب</Text>
+            <TextInput
+              style={styles.textArea}
+              value={formData.instructorBio}
+              onChangeText={(text) => setFormData({...formData, instructorBio: text})}
+              placeholder="نبذة مختصرة عن المدرب وخبراته..."
+              placeholderTextColor="#666666"
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
+              <Text style={styles.formLabel}>تقييم المدرب</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.instructorRating.toString()}
+                onChangeText={(text) => setFormData({...formData, instructorRating: parseFloat(text) || 0})}
+                placeholder="4.9"
+                placeholderTextColor="#666666"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.formGroup, {flex: 1, marginLeft: 10}]}>
+              <Text style={styles.formLabel}>عدد الطلاب</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.instructorStudents.toString()}
+                onChangeText={(text) => setFormData({...formData, instructorStudents: parseInt(text) || 0})}
+                placeholder="25000"
+                placeholderTextColor="#666666"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Course Statistics */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>إحصائيات الكورس</Text>
+          
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
+              <Text style={styles.formLabel}>تقييم الكورس</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.rating.toString()}
+                onChangeText={(text) => setFormData({...formData, rating: parseFloat(text) || 0})}
+                placeholder="4.8"
+                placeholderTextColor="#666666"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.formGroup, {flex: 1, marginLeft: 10}]}>
+              <Text style={styles.formLabel}>عدد التقييمات</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.totalRatings.toString()}
+                onChangeText={(text) => setFormData({...formData, totalRatings: parseInt(text) || 0})}
+                placeholder="15420"
+                placeholderTextColor="#666666"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, {flex: 1, marginRight: 10}]}>
+              <Text style={styles.formLabel}>عدد الطلاب</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.students.toString()}
+                onChangeText={(text) => setFormData({...formData, students: parseInt(text) || 0})}
+                placeholder="15420"
+                placeholderTextColor="#666666"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.formGroup, {flex: 1, marginLeft: 10}]}>
+              <Text style={styles.formLabel}>آخر تحديث</Text>
+              <TextInput
+                style={styles.formInput}
+                value={formData.lastUpdated}
+                onChangeText={(text) => setFormData({...formData, lastUpdated: text})}
+                placeholder="2 weeks ago"
+                placeholderTextColor="#666666"
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Tags Management */}
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>الكلمات المفتاحية (Tags)</Text>
+          <View style={styles.addListItemContainer}>
+            <TextInput
+              style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+              value={newTag}
+              onChangeText={setNewTag}
+              placeholder="أضف كلمة مفتاحية..."
+              placeholderTextColor="#666666"
+            />
+            <TouchableOpacity style={styles.addListItemButton} onPress={addTag}>
+              <Text style={styles.addListItemButtonText}>إضافة</Text>
+            </TouchableOpacity>
+          </View>
+          {formData.tags.map((tag, index) => (
+            <View key={index} style={styles.tagItem}>
+              <Text style={styles.tagText}>#{tag}</Text>
+              <TouchableOpacity onPress={() => removeTag(index)}>
+                <Text style={styles.removeItemText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
         <View style={styles.formGroup}>
           <Text style={styles.formLabel}>المحتوى الصوتي</Text>
           
@@ -6650,6 +8292,23 @@ const adviceStyles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
   },
+  tagItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(229, 9, 20, 0.1)',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  tagText: {
+    color: '#E50914',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
   removeItemText: {
     color: '#E50914',
     fontSize: 18,
@@ -6769,5 +8428,1638 @@ const adviceStyles = StyleSheet.create({
     fontSize: 12,
     marginTop: 5,
     textAlign: 'center',
+  },
+});
+
+// Programming Term Form Component
+const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) => void, onCancel: () => void }) => {
+  console.log('⚡ TermForm mounted with term:', term);
+  
+  const [formData, setFormData] = useState({
+    term: term?.term || '',
+    definition: term?.definition || '',
+    category: term?.category || '',
+    language: term?.language || 'JavaScript',
+    audioUrl: term?.audioUrl || '',
+    duration: term?.duration || '',
+    difficulty: term?.difficulty || 'Beginner',
+    examples: term?.examples || [],
+    relatedTerms: term?.relatedTerms || [],
+    isActive: term?.isActive !== undefined ? term.isActive : true,
+    isFeatured: term?.isFeatured || false
+  });
+
+  const [newExample, setNewExample] = useState({ code: '', explanation: '' });
+  
+  // Audio Recording States
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudioUri, setRecordedAudioUri] = useState<string | null>(null);
+  const [audioPreview, setAudioPreview] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+
+  const addExample = () => {
+    if (newExample.code.trim() && newExample.explanation.trim()) {
+      setFormData({
+        ...formData,
+        examples: [...formData.examples, { ...newExample }]
+      });
+      setNewExample({ code: '', explanation: '' });
+    }
+  };
+
+  const removeExample = (index: number) => {
+    setFormData({
+      ...formData,
+      examples: formData.examples.filter((_, i) => i !== index)
+    });
+  };
+
+  // Audio Recording Functions
+  const startRecording = async () => {
+    try {
+      console.log('🎤 Requesting audio permissions...');
+      const { status } = await Audio.requestPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('خطأ', 'يجب الموافقة على إذن الميكروفون لتسجيل الصوت');
+        return;
+      }
+
+      console.log('🎤 Setting up audio session...');
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      console.log('🎤 Starting recording...');
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingDuration(0);
+      
+      // Start timer for recording duration
+      const timer = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+      
+      // Store timer reference
+      (newRecording as any).timer = timer;
+      
+      console.log('✅ Recording started successfully');
+    } catch (error) {
+      console.error('❌ Failed to start recording:', error);
+      Alert.alert('خطأ', 'فشل في بدء التسجيل');
+    }
+  };
+
+  const stopRecording = async () => {
+    try {
+      if (!recording) return;
+
+      console.log('🎤 Stopping recording...');
+      setIsRecording(false);
+      
+      // Clear timer
+      if ((recording as any).timer) {
+        clearInterval((recording as any).timer);
+      }
+      
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      
+      if (uri) {
+        setRecordedAudioUri(uri);
+        console.log('✅ Recording saved to:', uri);
+        
+        // Calculate duration in MM:SS format
+        const minutes = Math.floor(recordingDuration / 60);
+        const seconds = recordingDuration % 60;
+        const durationString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        setFormData({
+          ...formData,
+          duration: durationString
+        });
+        
+        Alert.alert('نجح التسجيل!', `تم تسجيل الصوت بنجاح (${durationString})`);
+      }
+      
+      setRecording(null);
+    } catch (error) {
+      console.error('❌ Failed to stop recording:', error);
+      Alert.alert('خطأ', 'فشل في إيقاف التسجيل');
+    }
+  };
+
+  const playPreview = async () => {
+    try {
+      if (!recordedAudioUri) return;
+
+      if (isPlaying && audioPreview) {
+        console.log('⏸️ Pausing audio preview...');
+        await audioPreview.pauseAsync();
+        setIsPlaying(false);
+        return;
+      }
+
+      console.log('🔊 Playing audio preview...');
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: recordedAudioUri },
+        { shouldPlay: true }
+      );
+      
+      setAudioPreview(sound);
+      setIsPlaying(true);
+      
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+          setAudioPreview(null);
+        }
+      });
+    } catch (error) {
+      console.error('❌ Failed to play preview:', error);
+      Alert.alert('خطأ', 'فشل في تشغيل المعاينة');
+    }
+  };
+
+  const uploadAudio = async () => {
+    try {
+      if (!recordedAudioUri) {
+        Alert.alert('خطأ', 'لا يوجد ملف صوتي للرفع');
+        return;
+      }
+
+      setUploadingAudio(true);
+      console.log('📤 Uploading audio file...');
+      console.log('📤 Audio URI:', recordedAudioUri);
+
+      // Create FormData for React Native
+      const formDataUpload = new FormData();
+      
+      // Append the audio file with proper structure for React Native
+      const audioFile = {
+        uri: recordedAudioUri,
+        type: 'audio/m4a',
+        name: `term-audio-${Date.now()}.m4a`,
+      };
+      
+      console.log('📤 Audio file object:', audioFile);
+      formDataUpload.append('audio', audioFile as any);
+
+      console.log('📤 FormData created, making request...');
+
+      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+        method: 'POST',
+        body: formDataUpload,
+        // Remove Content-Type header to let FormData set it with boundary
+      });
+
+      console.log('📤 Upload response status:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Audio uploaded successfully:', result);
+        
+        // Use the audioUrl directly from response
+        const audioUrl = result.data.audioUrl;
+        setFormData({
+          ...formData,
+          audioUrl: audioUrl
+        });
+        
+        Alert.alert('نجح الرفع!', 'تم رفع الملف الصوتي بنجاح');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Upload failed with status:', response.status);
+        console.error('❌ Upload error response:', errorText);
+        
+        let errorMessage = 'فشل في رفع الملف الصوتي';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch (e) {
+          // If not JSON, use the text directly
+          errorMessage = errorText || errorMessage;
+        }
+        
+        Alert.alert('خطأ', errorMessage);
+      }
+    } catch (error) {
+      console.error('❌ Failed to upload audio:', error);
+      Alert.alert('خطأ', `فشل في رفع الملف الصوتي: ${error.message}`);
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
+
+  const deleteRecording = () => {
+    Alert.alert(
+      'حذف التسجيل',
+      'هل أنت متأكد من حذف التسجيل الصوتي؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'حذف',
+          style: 'destructive',
+          onPress: () => {
+            setRecordedAudioUri(null);
+            setAudioPreview(null);
+            setIsPlaying(false);
+            setRecordingDuration(0);
+            console.log('🗑️ Audio recording deleted');
+          }
+        }
+      ]
+    );
+  };
+
+  const handleSubmit = () => {
+    if (!formData.term.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال اسم المصطلح');
+      return;
+    }
+    
+    if (!formData.definition.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال تعريف المصطلح');
+      return;
+    }
+
+    if (!formData.category.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال تصنيف المصطلح');
+      return;
+    }
+
+    // Check if audio is missing and warn user
+    if (!formData.audioUrl.trim()) {
+      Alert.alert(
+        'تحذير',
+        'لم يتم إضافة ملف صوتي للمصطلح. هل تريد المتابعة بدون صوت؟',
+        [
+          { text: 'إلغاء', style: 'cancel' },
+          { 
+            text: 'متابعة', 
+            onPress: () => {
+              console.log('⚡ Term form data before save (no audio):', JSON.stringify(formData, null, 2));
+              onSave(formData);
+            }
+          }
+        ]
+      );
+      return;
+    }
+
+    console.log('⚡ Term form data before save:', JSON.stringify(formData, null, 2));
+    onSave(formData);
+  };
+
+  return (
+    <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
+      {/* Header Section */}
+      <View style={styles.formHeader}>
+        <Text style={styles.formHeaderTitle}>
+          {term ? 'تعديل المصطلح البرمجي' : 'إضافة مصطلح برمجي جديد'}
+        </Text>
+        <Text style={styles.formHeaderSubtitle}>
+          {term ? 'قم بتعديل تفاصيل المصطلح' : 'املأ التفاصيل التالية لإضافة مصطلح جديد'}
+        </Text>
+      </View>
+
+      {/* Basic Information Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>⚡ المعلومات الأساسية</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>اسم المصطلح *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.term}
+            onChangeText={(text) => setFormData({...formData, term: text})}
+            placeholder="مثال: Variable"
+            placeholderTextColor="#666"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>التعريف *</Text>
+          <TextInput
+            style={[styles.formInput, { height: 100, textAlignVertical: 'top' }]}
+            value={formData.definition}
+            onChangeText={(text) => setFormData({...formData, definition: text})}
+            placeholder="اكتب تعريفاً مفصلاً للمصطلح..."
+            placeholderTextColor="#666"
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>لغة البرمجة *</Text>
+            <TouchableOpacity
+              style={styles.formInput}
+              onPress={() => {
+                Alert.alert(
+                  'اختر لغة البرمجة',
+                  'اختر اللغة المناسبة للمصطلح',
+                  [
+                    { text: 'JavaScript', onPress: () => setFormData({...formData, language: 'JavaScript'}) },
+                    { text: 'Python', onPress: () => setFormData({...formData, language: 'Python'}) },
+                    { text: 'Java', onPress: () => setFormData({...formData, language: 'Java'}) },
+                    { text: 'C++', onPress: () => setFormData({...formData, language: 'C++'}) },
+                    { text: 'C#', onPress: () => setFormData({...formData, language: 'C#'}) },
+                    { text: 'PHP', onPress: () => setFormData({...formData, language: 'PHP'}) },
+                    { text: 'Ruby', onPress: () => setFormData({...formData, language: 'Ruby'}) },
+                    { text: 'Go', onPress: () => setFormData({...formData, language: 'Go'}) },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.dropdownText}>{formData.language}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>التصنيف *</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.category}
+              onChangeText={(text) => setFormData({...formData, category: text})}
+              placeholder="مثال: متغيرات، دوال، هياكل البيانات..."
+              placeholderTextColor="#666"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>مستوى الصعوبة</Text>
+            <TouchableOpacity
+              style={styles.formInput}
+              onPress={() => {
+                Alert.alert(
+                  'اختر مستوى الصعوبة',
+                  'اختر مستوى صعوبة المصطلح',
+                  [
+                    { text: 'Beginner', onPress: () => setFormData({...formData, difficulty: 'Beginner'}) },
+                    { text: 'Intermediate', onPress: () => setFormData({...formData, difficulty: 'Intermediate'}) },
+                    { text: 'Advanced', onPress: () => setFormData({...formData, difficulty: 'Advanced'}) },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.dropdownText}>
+                {formData.difficulty === 'Beginner' ? 'مبتدئ' : 
+                 formData.difficulty === 'Intermediate' ? 'متوسط' : 'متقدم'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>مدة الصوت</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.duration}
+              onChangeText={(text) => setFormData({...formData, duration: text})}
+              placeholder="مثال: 2:30"
+              placeholderTextColor="#666"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>رابط الملف الصوتي *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.audioUrl}
+            onChangeText={(text) => setFormData({...formData, audioUrl: text})}
+            placeholder="https://example.com/audio.mp3"
+            placeholderTextColor="#666"
+          />
+        </View>
+      </View>
+
+      {/* Audio Recording Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>🎤 تسجيل الصوت</Text>
+        <Text style={styles.formSubtitle}>يمكنك تسجيل الصوت مباشرة من التطبيق بدلاً من إدخال رابط</Text>
+        
+        {!recordedAudioUri ? (
+          <View style={styles.recordingContainer}>
+            <TouchableOpacity
+              style={[
+                styles.recordButton,
+                isRecording && styles.recordButtonActive
+              ]}
+              onPress={isRecording ? stopRecording : startRecording}
+              disabled={uploadingAudio}
+            >
+              <Text style={styles.recordButtonText}>
+                {isRecording ? '⏹️ إيقاف التسجيل' : '🎤 بدء التسجيل'}
+              </Text>
+            </TouchableOpacity>
+            
+            {isRecording && (
+              <View style={styles.recordingIndicator}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingTime}>
+                  {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+                </Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.audioPreviewContainer}>
+            <Text style={styles.audioPreviewTitle}>📁 التسجيل الصوتي جاهز</Text>
+            <Text style={styles.audioPreviewDuration}>
+              المدة: {formData.duration}
+            </Text>
+            
+            <View style={styles.audioPreviewActions}>
+              <TouchableOpacity
+                style={styles.previewButton}
+                onPress={playPreview}
+                disabled={uploadingAudio}
+              >
+                <Text style={styles.previewButtonText}>
+                  {isPlaying ? '⏸️ إيقاف' : '▶️ تشغيل'}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.uploadButton, uploadingAudio && styles.uploadButtonDisabled]}
+                onPress={uploadAudio}
+                disabled={uploadingAudio}
+              >
+                <Text style={styles.uploadButtonText}>
+                  {uploadingAudio ? '📤 جاري الرفع...' : '📤 رفع الملف'}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.deleteAudioButton}
+                onPress={deleteRecording}
+                disabled={uploadingAudio}
+              >
+                <Text style={styles.deleteAudioButtonText}>🗑️ حذف</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {uploadingAudio && (
+              <Text style={styles.uploadingText}>جاري رفع الملف الصوتي...</Text>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Examples Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>💻 أمثلة الكود</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>كود المثال</Text>
+          <TextInput
+            style={[styles.formInput, { height: 80, textAlignVertical: 'top' }]}
+            value={newExample.code}
+            onChangeText={(text) => setNewExample({...newExample, code: text})}
+            placeholder="const variable = 'value';"
+            placeholderTextColor="#666"
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>شرح المثال</Text>
+          <TextInput
+            style={[styles.formInput, { height: 60, textAlignVertical: 'top' }]}
+            value={newExample.explanation}
+            onChangeText={(text) => setNewExample({...newExample, explanation: text})}
+            placeholder="شرح كيفية عمل هذا الكود..."
+            placeholderTextColor="#666"
+            multiline
+            numberOfLines={2}
+          />
+        </View>
+
+        <TouchableOpacity style={styles.addListItemButton} onPress={addExample}>
+          <Text style={styles.addListItemButtonText}>➕ إضافة مثال</Text>
+        </TouchableOpacity>
+
+        {formData.examples.map((example, index) => (
+          <View key={index} style={styles.exampleItem}>
+            <View style={styles.exampleContent}>
+              <Text style={styles.exampleCode}>{example.code}</Text>
+              <Text style={styles.exampleExplanation}>{example.explanation}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.removeItemButton}
+              onPress={() => removeExample(index)}
+            >
+              <Text style={styles.removeItemText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Settings Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>⚙️ إعدادات المصطلح</Text>
+        
+        <View style={styles.formRow}>
+          <View style={styles.switchContainer}>
+            <Text style={styles.formLabel}>نشط</Text>
+            <TouchableOpacity
+              style={[styles.switch, formData.isActive && styles.switchActive]}
+              onPress={() => setFormData({...formData, isActive: !formData.isActive})}
+            >
+              <Text style={styles.switchText}>{formData.isActive ? 'نعم' : 'لا'}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.switchContainer}>
+            <Text style={styles.formLabel}>مميز</Text>
+            <TouchableOpacity
+              style={[styles.switch, formData.isFeatured && styles.switchActive]}
+              onPress={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
+            >
+              <Text style={styles.switchText}>{formData.isFeatured ? 'نعم' : 'لا'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Form Actions */}
+      <View style={styles.formActions}>
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>إلغاء</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+          <Text style={styles.saveButtonText}>
+            {term ? 'تحديث المصطلح' : 'إضافة المصطلح'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+};
+
+// Add Term Form Styles
+const termFormStyles = StyleSheet.create({
+  exampleItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  exampleContent: {
+    flex: 1,
+  },
+  exampleCode: {
+    fontFamily: 'monospace',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: '#4ECDC4',
+    padding: 10,
+    borderRadius: 8,
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  exampleExplanation: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    flex: 1,
+  },
+  switch: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  switchActive: {
+    backgroundColor: '#4ECDC4',
+    borderColor: '#4ECDC4',
+  },
+  switchText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Audio Recording Styles
+  recordingContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  recordButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  recordButtonActive: {
+    backgroundColor: '#FF4444',
+    shadowColor: '#FF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  recordButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  recordingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(229, 9, 20, 0.1)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  recordingDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E50914',
+    marginRight: 10,
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  recordingTime: {
+    color: '#E50914',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'monospace',
+  },
+  audioPreviewContainer: {
+    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(78, 205, 196, 0.3)',
+  },
+  audioPreviewTitle: {
+    color: '#4ECDC4',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  audioPreviewDuration: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  audioPreviewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  previewButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  previewButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadButton: {
+    backgroundColor: '#9B59B6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  uploadButtonDisabled: {
+    backgroundColor: 'rgba(155, 89, 182, 0.5)',
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  deleteAudioButton: {
+    backgroundColor: 'rgba(255, 68, 68, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.5)',
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  deleteAudioButtonText: {
+    color: '#FF4444',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadingText: {
+    color: '#9B59B6',
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
+  formSubtitle: {
+    color: '#999',
+    fontSize: 14,
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  // Challenge Styles
+  challengesList: {
+    marginBottom: 20,
+  },
+  challengeItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  challengeTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    flex: 1,
+    marginRight: 10,
+  },
+  challengeBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  challengeBadge: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  challengeDescription: {
+    color: '#CCCCCC',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  challengeMeta: {
+    color: '#999999',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  removeChallengeButton: {
+    backgroundColor: 'rgba(255, 68, 68, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 68, 68, 0.5)',
+  },
+  removeChallengeText: {
+    fontSize: 14,
+  },
+  newChallengeForm: {
+    backgroundColor: 'rgba(155, 89, 182, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(155, 89, 182, 0.3)',
+  },
+  addChallengeButton: {
+    backgroundColor: '#9B59B6',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+    shadowColor: '#9B59B6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  addChallengeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});
+
+// Programmer Thought Form Component
+const ThoughtForm = ({ thought, onSave, onCancel }: { thought: any, onSave: (data: any) => void, onCancel: () => void }) => {
+  console.log('💭 ThoughtForm mounted with thought:', thought);
+  
+  const [formData, setFormData] = useState({
+    title: thought?.title || '',
+    description: thought?.description || '',
+    duration: thought?.duration || '',
+    thumbnail: thought?.thumbnail || '',
+    videoUrl: thought?.videoUrl || '',
+    category: thought?.category || '',
+    episodeNumber: thought?.episodeNumber || 1,
+    season: thought?.season || 1,
+    keyPoints: thought?.keyPoints || [],
+    resources: thought?.resources || [],
+    tags: thought?.tags || [],
+    transcript: thought?.transcript || '',
+    isActive: thought?.isActive !== undefined ? thought.isActive : true,
+    isFeatured: thought?.isFeatured || false,
+    isPublic: thought?.isPublic !== undefined ? thought.isPublic : true
+  });
+
+  const [newKeyPoint, setNewKeyPoint] = useState('');
+  const [newResource, setNewResource] = useState({ title: '', url: '' });
+  const [newTag, setNewTag] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const addKeyPoint = () => {
+    if (newKeyPoint.trim()) {
+      setFormData({
+        ...formData,
+        keyPoints: [...formData.keyPoints, newKeyPoint.trim()]
+      });
+      setNewKeyPoint('');
+    }
+  };
+
+  const removeKeyPoint = (index: number) => {
+    setFormData({
+      ...formData,
+      keyPoints: formData.keyPoints.filter((_, i) => i !== index)
+    });
+  };
+
+  const addResource = () => {
+    if (newResource.title.trim() && newResource.url.trim()) {
+      setFormData({
+        ...formData,
+        resources: [...formData.resources, { ...newResource }]
+      });
+      setNewResource({ title: '', url: '' });
+    }
+  };
+
+  const removeResource = (index: number) => {
+    setFormData({
+      ...formData,
+      resources: formData.resources.filter((_, i) => i !== index)
+    });
+  };
+
+  const addTag = () => {
+    if (newTag.trim()) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, newTag.trim()]
+      });
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (index: number) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((_, i) => i !== index)
+    });
+  };
+
+  // Image picker function
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9], // Video thumbnail aspect ratio
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        console.log('📸 Image selected:', imageUri);
+        setSelectedImage(imageUri);
+        
+        // Upload image immediately
+        uploadImage(imageUri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('خطأ', 'فشل في اختيار الصورة');
+    }
+  };
+
+  // Upload image function
+  const uploadImage = async (imageUri: string) => {
+    try {
+      setUploadingImage(true);
+      console.log('📤 Uploading image...');
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', {
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: `thought-thumbnail-${Date.now()}.jpg`,
+      } as any);
+
+      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Image uploaded successfully:', result);
+        
+        const imageUrl = result.data.imageUrl;
+        setFormData({
+          ...formData,
+          thumbnail: imageUrl
+        });
+        
+        Alert.alert('نجح الرفع!', 'تم رفع الصورة بنجاح');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Image upload failed:', errorText);
+        Alert.alert('خطأ', 'فشل في رفع الصورة');
+      }
+    } catch (error) {
+      console.error('❌ Failed to upload image:', error);
+      Alert.alert('خطأ', 'فشل في رفع الصورة');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Video URL helpers
+  const pasteVideoUrl = async () => {
+    try {
+      const clipboardContent = await Clipboard.getString();
+      if (clipboardContent && isValidVideoUrl(clipboardContent)) {
+        setFormData({
+          ...formData,
+          videoUrl: clipboardContent
+        });
+        Alert.alert('تم اللصق!', 'تم لصق رابط الفيديو من الحافظة');
+      } else {
+        Alert.alert('تنبيه', 'لا يوجد رابط فيديو صالح في الحافظة');
+      }
+    } catch (error) {
+      console.error('Error pasting from clipboard:', error);
+      Alert.alert('خطأ', 'فشل في اللصق من الحافظة');
+    }
+  };
+
+  const isValidVideoUrl = (url: string) => {
+    if (!url || !url.trim()) return false;
+    
+    // Support multiple video platforms
+    const videoPatterns = [
+      // YouTube
+      /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/,
+      // Vimeo
+      /^(https?:\/\/)?(www\.)?vimeo\.com\/.+/,
+      // Dailymotion
+      /^(https?:\/\/)?(www\.)?dailymotion\.com\/.+/,
+      // Twitch
+      /^(https?:\/\/)?(www\.)?twitch\.tv\/.+/,
+      // Facebook
+      /^(https?:\/\/)?(www\.)?facebook\.com\/.+\/videos\/.+/,
+      // Instagram
+      /^(https?:\/\/)?(www\.)?instagram\.com\/.+/,
+      // TikTok
+      /^(https?:\/\/)?(www\.)?tiktok\.com\/.+/,
+      // Direct video files
+      /^(https?:\/\/).+\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv)(\?.*)?$/i,
+      // Google Drive
+      /^(https?:\/\/)?drive\.google\.com\/.+/,
+      // Dropbox
+      /^(https?:\/\/)?(www\.)?dropbox\.com\/.+/,
+      // OneDrive
+      /^(https?:\/\/)?onedrive\.live\.com\/.+/,
+      // Any HTTPS URL (fallback)
+      /^https:\/\/.+/
+    ];
+    
+    return videoPatterns.some(pattern => pattern.test(url.trim()));
+  };
+
+  const getVideoUrlType = (url: string) => {
+    if (!url) return '';
+    
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
+    if (url.includes('vimeo.com')) return 'Vimeo';
+    if (url.includes('dailymotion.com')) return 'Dailymotion';
+    if (url.includes('twitch.tv')) return 'Twitch';
+    if (url.includes('facebook.com')) return 'Facebook';
+    if (url.includes('instagram.com')) return 'Instagram';
+    if (url.includes('tiktok.com')) return 'TikTok';
+    if (url.includes('drive.google.com')) return 'Google Drive';
+    if (url.includes('dropbox.com')) return 'Dropbox';
+    if (url.includes('onedrive.live.com')) return 'OneDrive';
+    if (/\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv)(\?.*)?$/i.test(url)) return 'Direct Video';
+    
+    return 'رابط مخصص';
+  };
+
+  const handleSubmit = () => {
+    if (!formData.title.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال عنوان الحلقة');
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال وصف الحلقة');
+      return;
+    }
+
+    if (!formData.category.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال تصنيف الحلقة');
+      return;
+    }
+
+    if (!formData.videoUrl.trim()) {
+      Alert.alert('خطأ', 'يرجى إدخال رابط الفيديو');
+      return;
+    }
+
+    // Set default duration if empty
+    const finalFormData = {
+      ...formData,
+      duration: formData.duration.trim() || '15:00'
+    };
+
+    console.log('💭 Thought form data before save:', JSON.stringify(finalFormData, null, 2));
+    onSave(finalFormData);
+  };
+
+  return (
+    <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
+      {/* Header Section */}
+      <View style={styles.formHeader}>
+        <Text style={styles.formHeaderTitle}>
+          {thought ? 'تعديل حلقة خواطر مبرمج' : 'إضافة حلقة جديدة'}
+        </Text>
+        <Text style={styles.formHeaderSubtitle}>
+          {thought ? 'قم بتعديل تفاصيل الحلقة' : 'املأ التفاصيل التالية لإضافة حلقة جديدة'}
+        </Text>
+      </View>
+
+      {/* Basic Information Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>💭 المعلومات الأساسية</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>عنوان الحلقة *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.title}
+            onChangeText={(text) => setFormData({...formData, title: text})}
+            placeholder="مثال: بداية الرحلة البرمجية"
+            placeholderTextColor="#666"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>وصف الحلقة *</Text>
+          <TextInput
+            style={[styles.formInput, { height: 100, textAlignVertical: 'top' }]}
+            value={formData.description}
+            onChangeText={(text) => setFormData({...formData, description: text})}
+            placeholder="اكتب وصفاً مفصلاً للحلقة وما تتناوله من مواضيع..."
+            placeholderTextColor="#666"
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>التصنيف *</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.category}
+              onChangeText={(text) => setFormData({...formData, category: text})}
+              placeholder="مثال: البدايات، التعلم، التحديات..."
+              placeholderTextColor="#666"
+            />
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>مدة الحلقة</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.duration}
+              onChangeText={(text) => setFormData({...formData, duration: text})}
+              placeholder="15:30"
+              placeholderTextColor="#666"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formRow}>
+          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+            <Text style={styles.formLabel}>رقم الحلقة</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.episodeNumber.toString()}
+              onChangeText={(text) => setFormData({...formData, episodeNumber: parseInt(text) || 1})}
+              placeholder="1"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+          
+          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
+            <Text style={styles.formLabel}>رقم الموسم</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.season.toString()}
+              onChangeText={(text) => setFormData({...formData, season: parseInt(text) || 1})}
+              placeholder="1"
+              placeholderTextColor="#666"
+              keyboardType="numeric"
+            />
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>رابط الفيديو *</Text>
+          <View style={styles.inputWithButton}>
+            <TextInput
+              style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+              value={formData.videoUrl}
+              onChangeText={(text) => setFormData({...formData, videoUrl: text})}
+              placeholder="رابط الفيديو من أي منصة (YouTube, Vimeo, TikTok...)"
+              placeholderTextColor="#666"
+            />
+            <TouchableOpacity style={styles.pasteButton} onPress={pasteVideoUrl}>
+              <Text style={styles.pasteButtonText}>📋 لصق</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Video URL validation and platform detection */}
+          {formData.videoUrl && !isValidVideoUrl(formData.videoUrl) && (
+            <Text style={styles.validationError}>⚠️ رابط الفيديو غير صالح</Text>
+          )}
+          {formData.videoUrl && isValidVideoUrl(formData.videoUrl) && (
+            <View style={styles.videoValidationContainer}>
+              <Text style={styles.validationSuccess}>✅ رابط فيديو صالح</Text>
+              <Text style={styles.videoPlatform}>المنصة: {getVideoUrlType(formData.videoUrl)}</Text>
+            </View>
+          )}
+          
+          {/* Supported platforms info */}
+          <View style={styles.supportedPlatformsContainer}>
+            <Text style={styles.supportedPlatformsTitle}>📺 المنصات المدعومة:</Text>
+            <View style={styles.platformsList}>
+              <Text style={styles.platformItem}>🔴 YouTube</Text>
+              <Text style={styles.platformItem}>🔵 Vimeo</Text>
+              <Text style={styles.platformItem}>🟠 Dailymotion</Text>
+              <Text style={styles.platformItem}>🟣 Twitch</Text>
+              <Text style={styles.platformItem}>📘 Facebook</Text>
+              <Text style={styles.platformItem}>📷 Instagram</Text>
+              <Text style={styles.platformItem}>⚫ TikTok</Text>
+              <Text style={styles.platformItem}>☁️ Google Drive</Text>
+              <Text style={styles.platformItem}>📦 Dropbox</Text>
+              <Text style={styles.platformItem}>🗂️ OneDrive</Text>
+              <Text style={styles.platformItem}>🎬 ملفات فيديو مباشرة</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>الصورة المصغرة</Text>
+          
+          {/* Current thumbnail preview */}
+          {(formData.thumbnail || selectedImage) && (
+            <View style={styles.imagePreviewContainer}>
+              <Image 
+                source={{ uri: selectedImage || formData.thumbnail }} 
+                style={styles.imagePreview}
+                resizeMode="cover"
+              />
+              <TouchableOpacity 
+                style={styles.changeImageButton}
+                onPress={pickImage}
+                disabled={uploadingImage}
+              >
+                <Text style={styles.changeImageButtonText}>
+                  {uploadingImage ? '📤 جاري الرفع...' : '📸 تغيير الصورة'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          
+          {/* Image picker button */}
+          {!formData.thumbnail && !selectedImage && (
+            <TouchableOpacity 
+              style={styles.imagePickerButton} 
+              onPress={pickImage}
+              disabled={uploadingImage}
+            >
+              <Text style={styles.imagePickerButtonText}>
+                {uploadingImage ? '📤 جاري الرفع...' : '📸 اختر صورة من الجهاز'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          {/* Manual URL input */}
+          <View style={styles.manualInputContainer}>
+            <Text style={styles.orText}>أو أدخل رابط الصورة يدوياً:</Text>
+            <TextInput
+              style={styles.formInput}
+              value={formData.thumbnail}
+              onChangeText={(text) => setFormData({...formData, thumbnail: text})}
+              placeholder="https://example.com/thumbnail.jpg"
+              placeholderTextColor="#666"
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* Key Points Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>🎯 النقاط الرئيسية</Text>
+        
+        <View style={styles.inputWithButton}>
+          <TextInput
+            style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+            value={newKeyPoint}
+            onChangeText={setNewKeyPoint}
+            placeholder="أضف نقطة رئيسية مهمة في الحلقة..."
+            placeholderTextColor="#666"
+            onSubmitEditing={addKeyPoint}
+          />
+          <TouchableOpacity style={styles.addListItemButton} onPress={addKeyPoint}>
+            <Text style={styles.addListItemButtonText}>➕</Text>
+          </TouchableOpacity>
+        </View>
+
+        {formData.keyPoints.map((point, index) => (
+          <View key={index} style={styles.listItem}>
+            <Text style={styles.listItemText}>• {point}</Text>
+            <TouchableOpacity 
+              style={styles.removeItemButton}
+              onPress={() => removeKeyPoint(index)}
+            >
+              <Text style={styles.removeItemText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Resources Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>📚 المصادر والروابط</Text>
+        
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>عنوان المصدر</Text>
+          <TextInput
+            style={styles.formInput}
+            value={newResource.title}
+            onChangeText={(text) => setNewResource({...newResource, title: text})}
+            placeholder="مثال: مقال مفيد، موقع تعليمي..."
+            placeholderTextColor="#666"
+          />
+        </View>
+
+        <View style={styles.inputWithButton}>
+          <TextInput
+            style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+            value={newResource.url}
+            onChangeText={(text) => setNewResource({...newResource, url: text})}
+            placeholder="https://example.com"
+            placeholderTextColor="#666"
+            onSubmitEditing={addResource}
+          />
+          <TouchableOpacity style={styles.addListItemButton} onPress={addResource}>
+            <Text style={styles.addListItemButtonText}>➕</Text>
+          </TouchableOpacity>
+        </View>
+
+        {formData.resources.map((resource, index) => (
+          <View key={index} style={styles.listItem}>
+            <View style={styles.resourceItem}>
+              <Text style={styles.resourceTitle}>{resource.title}</Text>
+              <Text style={styles.resourceUrl}>{resource.url}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.removeItemButton}
+              onPress={() => removeResource(index)}
+            >
+              <Text style={styles.removeItemText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Tags Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>🏷️ العلامات</Text>
+        
+        <View style={styles.inputWithButton}>
+          <TextInput
+            style={[styles.formInput, { flex: 1, marginRight: 10 }]}
+            value={newTag}
+            onChangeText={setNewTag}
+            placeholder="أضف علامة..."
+            placeholderTextColor="#666"
+            onSubmitEditing={addTag}
+          />
+          <TouchableOpacity style={styles.addListItemButton} onPress={addTag}>
+            <Text style={styles.addListItemButtonText}>➕</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.tagsContainer}>
+          {formData.tags.map((tag, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={styles.tagItem}
+              onPress={() => removeTag(index)}
+            >
+              <Text style={styles.tagText}>{tag}</Text>
+              <Text style={styles.tagRemove}>✕</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Transcript Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>📝 نص الحلقة (اختياري)</Text>
+        
+        <TextInput
+          style={[styles.formInput, { height: 120, textAlignVertical: 'top' }]}
+          value={formData.transcript}
+          onChangeText={(text) => setFormData({...formData, transcript: text})}
+          placeholder="يمكنك إضافة نص مكتوب للحلقة هنا..."
+          placeholderTextColor="#666"
+          multiline
+          numberOfLines={6}
+        />
+      </View>
+
+      {/* Settings Section */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>⚙️ إعدادات الحلقة</Text>
+        
+        <View style={styles.formRow}>
+          <View style={styles.switchContainer}>
+            <Text style={styles.formLabel}>نشط</Text>
+            <TouchableOpacity
+              style={[styles.switch, formData.isActive && styles.switchActive]}
+              onPress={() => setFormData({...formData, isActive: !formData.isActive})}
+            >
+              <Text style={styles.switchText}>{formData.isActive ? 'نعم' : 'لا'}</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.switchContainer}>
+            <Text style={styles.formLabel}>مميز</Text>
+            <TouchableOpacity
+              style={[styles.switch, formData.isFeatured && styles.switchActive]}
+              onPress={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
+            >
+              <Text style={styles.switchText}>{formData.isFeatured ? 'نعم' : 'لا'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.switchContainer}>
+          <Text style={styles.formLabel}>عام (مرئي للجميع)</Text>
+          <TouchableOpacity
+            style={[styles.switch, formData.isPublic && styles.switchActive]}
+            onPress={() => setFormData({...formData, isPublic: !formData.isPublic})}
+          >
+            <Text style={styles.switchText}>{formData.isPublic ? 'نعم' : 'لا'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Form Actions */}
+      <View style={styles.formActions}>
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>إلغاء</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+          <Text style={styles.saveButtonText}>
+            {thought ? 'تحديث الحلقة' : 'إضافة الحلقة'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+};
+
+// Thought Form Styles
+const thoughtFormStyles = StyleSheet.create({
+  resourceItem: {
+    flex: 1,
+  },
+  resourceTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  resourceUrl: {
+    color: '#4ECDC4',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  tagItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(142, 68, 173, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 68, 173, 0.5)',
+  },
+  tagText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginRight: 6,
+  },
+  tagRemove: {
+    color: '#FF4444',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  // Image and Video Styles
+  imagePreviewContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  changeImageButton: {
+    backgroundColor: '#8E44AD',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  changeImageButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  imagePickerButton: {
+    backgroundColor: 'rgba(142, 68, 173, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(142, 68, 173, 0.5)',
+    borderStyle: 'dashed',
+    marginBottom: 16,
+  },
+  imagePickerButtonText: {
+    color: '#8E44AD',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  manualInputContainer: {
+    marginTop: 12,
+  },
+  orText: {
+    color: '#999',
+    fontSize: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  pasteButton: {
+    backgroundColor: '#4ECDC4',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  pasteButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  validationError: {
+    color: '#FF4444',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  validationSuccess: {
+    color: '#2ECC71',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  videoValidationContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  videoPlatform: {
+    color: '#4ECDC4',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  supportedPlatformsContainer: {
+    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(78, 205, 196, 0.2)',
+  },
+  supportedPlatformsTitle: {
+    color: '#4ECDC4',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  platformsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  platformItem: {
+    color: '#CCCCCC',
+    fontSize: 10,
+    marginHorizontal: 6,
+    marginVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });

@@ -133,19 +133,17 @@ export default function PrayerTimesScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // Schedule notifications when prayer times change
+  // Schedule notifications when prayer times change (but not on every render)
   useEffect(() => {
-    if (prayerTimes.fajr !== '05:15') { // Only schedule if prayer times are loaded
-      schedulePrayerNotifications();
+    if (prayerTimes.fajr !== '05:15' && notificationsEnabled) {
+      // Only schedule when explicitly changing settings, not on refresh
+      const scheduleDelayed = setTimeout(() => {
+        schedulePrayerNotifications();
+      }, 2000); // Delay to avoid multiple calls
+      
+      return () => clearTimeout(scheduleDelayed);
     }
-  }, [prayerTimes, notificationsEnabled]);
-
-  // Schedule notifications when country changes
-  useEffect(() => {
-    if (prayerTimes.fajr !== '05:15') { // Only schedule if prayer times are loaded
-      schedulePrayerNotifications();
-    }
-  }, [selectedCountry]);
+  }, [selectedCountry]); // Only when country changes, not on every prayer time update
 
   // Reload prayer times when country changes
   useEffect(() => {
@@ -206,10 +204,12 @@ export default function PrayerTimesScreen() {
     if (!notificationsEnabled) return;
 
     try {
-      // Cancel existing notifications
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      setScheduledNotifications([]);
-
+      console.log('🕌 Scheduling prayer notifications from prayer-times page...');
+      
+      // Use the service method instead of duplicating logic
+      await NotificationService.schedulePrayerNotifications();
+      
+      // Update UI to show notifications are scheduled
       const prayers = [
         { name: 'Fajr', time: prayerTimes.fajr, arabic: 'الفجر' },
         { name: 'Dhuhr', time: prayerTimes.dhuhr, arabic: 'الظهر' },
@@ -217,53 +217,12 @@ export default function PrayerTimesScreen() {
         { name: 'Maghrib', time: prayerTimes.maghrib, arabic: 'المغرب' },
         { name: 'Isha', time: prayerTimes.isha, arabic: 'العشاء' }
       ];
-
-      const today = new Date();
-      const scheduledIds: string[] = [];
-
-      for (const prayer of prayers) {
-        const [hours, minutes] = prayer.time.split(':').map(Number);
-        
-        // Schedule notification 5 minutes before prayer
-        const reminderTime = new Date(today);
-        reminderTime.setHours(hours, minutes - 5, 0, 0);
-        
-        // If reminder time has passed today, schedule for tomorrow
-        if (reminderTime <= new Date()) {
-          reminderTime.setDate(reminderTime.getDate() + 1);
-        }
-
-        const reminderId = await Notifications.scheduleNotificationAsync({
-          content: {
-            title: '🕌 تذكير الصلاة',
-            body: `موعد صلاة ${prayer.arabic} خلال 5 دقائق`,
-            sound: true,
-          },
-          trigger: reminderTime,
-        });
-
-        // Schedule notification at exact prayer time
-        const prayerTime = new Date(today);
-        prayerTime.setHours(hours, minutes, 0, 0);
-        
-        // If prayer time has passed today, schedule for tomorrow
-        if (prayerTime <= new Date()) {
-          prayerTime.setDate(prayerTime.getDate() + 1);
-        }
-
-        const prayerId = await Notifications.scheduleNotificationAsync({
-          content: {
-            title: '🕌 موعد الصلاة',
-            body: `حان موعد صلاة ${prayer.arabic}`,
-            sound: true,
-          },
-          trigger: prayerTime,
-        });
-
-        scheduledIds.push(reminderId, prayerId);
-      }
-
-      setScheduledNotifications(scheduledIds);
+      
+      setScheduledNotifications(prayers.map(prayer => ({
+        id: prayer.name,
+        title: `تذكير صلاة ${prayer.arabic}`,
+        time: prayer.time
+      })));
       console.log('Prayer notifications scheduled successfully');
     } catch (error) {
       console.error('Error scheduling notifications:', error);

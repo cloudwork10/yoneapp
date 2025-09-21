@@ -1,7 +1,7 @@
 import { ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
     ImageBackground,
@@ -63,136 +63,88 @@ export default function CourseDetailsScreen() {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [isEnrolled, setIsEnrolled] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
-    'JavaScript Basics': true,
-    'React Native Fundamentals': true,
-    'Advanced Concepts': true,
-  });
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
-  // Sample course data - in real app, this would come from API
-  const course = {
-    id: courseId || '1',
-    title: 'Complete React Native Development',
-    instructor: 'John Smith',
-    instructorAvatar: '👨‍💻',
-    instructorBio: 'Senior Mobile Developer with 8+ years experience in React Native, iOS, and Android development.',
-    instructorRating: 4.9,
-    instructorStudents: 25000,
-    duration: '12 hours',
-    level: 'Intermediate',
-    rating: 4.8,
-    totalRatings: 15420,
-    students: 15420,
-    price: 0,
-    originalPrice: 199,
-    category: 'Programming',
-    language: 'English',
-    lastUpdated: '2 weeks ago',
-    description: 'Learn to build professional mobile applications with React Native from scratch. This comprehensive course covers everything from basic setup to advanced concepts like navigation, state management, and app deployment.',
-    thumbnail: '📱',
-    image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-    whatYouWillLearn: [
-      'Build cross-platform mobile apps with React Native',
-      'Master React Native navigation and routing',
-      'Implement state management with Redux',
-      'Integrate APIs and handle data fetching',
-      'Deploy apps to App Store and Google Play',
-      'Handle user authentication and security',
-      'Optimize app performance and debugging',
-      'Use modern React Native features and hooks'
-    ],
-    requirements: [
-      'Basic knowledge of JavaScript and React',
-      'Node.js installed on your computer',
-      'Android Studio or Xcode for mobile development',
-      'A computer with at least 8GB RAM',
-      'Internet connection for downloading packages'
-    ],
-    tags: ['React Native', 'Mobile Development', 'JavaScript', 'Cross-Platform', 'iOS', 'Android']
-  };
-
-  const courseVideos: CourseVideo[] = [
-    {
-      id: '1',
-      title: 'Introduction to React Native',
-      duration: '15:30',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Get started with React Native development and understand the fundamentals.',
-      isCompleted: true,
-      category: 'JavaScript Basics'
-    },
-    {
-      id: '2',
-      title: 'JavaScript Fundamentals',
-      duration: '22:45',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Learn the core concepts of JavaScript programming language.',
-      isCompleted: true,
-      category: 'JavaScript Basics'
-    },
-    {
-      id: '3',
-      title: 'ES6+ Features',
-      duration: '28:15',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Master modern JavaScript features and syntax.',
-      isCompleted: false,
-      category: 'JavaScript Basics'
-    },
-    {
-      id: '4',
-      title: 'Setting Up Development Environment',
-      duration: '35:20',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Learn how to set up your development environment for React Native.',
-      isCompleted: false,
-      category: 'React Native Fundamentals'
-    },
-    {
-      id: '5',
-      title: 'Components and Styling',
-      duration: '32:10',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Master React Native components and styling techniques.',
-      isCompleted: false,
-      category: 'React Native Fundamentals'
-    },
-    {
-      id: '6',
-      title: 'Navigation and Routing',
-      duration: '40:25',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Implement navigation and routing in your React Native apps.',
-      isCompleted: false,
-      category: 'React Native Fundamentals'
-    },
-    {
-      id: '7',
-      title: 'State Management with Redux',
-      duration: '45:15',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1551650975-87deedd944c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Learn how to manage application state with Redux.',
-      isCompleted: false,
-      category: 'Advanced Concepts'
-    },
-    {
-      id: '8',
-      title: 'API Integration',
-      duration: '38:30',
-      url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      description: 'Connect your app to external APIs and handle data.',
-      isCompleted: false,
-      category: 'Advanced Concepts'
+  // Generate course videos from course sections and lessons
+  const courseVideos: CourseVideo[] = React.useMemo(() => {
+    if (!course?.sections || course.sections.length === 0) {
+      // Return default videos if no course sections
+      return [
+        {
+          id: '1',
+          title: 'مقدمة الكورس',
+          duration: '15:30',
+          url: course?.previewVideo || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+          thumbnail: course?.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+          description: course?.description || 'مقدمة عن الكورس',
+          isCompleted: false,
+          category: 'مقدمة'
+        }
+      ];
     }
-  ];
+
+    return course.sections.flatMap((section: any, sectionIndex: number) => 
+      section.lessons?.map((lesson: any, lessonIndex: number) => ({
+        id: `${sectionIndex}-${lessonIndex}`,
+        title: lesson.title || `درس ${lessonIndex + 1}`,
+        duration: lesson.duration || '10:00',
+        url: lesson.videoUrl || course?.previewVideo || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        thumbnail: lesson.thumbnail || course?.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+        description: lesson.description || lesson.title || 'وصف الدرس',
+        isCompleted: lesson.isCompleted || false,
+        category: section.title || `القسم ${sectionIndex + 1}`,
+      })) || []
+    );
+  }, [course]);
+
+  // Fetch course details from API
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      try {
+        const response = await fetch(`http://192.168.100.42:3000/api/public/courses/${courseId}`);
+        if (response.ok) {
+          const result = await response.json();
+          setCourse(result.data.course);
+        } else {
+          console.error('Failed to fetch course details');
+        }
+      } catch (error) {
+        console.error('Error fetching course details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (courseId) {
+      fetchCourseDetails();
+    }
+  }, [courseId]);
+
+  // Set expanded categories based on course sections
+  useEffect(() => {
+    if (course?.sections) {
+      const categories: Record<string, boolean> = {};
+      course.sections.forEach((section: any, index: number) => {
+        const categoryName = section.title || `القسم ${index + 1}`;
+        categories[categoryName] = index === 0; // Open first section by default
+      });
+      setExpandedCategories(categories);
+    }
+  }, [course]);
+
+  // Show loading screen if course data is not loaded yet
+  if (loading || !course) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>جاري تحميل تفاصيل الكورس...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const courseTasks: CourseTask[] = [
     {
@@ -307,7 +259,7 @@ export default function CourseDetailsScreen() {
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <ImageBackground
-          source={{ uri: course.image }}
+          source={{ uri: course.image || course.thumbnail || 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80' }}
           style={styles.heroImage}
           resizeMode="cover"
         >
@@ -325,11 +277,11 @@ export default function CourseDetailsScreen() {
               <View style={styles.courseStats}>
                 <View style={styles.statItem}>
                   <Text style={styles.statIcon}>⭐</Text>
-                  <Text style={styles.statText}>{course.rating}</Text>
+                  <Text style={styles.statText}>{course.rating || 4.8}</Text>
                 </View>
                 <View style={styles.statItem}>
                   <Text style={styles.statIcon}>👥</Text>
-                  <Text style={styles.statText}>{course.students.toLocaleString()}</Text>
+                  <Text style={styles.statText}>{(course.students || 15420).toLocaleString()}</Text>
                 </View>
                 <View style={styles.statItem}>
                   <Text style={styles.statIcon}>⏱️</Text>
@@ -342,12 +294,12 @@ export default function CourseDetailsScreen() {
               </View>
 
               <View style={styles.priceContainer}>
-                {course.price === 0 ? (
+                {(course.price || 0) === 0 ? (
                   <Text style={styles.freePrice}>FREE</Text>
                 ) : (
                   <View style={styles.priceRow}>
                     <Text style={styles.currentPrice}>${course.price}</Text>
-                    <Text style={styles.originalPrice}>${course.originalPrice}</Text>
+                    <Text style={styles.originalPrice}>${course.originalPrice || 0}</Text>
                   </View>
                 )}
               </View>
@@ -382,7 +334,7 @@ export default function CourseDetailsScreen() {
         {activeTab === 'overview' && (
           <View style={styles.tabContent}>
             <Text style={styles.sectionTitle}>What You'll Learn</Text>
-            {course.whatYouWillLearn.map((item, index) => (
+            {course.learningOutcomes?.map((item, index) => (
               <View key={index} style={styles.learningItem}>
                 <Text style={styles.learningBullet}>✓</Text>
                 <Text style={styles.learningText}>{item}</Text>
@@ -390,7 +342,7 @@ export default function CourseDetailsScreen() {
             ))}
 
             <Text style={styles.sectionTitle}>Requirements</Text>
-            {course.requirements.map((item, index) => (
+            {course.requirements?.map((item, index) => (
               <View key={index} style={styles.requirementItem}>
                 <Text style={styles.requirementBullet}>•</Text>
                 <Text style={styles.requirementText}>{item}</Text>
@@ -655,7 +607,7 @@ export default function CourseDetailsScreen() {
 
             <View style={styles.instructorSpotlight}>
               <View style={styles.instructorAvatarContainer}>
-                <Text style={styles.instructorSpotlightAvatar}>{course.instructorAvatar}</Text>
+                <Text style={styles.instructorSpotlightAvatar}>{course.instructorAvatar || '👨‍💻'}</Text>
                 <View style={styles.instructorVerified}>
                   <Text style={styles.verifiedIcon}>✓</Text>
                 </View>
@@ -665,11 +617,11 @@ export default function CourseDetailsScreen() {
                 <Text style={styles.instructorSpotlightName}>{course.instructor}</Text>
                 <View style={styles.instructorStats}>
                   <View style={styles.instructorStat}>
-                    <Text style={styles.instructorStatNumber}>{course.instructorRating}</Text>
+                    <Text style={styles.instructorStatNumber}>{course.instructorRating || 4.9}</Text>
                     <Text style={styles.instructorStatLabel}>Rating</Text>
                   </View>
                   <View style={styles.instructorStat}>
-                    <Text style={styles.instructorStatNumber}>{course.instructorStudents.toLocaleString()}</Text>
+                    <Text style={styles.instructorStatNumber}>{(course.instructorStudents || 25000).toLocaleString()}</Text>
                     <Text style={styles.instructorStatLabel}>Students</Text>
                   </View>
                   <View style={styles.instructorStat}>
@@ -677,7 +629,7 @@ export default function CourseDetailsScreen() {
                     <Text style={styles.instructorStatLabel}>Years</Text>
                   </View>
                 </View>
-                <Text style={styles.instructorSpotlightBio}>{course.instructorBio}</Text>
+                <Text style={styles.instructorSpotlightBio}>{course.instructorBio || 'مطور محترف مع خبرة واسعة في تطوير التطبيقات'}</Text>
               </View>
             </View>
           </View>
@@ -688,11 +640,11 @@ export default function CourseDetailsScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>💬 Community Reviews</Text>
               <View style={styles.overallRating}>
-                <Text style={styles.overallRatingNumber}>{course.rating}</Text>
+                <Text style={styles.overallRatingNumber}>{course.rating || 4.8}</Text>
                 <View style={styles.overallRatingStars}>
-                  {renderStars(course.rating)}
+                  {renderStars(course.rating || 4.8)}
                 </View>
-                <Text style={styles.totalRatings}>({course.totalRatings.toLocaleString()} reviews)</Text>
+                <Text style={styles.totalRatings}>({(course.totalRatings || 15420).toLocaleString()} reviews)</Text>
               </View>
             </View>
 
@@ -1925,5 +1877,16 @@ const styles = StyleSheet.create({
   },
   reviewRating: {
     flexDirection: 'row',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

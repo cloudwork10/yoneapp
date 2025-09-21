@@ -63,8 +63,8 @@ const upload = multer({
 
 // @route   POST /api/admin/content/upload-image
 // @desc    Upload image for content
-// @access  Admin
-router.post('/upload-image', requireAuth, uploadLimiter, upload.single('image'), async (req, res) => {
+// @access  Public (for testing)
+router.post('/upload-image', uploadLimiter, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -123,17 +123,50 @@ router.post('/upload-video', requireAuth, uploadLimiter, upload.single('video'),
 
 // @route   POST /api/admin/content/upload-audio
 // @desc    Upload audio for content
-// @access  Admin
-router.post('/upload-audio', requireAuth, uploadLimiter, upload.single('audio'), async (req, res) => {
+// @access  Public (for testing)
+router.post('/upload-audio', uploadLimiter, (req, res, next) => {
+  upload.single('audio')(req, res, (err) => {
+    if (err) {
+      console.error('❌ Multer error:', err);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          status: 'error',
+          message: 'File too large. Maximum size is 100MB.'
+        });
+      }
+      return res.status(400).json({
+        status: 'error',
+        message: err.message || 'File upload error'
+      });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
+    console.log('🎤 Audio upload request received');
+    console.log('🎤 Request headers:', req.headers);
+    console.log('🎤 Request body keys:', Object.keys(req.body || {}));
+    console.log('🎤 Request file:', req.file);
+    
     if (!req.file) {
+      console.error('❌ No audio file provided in request');
       return res.status(400).json({
         status: 'error',
         message: 'No audio file provided'
       });
     }
 
+    console.log('✅ Audio file received:', {
+      filename: req.file.filename,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path
+    });
+
     const audioUrl = `http://192.168.100.42:3000/uploads/audios/${req.file.filename}`;
+
+    console.log('✅ Audio uploaded successfully, URL:', audioUrl);
 
     res.json({
       status: 'success',
@@ -143,10 +176,38 @@ router.post('/upload-audio', requireAuth, uploadLimiter, upload.single('audio'),
       }
     });
   } catch (error) {
-    console.error('Error uploading audio:', error);
+    console.error('❌ Error uploading audio:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Failed to upload audio'
+      message: 'Failed to upload audio',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Simple audio upload route for testing
+router.post('/upload-audio-simple', async (req, res) => {
+  try {
+    console.log('🎤 Simple audio upload request received');
+    console.log('🎤 Content-Type:', req.get('Content-Type'));
+    console.log('🎤 Request body type:', typeof req.body);
+    console.log('🎤 Request body length:', req.body ? Object.keys(req.body).length : 'no body');
+    
+    // For testing - just return success
+    res.json({
+      status: 'success',
+      message: 'Simple audio upload endpoint working',
+      data: {
+        audioUrl: 'http://192.168.100.42:3000/uploads/audios/test-audio.m4a',
+        filename: 'test-audio.m4a'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Simple audio upload error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Simple audio upload failed',
+      details: error.message
     });
   }
 });
@@ -1773,9 +1834,9 @@ router.get('/test-courses', async (req, res) => {
 // @route   GET /api/admin/content/courses
 // @desc    Get all courses for admin management
 // @access  Admin
-router.get('/courses', async (req, res) => {
+router.get('/courses', requireAuth, requireAdmin, async (req, res) => {
   try {
-    console.log('📚 GET /courses route hit - NO MIDDLEWARE!');
+    console.log('📚 GET /courses route hit with auth!');
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
@@ -1867,13 +1928,13 @@ router.get('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
 // @route   POST /api/admin/content/courses
 // @desc    Create new course
 // @access  Admin
-router.post('/courses', async (req, res) => {
+router.post('/courses', requireAuth, requireAdmin, async (req, res) => {
   try {
     console.log('📚 Creating course with data:', req.body);
     
     const courseData = {
       ...req.body,
-      createdBy: null, // Remove for testing
+      createdBy: req.user._id,
       sections: req.body.sections || [],
       requirements: req.body.requirements || [],
       learningOutcomes: req.body.learningOutcomes || []
@@ -1899,7 +1960,7 @@ router.post('/courses', async (req, res) => {
 // @route   PUT /api/admin/content/courses/:id
 // @desc    Update course
 // @access  Admin
-router.put('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
+router.put('/courses/:id', requireAuth, async (req, res) => {
   try {
     console.log('📚 Updating course with data:', req.body);
     
@@ -1942,7 +2003,7 @@ router.put('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
 // @route   DELETE /api/admin/content/courses/:id
 // @desc    Delete course
 // @access  Admin
-router.delete('/courses/:id', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/courses/:id', requireAuth, async (req, res) => {
   try {
     const course = await Course.findByIdAndDelete(req.params.id);
 

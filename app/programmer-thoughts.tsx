@@ -1,7 +1,8 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -14,7 +15,6 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 const { width, height } = Dimensions.get('window');
@@ -138,9 +138,73 @@ export default function ProgrammerThoughts() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [slideAnim] = useState(new Animated.Value(50));
+  const [episodes, setEpisodes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState(['All']);
+
+  // Fetch episodes from database
+  const fetchEpisodes = async () => {
+    try {
+      setLoading(true);
+      console.log('💭 Fetching programmer thoughts from database...');
+      
+      const response = await fetch('http://192.168.100.42:3000/api/public/programmer-thoughts');
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('💭 Episodes fetched:', data.data.count, 'episodes');
+        const dbEpisodes = data.data.thoughts || [];
+        
+        // Convert database format to UI format
+        const formattedEpisodes = dbEpisodes.map(thought => ({
+          id: thought._id,
+          title: thought.title,
+          description: thought.description,
+          duration: thought.duration,
+          thumbnail: thought.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=600&fit=crop',
+          videoUrl: thought.videoUrl,
+          category: thought.category,
+          views: thought.views || 0,
+          likes: thought.likes || 0,
+          season: thought.season || 1,
+          episodeNumber: thought.episodeNumber || 1,
+          keyPoints: thought.keyPoints || [],
+          resources: thought.resources || [],
+          tags: thought.tags || [],
+          transcript: thought.transcript || '',
+          isActive: thought.isActive,
+          isFeatured: thought.isFeatured
+        }));
+        
+        setEpisodes(formattedEpisodes);
+        
+        // Extract unique categories
+        const uniqueCategories = ['All', ...new Set(dbEpisodes.map(ep => ep.category).filter(Boolean))];
+        setCategories(uniqueCategories);
+        
+        console.log('✅ Episodes loaded:', formattedEpisodes.length);
+      } else {
+        console.error('❌ Failed to fetch episodes:', response.status);
+        // Fallback to static data
+        setEpisodes(staticEpisodes);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching episodes:', error);
+      // Fallback to static data
+      setEpisodes(staticEpisodes);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Static episodes as fallback
+  const staticEpisodes = episodes;
 
   useEffect(() => {
-    // Entrance animation
+    // Fetch episodes first
+    fetchEpisodes();
+    
+    // Then start entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -160,6 +224,14 @@ export default function ProgrammerThoughts() {
     ]).start();
   }, []);
 
+  // Refresh episodes when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('💭 Thoughts screen focused, refreshing data...');
+      fetchEpisodes();
+    }, [])
+  );
+
   const openEpisode = (episode) => {
     setSelectedEpisode(episode);
   };
@@ -171,14 +243,15 @@ export default function ProgrammerThoughts() {
   const renderEpisodeCard = (episode, index) => {
     const cardAnim = new Animated.Value(0);
     
-    useEffect(() => {
+    // Start animation immediately
+    setTimeout(() => {
       Animated.timing(cardAnim, {
         toValue: 1,
         duration: 800,
         delay: index * 100,
         useNativeDriver: true,
       }).start();
-    }, []);
+    }, 0);
 
     return (
       <Animated.View
@@ -385,9 +458,21 @@ export default function ProgrammerThoughts() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.episodesGrid}>
-            {episodes.map((episode, index) => renderEpisodeCard(episode, index))}
-          </View>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>💭 جاري تحميل الحلقات...</Text>
+              <Text style={styles.loadingSubtext}>جلب البيانات من قاعدة البيانات</Text>
+            </View>
+          ) : episodes.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>📺 لا توجد حلقات حالياً</Text>
+              <Text style={styles.emptySubtext}>أضف حلقات جديدة من الداشبورد لتظهر هنا</Text>
+            </View>
+          ) : (
+            <View style={styles.episodesGrid}>
+              {episodes.map((episode, index) => renderEpisodeCard(episode, index))}
+            </View>
+          )}
         </ScrollView>
 
         {/* Video Modal */}
@@ -671,5 +756,39 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '500',
+  },
+  // Loading and Empty States
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    textAlign: 'center',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });

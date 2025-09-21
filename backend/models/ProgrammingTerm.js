@@ -15,7 +15,8 @@ const programmingTermSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Term category is required'],
-    enum: ['Basics', 'Functions', 'Data Structures', 'OOP', 'Advanced']
+    trim: true,
+    maxlength: [50, 'Category cannot be more than 50 characters']
   },
   language: {
     type: String,
@@ -24,11 +25,13 @@ const programmingTermSchema = new mongoose.Schema({
   },
   audioUrl: {
     type: String,
-    required: [true, 'Audio URL is required']
+    required: false,
+    default: ''
   },
   duration: {
     type: String,
-    required: [true, 'Audio duration is required']
+    required: false,
+    default: ''
   },
   examples: [{
     code: String,
@@ -54,18 +57,23 @@ const programmingTermSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    required: false
   }
 }, {
   timestamps: true
 });
 
 // Index for better search performance
-programmingTermSchema.index({ term: 'text', definition: 'text' });
+// Using 'none' language for text index to avoid language override issues
+programmingTermSchema.index({ term: 'text', definition: 'text' }, { 
+  default_language: 'none',
+  language_override: 'none'
+});
 programmingTermSchema.index({ language: 1, category: 1 });
 programmingTermSchema.index({ isActive: 1, isFeatured: 1 });
 

@@ -13,8 +13,6 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import LoadingScreen from '../../components/LoadingScreen';
-import { PodcastCardSkeleton } from '../../components/SkeletonLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,8 +20,9 @@ export default function PodcastsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [podcasts, setPodcasts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Simple loading state
   const categories = ['All', 'Technology', 'Programming', 'Business', 'Design', 'Career'];
+
 
   // Fetch podcasts from API
   useEffect(() => {
@@ -35,36 +34,26 @@ export default function PodcastsScreen() {
     fetchPodcasts();
   };
 
+
   const fetchPodcasts = async () => {
     try {
       setLoading(true);
       console.log('🎧 Fetching podcasts from API...');
-      
-      // Show loading for at least 1.5 seconds for better UX
-      const startTime = Date.now();
       
       const response = await fetch('http://192.168.100.42:3000/api/public/podcasts');
       
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Podcasts fetched:', result.data.podcasts.length);
-        
-        // Ensure minimum loading time for better UX
-        const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(0, 1500 - elapsedTime);
-        
-        setTimeout(() => {
-          setPodcasts(result.data.podcasts);
-          setLoading(false);
-        }, remainingTime);
+        setPodcasts(result.data.podcasts);
       } else {
         console.error('❌ Failed to fetch podcasts:', response.status);
         Alert.alert('خطأ', 'فشل في تحميل البودكاست');
-        setLoading(false);
       }
     } catch (error) {
       console.error('❌ Network error:', error);
       Alert.alert('خطأ شبكة', 'فشل في الاتصال بالخادم');
+    } finally {
       setLoading(false);
     }
   };
@@ -164,16 +153,6 @@ export default function PodcastsScreen() {
                 <Text style={styles.heroTitle}>Listen & Learn</Text>
                 <Text style={styles.heroSubtitle}>Discover expert insights through video podcasts</Text>
                 
-                {/* Test Loading Button */}
-                <TouchableOpacity 
-                  style={styles.testLoadingButton}
-                  onPress={() => {
-                    setLoading(true);
-                    setTimeout(() => setLoading(false), 3000);
-                  }}
-                >
-                  <Text style={styles.testLoadingButtonText}>🎭 اختبار التحميل</Text>
-                </TouchableOpacity>
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
                     <Text style={styles.heroStatNumber}>200+</Text>
@@ -261,18 +240,9 @@ export default function PodcastsScreen() {
       {/* Podcasts List */}
       <View style={styles.podcastsContainer}>
         {loading ? (
-          <>
-            <LoadingScreen 
-              message="جاري تحميل البودكاست..." 
-              type="audio"
-              color="#E50914"
-            />
-            <View style={styles.skeletonContainer}>
-              {Array.from({ length: 4 }, (_, index) => (
-                <PodcastCardSkeleton key={`skeleton-${index}`} />
-              ))}
-            </View>
-          </>
+          <View style={styles.simpleLoadingContainer}>
+            <Text style={styles.simpleLoadingText}>Loading podcasts...</Text>
+          </View>
         ) : filteredPodcasts.length > 0 ? (
           filteredPodcasts.map((podcast) => (
             <View key={`podcast-${podcast._id}`}>
@@ -564,23 +534,17 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 20,
   },
-  // Test Loading Button
-  testLoadingButton: {
-    backgroundColor: '#E50914',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'center',
-    marginTop: 16,
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+  // Simple Loading Styles
+  simpleLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    minHeight: 200,
   },
-  testLoadingButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+  simpleLoadingText: {
+    color: '#CCCCCC',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

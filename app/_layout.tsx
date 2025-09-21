@@ -1,12 +1,12 @@
+import { UserProvider } from '@/contexts/UserContext';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
+import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { UserProvider } from '@/contexts/UserContext';
-import * as Notifications from 'expo-notifications';
 import NotificationService from '../services/NotificationService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -28,7 +28,7 @@ export default function RootLayout() {
         // Register for push notifications
         await NotificationService.registerForPushNotifications();
         
-        // Schedule prayer notifications
+        // Schedule prayer notifications only once per day
         await NotificationService.schedulePrayerNotifications();
         
         console.log('✅ Notifications initialized');
@@ -37,6 +37,7 @@ export default function RootLayout() {
       }
     };
 
+    // Only initialize once when app starts
     initializeNotifications();
 
     // Listen for notifications
@@ -84,6 +85,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
+      // Navigate to loading screen which will handle auth check
+      router.replace('/app-loading');
     }
   }, [loaded]);
 
@@ -95,6 +98,7 @@ export default function RootLayout() {
     <UserProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
+          <Stack.Screen name="app-loading" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="dashboard" options={{ headerShown: false }} />
           <Stack.Screen name="content-management" options={{ headerShown: false }} />

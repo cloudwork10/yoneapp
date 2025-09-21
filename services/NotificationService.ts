@@ -1,7 +1,7 @@
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -156,6 +156,22 @@ class NotificationService {
   // Prayer time notifications
   async schedulePrayerNotifications(): Promise<void> {
     try {
+      // Check if prayer notifications are enabled
+      const prayerNotificationsEnabled = await AsyncStorage.getItem('prayerNotifications') !== 'false';
+      if (!prayerNotificationsEnabled) {
+        console.log('⏸️ Prayer notifications disabled, skipping...');
+        return;
+      }
+
+      // Check if notifications were already scheduled today
+      const lastScheduledDate = await AsyncStorage.getItem('lastPrayerScheduleDate');
+      const today = new Date().toDateString();
+      
+      if (lastScheduledDate === today) {
+        console.log('⏸️ Prayer notifications already scheduled for today, skipping...');
+        return;
+      }
+
       // Cancel existing prayer notifications
       const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
       const prayerNotifications = scheduledNotifications.filter(
@@ -172,9 +188,14 @@ class NotificationService {
       
       for (const [prayerName, time] of Object.entries(prayerTimes)) {
         await this.schedulePrayerNotification(prayerName, time);
+        // Also schedule reminder 5 minutes before
+        await this.schedulePrayerReminder(prayerName, time);
       }
 
-      console.log('✅ Prayer notifications scheduled');
+      // Mark as scheduled for today
+      await AsyncStorage.setItem('lastPrayerScheduleDate', today);
+
+      console.log('✅ Prayer notifications scheduled for', today);
     } catch (error) {
       console.error('Error scheduling prayer notifications:', error);
     }
@@ -217,6 +238,49 @@ class NotificationService {
       },
       trigger: {
         date: prayerTime,
+        repeats: true,
+      },
+    });
+  }
+
+  // Schedule prayer reminder (5 minutes before)
+  private async schedulePrayerReminder(prayerName: string, time: string): Promise<void> {
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    const now = new Date();
+    const reminderTime = new Date();
+    reminderTime.setHours(hours, minutes - 5, 0, 0); // 5 minutes before
+    
+    // If reminder time has passed today, schedule for tomorrow
+    if (reminderTime <= now) {
+      reminderTime.setDate(reminderTime.getDate() + 1);
+    }
+
+    const prayerNames = {
+      'fajr': 'الفجر',
+      'dhuhr': 'الظهر',
+      'asr': 'العصر',
+      'maghrib': 'المغرب',
+      'isha': 'العشاء'
+    };
+
+    const arabicName = prayerNames[prayerName as keyof typeof prayerNames] || prayerName;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: `⏰ تذكير: صلاة ${arabicName}`,
+        body: `السلام عليكم، يحين وقت صلاة ${arabicName} خلال 5 دقائق. استعد للصلاة.`,
+        data: {
+          type: 'prayer_reminder',
+          prayerName,
+          time
+        },
+        sound: 'default',
+        vibrate: [0, 250, 250, 250],
+        priority: 'high',
+      },
+      trigger: {
+        date: reminderTime,
         repeats: true,
       },
     });

@@ -1,3 +1,4 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
@@ -31,8 +32,95 @@ export default function ProgrammingTermsScreen() {
     duration: number;
     sound: Audio.Sound | null;
   }}>({});
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dbTerms, setDbTerms] = useState<any[]>([]);
 
-  const languages: Language[] = [
+  // Fetch programming terms from database
+  const fetchTerms = async () => {
+    try {
+      setLoading(true);
+      console.log('⚡ Fetching programming terms from database...');
+      
+      const response = await fetch('http://192.168.100.42:3000/api/public/programming-terms');
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('⚡ Terms fetched:', data.data.count, 'terms');
+        const terms = data.data.terms || [];
+        setDbTerms(terms);
+        
+        // Process terms and group by language
+        const processedLanguages = processTermsIntoLanguages(terms);
+        setLanguages(processedLanguages);
+      } else {
+        console.error('❌ Failed to fetch terms:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching terms:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process database terms into language groups
+  const processTermsIntoLanguages = (terms: any[]): Language[] => {
+    const languageColors: {[key: string]: {icon: string, color: string}} = {
+      'JavaScript': { icon: '🟨', color: '#F7DF1E' },
+      'Python': { icon: '🐍', color: '#3776AB' },
+      'Java': { icon: '☕', color: '#ED8B00' },
+      'C++': { icon: '⚡', color: '#00599C' },
+      'C#': { icon: '🔷', color: '#239120' },
+      'PHP': { icon: '🐘', color: '#777BB4' },
+      'Ruby': { icon: '💎', color: '#CC342D' },
+      'Go': { icon: '🐹', color: '#00ADD8' }
+    };
+
+    const groupedTerms: {[key: string]: any[]} = {};
+    
+    // Group terms by language
+    terms.forEach(term => {
+      const language = term.language;
+      if (!groupedTerms[language]) {
+        groupedTerms[language] = [];
+      }
+      
+      // Convert database term to UI term format
+      groupedTerms[language].push({
+        id: term._id,
+        term: term.term,
+        definition: term.definition,
+        category: term.category,
+        audioUrl: term.audioUrl || '',
+        duration: term.duration || '0:00'
+      });
+    });
+
+    // Convert to Language array
+    return Object.keys(groupedTerms).map(languageName => ({
+      id: languageName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+      name: languageName,
+      icon: languageColors[languageName]?.icon || '📝',
+      color: languageColors[languageName]?.color || '#666666',
+      terms: groupedTerms[languageName]
+    }));
+  };
+
+  // Load terms on component mount
+  useEffect(() => {
+    fetchTerms();
+  }, []);
+
+  // Refresh terms when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('⚡ Terms screen focused, refreshing data...');
+      fetchTerms();
+    }, [])
+  );
+
+  // Static fallback languages for empty state
+  const staticLanguages: Language[] = [
     {
       id: 'javascript',
       name: 'JavaScript',
@@ -472,11 +560,22 @@ export default function ProgrammingTermsScreen() {
             <Text style={styles.subtitle}>Learn the language of coding</Text>
           </View>
 
-          {!selectedLanguage ? (
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>⚡ Loading Programming Terms...</Text>
+              <Text style={styles.loadingSubtext}>Fetching terms from database</Text>
+            </View>
+          ) : !selectedLanguage ? (
             <View style={styles.languagesContainer}>
               <Text style={styles.sectionTitle}>Choose a Programming Language</Text>
-              <View style={styles.languagesGrid}>
-                {languages.map((language) => (
+              {languages.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>📝 No programming terms found</Text>
+                  <Text style={styles.emptyStateSubtext}>Add some terms from the dashboard to see them here</Text>
+                </View>
+              ) : (
+                <View style={styles.languagesGrid}>
+                  {languages.map((language) => (
                   <TouchableOpacity
                     key={`language-${language.id}`}
                     style={[styles.languageCard, { borderColor: language.color }]}
@@ -486,8 +585,9 @@ export default function ProgrammingTermsScreen() {
                     <Text style={styles.languageName}>{language.name}</Text>
                     <Text style={styles.termCount}>{language.terms.length} terms</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
+                  ))}
+                </View>
+              )}
             </View>
           ) : (
             <>
@@ -775,5 +875,40 @@ const styles = StyleSheet.create({
   },
   audioStopIcon: {
     fontSize: 16,
+  },
+  // Loading States
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    textAlign: 'center',
+  },
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+  },
+  emptyStateText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
