@@ -103,6 +103,7 @@ export default function RootLayout() {
           <Stack.Screen name="dashboard" options={{ headerShown: false }} />
           <Stack.Screen name="content-management" options={{ headerShown: false }} />
           <Stack.Screen name="notification-settings" options={{ headerShown: false }} />
+          <Stack.Screen name="help-support" options={{ headerShown: false }} />
           <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
           <Stack.Screen name="article-details" options={{ headerShown: false }} />
           <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
