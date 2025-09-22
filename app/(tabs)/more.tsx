@@ -213,6 +213,7 @@ export default function MoreScreen() {
           setShowAboutModal(false);
         }}
       >
+        {console.log('🔍 Modal rendering, visible:', showAboutModal)}
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
