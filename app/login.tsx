@@ -68,9 +68,10 @@ export default function LoginScreen() {
         });
         
         // Store token for future API calls
-        if (data.data.token) {
+        if (data.data.tokens && data.data.tokens.accessToken) {
           const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-          await AsyncStorage.setItem('token', data.data.token);
+          await AsyncStorage.setItem('token', data.data.tokens.accessToken);
+          console.log('✅ Token saved to storage');
         } else {
           console.warn('No token received from server');
         }
