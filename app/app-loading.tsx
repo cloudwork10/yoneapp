@@ -201,29 +201,33 @@ export default function AppLoadingScreen() {
         return;
       }
 
-      // Verify token with server
-      try {
-        const response = await fetch('http://192.168.100.42:3000/api/auth/verify', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+      // If we have token and user data, go directly to app
+      // Don't verify with server on every app start - let user continue
+      console.log('✅ Auth data found, redirecting to app...');
+      router.replace('/(tabs)');
+      
+      // Optional: Verify token in background (don't block user)
+      setTimeout(async () => {
+        try {
+          const response = await fetch('http://192.168.100.42:3000/api/auth/verify', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
 
-        if (response.ok) {
-          console.log('✅ Auth valid, redirecting to app...');
-          router.replace('/(tabs)');
-        } else {
-          console.log('🔐 Token invalid, redirecting to login...');
-          await AsyncStorage.removeItem('token');
-          await AsyncStorage.removeItem('user');
-          router.replace('/login');
+          if (!response.ok) {
+            console.log('🔐 Token invalid in background, will require re-login on next app start');
+            // Don't remove tokens here, let user continue using app
+            // They'll be prompted to login again on next app start
+          } else {
+            console.log('✅ Token verified in background');
+          }
+        } catch (error) {
+          console.log('🔐 Background token verification failed, but user can continue');
         }
-      } catch (error) {
-        console.error('🔐 Error verifying token:', error);
-        router.replace('/login');
-      }
+      }, 1000);
     } catch (error) {
       console.error('🔐 Error in auth check:', error);
       router.replace('/login');
