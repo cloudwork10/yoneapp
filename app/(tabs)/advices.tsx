@@ -112,13 +112,13 @@ export default function AdvicesScreen() {
   );
 
   const categories = [
-    { id: 'all', name: 'الكل', icon: '🌟', color: '#E50914' },
-    { id: 'career-shift', name: 'تغيير المهنة', icon: '🚀', color: '#FF6B35' },
-    { id: 'kids', name: 'الأطفال والعائلة', icon: '👶', color: '#4ECDC4' },
-    { id: 'motivation', name: 'التحفيز', icon: '💪', color: '#45B7D1' },
-    { id: 'success', name: 'نصائح النجاح', icon: '🏆', color: '#96CEB4' },
-    { id: 'programming', name: 'البرمجة', icon: '💻', color: '#9B59B6' },
-    { id: 'business', name: 'الأعمال', icon: '💼', color: '#F39C12' },
+    { id: 'all', name: 'All', icon: '🌟', color: '#E50914' },
+    { id: 'career-shift', name: 'Career Change', icon: '🚀', color: '#FF6B35' },
+    { id: 'kids', name: 'Kids & Family', icon: '👶', color: '#4ECDC4' },
+    { id: 'motivation', name: 'Motivation', icon: '💪', color: '#45B7D1' },
+    { id: 'success', name: 'Success Tips', icon: '🏆', color: '#96CEB4' },
+    { id: 'programming', name: 'Programming', icon: '💻', color: '#9B59B6' },
+    { id: 'business', name: 'Business', icon: '💼', color: '#F39C12' },
   ];
 
   const [advices, setAdvices] = useState<Advice[]>([]);
@@ -284,7 +284,7 @@ export default function AdvicesScreen() {
              <Text style={styles.adviceTitle} numberOfLines={2}>
                {advice.title}
              </Text>
-             <Text style={styles.adviceAuthor}>بواسطة {advice.author}</Text>
+             <Text style={styles.adviceAuthor}>by {advice.author}</Text>
            </View>
          </LinearGradient>
        </ImageBackground>
@@ -378,8 +378,8 @@ export default function AdvicesScreen() {
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>مركز النصائح</Text>
-            <Text style={styles.subtitle}>إرشادات الخبراء لتطوير الحياة والمهنة</Text>
+            <Text style={styles.title}>Advice Center</Text>
+            <Text style={styles.subtitle}>Expert guidance for life and career development</Text>
             
           </View>
 
@@ -422,7 +422,7 @@ export default function AdvicesScreen() {
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>❌ {error}</Text>
               <TouchableOpacity style={styles.retryButton} onPress={fetchAdvices}>
-                <Text style={styles.retryButtonText}>🔄 إعادة المحاولة</Text>
+                <Text style={styles.retryButtonText}>🔄 Retry</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -431,10 +431,10 @@ export default function AdvicesScreen() {
           {!loading && !error && filteredAdvices.length === 0 && (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>💡</Text>
-              <Text style={styles.emptyTitle}>لا توجد نصائح متاحة</Text>
-              <Text style={styles.emptyText}>سيتم إضافة النصائح قريباً</Text>
+              <Text style={styles.emptyTitle}>No advice available</Text>
+              <Text style={styles.emptyText}>New advice will be added soon</Text>
               <TouchableOpacity style={styles.refreshButton} onPress={fetchAdvices}>
-                <Text style={styles.refreshButtonText}>🔄 تحديث</Text>
+                <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
               </TouchableOpacity>
             </View>
           )}
