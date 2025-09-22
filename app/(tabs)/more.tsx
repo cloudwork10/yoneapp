@@ -208,6 +208,7 @@ export default function MoreScreen() {
         visible={showAboutModal}
         animationType="slide"
         transparent={true}
+        presentationStyle="overFullScreen"
         onRequestClose={() => {
           console.log('🔍 Modal close requested');
           setShowAboutModal(false);
@@ -215,6 +216,7 @@ export default function MoreScreen() {
       >
         {console.log('🔍 Modal rendering, visible:', showAboutModal)}
         <View style={styles.modalOverlay}>
+          {console.log('🔍 Modal overlay rendering')}
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               {/* Modal Header */}
@@ -468,7 +470,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
@@ -476,6 +478,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 9999,
   },
   modalContainer: {
     width: '95%',
@@ -490,6 +493,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 15 },
     shadowOpacity: 0.8,
     shadowRadius: 25,
+    zIndex: 10000,
   },
   modalContent: {
     flex: 1,
