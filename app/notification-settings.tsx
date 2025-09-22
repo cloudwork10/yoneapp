@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -25,10 +26,28 @@ export default function NotificationSettingsScreen() {
 
   const loadSettings = async () => {
     try {
+      // Register for push notifications first
+      const token = await NotificationService.registerForPushNotifications();
+      console.log('🔔 Push token:', token);
+      
       const settings = await NotificationService.getNotificationSettings();
       setContentNotifications(settings.contentNotifications);
       setPrayerNotifications(settings.prayerNotifications);
       setPushToken(settings.pushToken);
+      
+      // Check notification permissions
+      const { status } = await Notifications.getPermissionsAsync();
+      console.log('🔔 Notification permission status:', status);
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          '⚠️ الإشعارات غير مفعلة',
+          'يرجى تفعيل الإشعارات من إعدادات التطبيق لاستلام التنبيهات',
+          [
+            { text: 'موافق', style: 'default' }
+          ]
+        );
+      }
     } catch (error) {
       console.error('Error loading notification settings:', error);
     } finally {
@@ -205,6 +224,22 @@ export default function NotificationSettingsScreen() {
 
           {/* Actions */}
           <View style={styles.actionsSection}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.primaryButton]}
+              onPress={async () => {
+                const { status } = await Notifications.requestPermissionsAsync();
+                if (status === 'granted') {
+                  const token = await NotificationService.registerForPushNotifications();
+                  setPushToken(token);
+                  Alert.alert('✅ تم التفعيل', 'تم تفعيل الإشعارات بنجاح!');
+                } else {
+                  Alert.alert('❌ تم الرفض', 'يرجى تفعيل الإشعارات من إعدادات التطبيق');
+                }
+              }}
+            >
+              <Text style={styles.actionButtonText}>🔔 تفعيل الإشعارات</Text>
+            </TouchableOpacity>
+            
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={async () => {
@@ -400,6 +435,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#E50914',
+    shadowColor: '#E50914',
   },
   dangerButton: {
     backgroundColor: '#E50914',
