@@ -125,7 +125,7 @@ export default function MoreScreen() {
       }
     } else if (route === '/notification-settings') {
       router.push('/notification-settings');
-    } else if (route === '/help-support') {
+    } else if (route === '/help') {
       router.push('/help-support');
     } else if (route === '/about') {
       console.log('🔍 About button pressed, opening modal...');
