@@ -330,6 +330,68 @@ export default function MoreScreen() {
                   </Text>
                 </View>
 
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>📱 App Features</Text>
+                  <Text style={styles.sectionText}>
+                    • <Text style={styles.boldText}>Interactive Learning:</Text> Hands-on courses with real-world projects{'\n'}
+                    • <Text style={styles.boldText}>Personalized Paths:</Text> Custom roadmaps based on your goals{'\n'}
+                    • <Text style={styles.boldText}>Audio Content:</Text> Listen to programming podcasts anywhere{'\n'}
+                    • <Text style={styles.boldText}>Expert Advice:</Text> Tips from experienced developers{'\n'}
+                    • <Text style={styles.boldText}>Term Dictionary:</Text> Learn programming concepts with audio{'\n'}
+                    • <Text style={styles.boldText}>Thoughts & Insights:</Text> Video content from programming experts{'\n'}
+                    • <Text style={styles.boldText}>Prayer Integration:</Text> Stay connected with your faith{'\n'}
+                    • <Text style={styles.boldText}>Offline Support:</Text> Download content for offline learning
+                  </Text>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>🎓 Learning Paths</Text>
+                  <Text style={styles.sectionText}>
+                    YONE offers structured learning paths for different skill levels:{'\n\n'}
+                    <Text style={styles.boldText}>Beginner:</Text> Start with fundamentals and basic concepts{'\n'}
+                    <Text style={styles.boldText}>Intermediate:</Text> Build projects and learn best practices{'\n'}
+                    <Text style={styles.boldText}>Advanced:</Text> Master complex topics and architecture{'\n'}
+                    <Text style={styles.boldText}>Expert:</Text> Contribute to open source and mentor others
+                  </Text>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>🌟 Why Choose YONE?</Text>
+                  <Text style={styles.sectionText}>
+                    • <Text style={styles.boldText}>Comprehensive:</Text> All-in-one learning platform{'\n'}
+                    • <Text style={styles.boldText}>Practical:</Text> Real-world projects and challenges{'\n'}
+                    • <Text style={styles.boldText}>Flexible:</Text> Learn at your own pace{'\n'}
+                    • <Text style={styles.boldText}>Community:</Text> Connect with fellow learners{'\n'}
+                    • <Text style={styles.boldText}>Updated:</Text> Latest technologies and trends{'\n'}
+                    • <Text style={styles.boldText}>Free:</Text> No hidden costs or subscriptions
+                  </Text>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>📞 Contact & Support</Text>
+                  <Text style={styles.sectionText}>
+                    Need help or have suggestions? We're here for you!{'\n\n'}
+                    <Text style={styles.boldText}>Email:</Text> support@yoneapp.com{'\n'}
+                    <Text style={styles.boldText}>Website:</Text> www.yoneapp.com{'\n'}
+                    <Text style={styles.boldText}>Community:</Text> Join our Discord server{'\n'}
+                    <Text style={styles.boldText}>Feedback:</Text> Rate us on the App Store{'\n\n'}
+                    We value your feedback and are constantly improving based on your suggestions!
+                  </Text>
+                </View>
+
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>🔮 Future Updates</Text>
+                  <Text style={styles.sectionText}>
+                    We're constantly working on new features:{'\n\n'}
+                    • AI-powered learning recommendations{'\n'}
+                    • Live coding sessions and workshops{'\n'}
+                    • Gamification and achievement system{'\n'}
+                    • Collaborative projects and team learning{'\n'}
+                    • Advanced analytics and progress tracking{'\n'}
+                    • Integration with popular development tools
+                  </Text>
+                </View>
+
                 <View style={styles.modalFooter}>
                   <Text style={styles.footerText}>Made with ❤️ for the programming community</Text>
                   <Text style={styles.copyrightText}>© 2025 YONE Learning Platform. All rights reserved.</Text>
@@ -481,28 +543,20 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   modalContainer: {
-    width: '95%',
-    maxHeight: '90%',
+    width: '100%',
+    height: '100%',
     backgroundColor: '#1a1a1a',
-    borderRadius: 25,
-    borderWidth: 3,
-    borderColor: '#E50914',
-    overflow: 'hidden',
-    elevation: 25,
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.8,
-    shadowRadius: 25,
     zIndex: 10000,
   },
   modalContent: {
     flex: 1,
     backgroundColor: '#1a1a1a',
-    borderRadius: 20,
   },
   modalScrollView: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 30,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -611,6 +665,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     lineHeight: 24,
     fontWeight: '500',
+  },
+  boldText: {
+    fontWeight: '700',
+    color: '#E50914',
   },
   featureList: {
     gap: 12,
