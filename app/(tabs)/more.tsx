@@ -8,6 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
   const [showAboutModal, setShowAboutModal] = useState(false);
+  
+  console.log('🔍 MoreScreen rendered, showAboutModal:', showAboutModal);
 
   const baseMenuItems = [
     {
@@ -122,7 +124,9 @@ export default function MoreScreen() {
         Alert.alert('Access Denied', 'You need admin privileges to access content management.');
       }
     } else if (route === '/about') {
+      console.log('🔍 About button pressed, opening modal...');
       setShowAboutModal(true);
+      console.log('✅ Modal state set to true');
     } else {
       // For other routes, you can implement them later
       console.log(`Navigate to ${route}`);
@@ -204,25 +208,30 @@ export default function MoreScreen() {
         visible={showAboutModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowAboutModal(false)}
+        onRequestClose={() => {
+          console.log('🔍 Modal close requested');
+          setShowAboutModal(false);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <LinearGradient colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']} style={styles.modalGradient}>
+            <View style={styles.modalContent}>
               {/* Modal Header */}
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>About YONE</Text>
                 <TouchableOpacity 
                   style={styles.closeButton}
-                  onPress={() => setShowAboutModal(false)}
+                  onPress={() => {
+                    console.log('🔍 Close button pressed');
+                    setShowAboutModal(false);
+                  }}
                 >
                   <Text style={styles.closeButtonText}>✕</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Modal Content */}
-              <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-                {/* App Logo & Name */}
+              {/* Simple Content */}
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
                 <View style={styles.appInfo}>
                   <View style={styles.logoContainer}>
                     <Text style={styles.logoText}>Y</Text>
@@ -232,7 +241,6 @@ export default function MoreScreen() {
                   <Text style={styles.versionInfo}>Version 1.0.0</Text>
                 </View>
 
-                {/* Description */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>🎯 What is YONE?</Text>
                   <Text style={styles.sectionText}>
@@ -242,7 +250,6 @@ export default function MoreScreen() {
                   </Text>
                 </View>
 
-                {/* Features */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>✨ Key Features</Text>
                   <View style={styles.featureList}>
@@ -281,7 +288,6 @@ export default function MoreScreen() {
                   </View>
                 </View>
 
-                {/* Technology */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>⚡ Built With</Text>
                   <View style={styles.techList}>
@@ -312,7 +318,6 @@ export default function MoreScreen() {
                   </View>
                 </View>
 
-                {/* Mission */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>🚀 Our Mission</Text>
                   <Text style={styles.sectionText}>
@@ -322,22 +327,12 @@ export default function MoreScreen() {
                   </Text>
                 </View>
 
-                {/* Contact */}
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>📞 Contact & Support</Text>
-                  <Text style={styles.sectionText}>
-                    Need help or have suggestions? We're here to support your learning journey. 
-                    Reach out to us through the app's support features or contact our team directly.
-                  </Text>
-                </View>
-
-                {/* Footer */}
                 <View style={styles.modalFooter}>
                   <Text style={styles.footerText}>Made with ❤️ for the programming community</Text>
                   <Text style={styles.copyrightText}>© 2025 YONE Learning Platform. All rights reserved.</Text>
                 </View>
               </ScrollView>
-            </LinearGradient>
+            </View>
           </View>
         </View>
       </Modal>
@@ -487,8 +482,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 20,
   },
-  modalGradient: {
+  modalContent: {
     flex: 1,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 20,
+  },
+  modalScrollView: {
+    flex: 1,
+    padding: 20,
   },
   modalHeader: {
     flexDirection: 'row',
