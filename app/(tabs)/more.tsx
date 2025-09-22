@@ -123,6 +123,8 @@ export default function MoreScreen() {
       } else {
         Alert.alert('Access Denied', 'You need admin privileges to access content management.');
       }
+    } else if (route === '/notification-settings') {
+      router.push('/notification-settings');
     } else if (route === '/about') {
       console.log('🔍 About button pressed, opening modal...');
       setShowAboutModal(true);
