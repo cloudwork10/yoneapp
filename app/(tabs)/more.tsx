@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
@@ -545,12 +545,12 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#000000',
     zIndex: 10000,
   },
   modalContent: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#000000',
   },
   modalScrollView: {
     flex: 1,
