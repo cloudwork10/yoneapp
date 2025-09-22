@@ -42,27 +42,20 @@ export default function MoreScreen() {
     },
     {
       id: 5,
-      title: 'Settings',
-      description: 'App preferences and configuration',
-      icon: '⚙️',
-      route: '/settings'
-    },
-    {
-      id: 6,
       title: 'Help & Support',
       description: 'Get help and contact support',
       icon: '❓',
       route: '/help'
     },
     {
-      id: 7,
+      id: 6,
       title: 'Notification Settings',
       description: 'Manage your notification preferences',
       icon: '🔔',
       route: '/notification-settings'
     },
     {
-      id: 8,
+      id: 7,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
