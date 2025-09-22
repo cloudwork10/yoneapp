@@ -57,7 +57,7 @@ export default function LoginScreen() {
       if (response.ok) {
         // Store user data and token
         const userData = data.data.user;
-        await login({
+        const userContextData = {
           id: userData._id,
           name: userData.name,
           email: userData.email,
@@ -65,15 +65,23 @@ export default function LoginScreen() {
           adminLevel: userData.adminLevel,
           role: userData.isAdmin ? 'admin' : 'user',
           createdAt: userData.createdAt
-        });
+        };
         
         // Store token for future API calls
+        console.log('🔍 Login response structure:', JSON.stringify(data, null, 2));
+        console.log('🔍 Looking for tokens in:', data.data);
+        
         if (data.data.tokens && data.data.tokens.accessToken) {
-          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-          await AsyncStorage.setItem('token', data.data.tokens.accessToken);
-          console.log('✅ Token saved to storage');
+          const token = data.data.tokens.accessToken;
+          console.log('✅ Token found, saving to storage:', token.substring(0, 20) + '...');
+          
+          // Save token and user data via UserContext
+          await login(userContextData, token);
         } else {
-          console.warn('No token received from server');
+          console.warn('❌ No token received from server');
+          console.log('🔍 Available data keys:', Object.keys(data.data || {}));
+          // Still save user data without token
+          await login(userContextData);
         }
         
         console.log('Login successful:', userData);

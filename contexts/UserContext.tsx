@@ -55,11 +55,16 @@ export function UserProvider({ children }: UserProviderProps) {
     }
   };
 
-  const login = async (userData: User) => {
+  const login = async (userData: User, token?: string) => {
     try {
       console.log('UserContext: Login called with user data:', userData);
+      console.log('UserContext: Token received:', token ? token.substring(0, 20) + '...' : 'No token');
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
+      if (token) {
+        await AsyncStorage.setItem('token', token);
+        console.log('UserContext: Token saved to storage');
+      }
       console.log('UserContext: User data saved to storage');
     } catch (error) {
       console.error('Error saving user to storage:', error);
