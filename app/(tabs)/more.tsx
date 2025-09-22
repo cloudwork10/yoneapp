@@ -1,12 +1,13 @@
 import { useUser } from '@/contexts/UserContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   const baseMenuItems = [
     {
@@ -120,6 +121,8 @@ export default function MoreScreen() {
       } else {
         Alert.alert('Access Denied', 'You need admin privileges to access content management.');
       }
+    } else if (route === '/about') {
+      setShowAboutModal(true);
     } else {
       // For other routes, you can implement them later
       console.log(`Navigate to ${route}`);
@@ -195,6 +198,149 @@ export default function MoreScreen() {
         </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* About Modal */}
+      <Modal
+        visible={showAboutModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAboutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <LinearGradient colors={['#1a1a1a', '#2d2d2d', '#1a1a1a']} style={styles.modalGradient}>
+              {/* Modal Header */}
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>About YONE</Text>
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={() => setShowAboutModal(false)}
+                >
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Modal Content */}
+              <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+                {/* App Logo & Name */}
+                <View style={styles.appInfo}>
+                  <View style={styles.logoContainer}>
+                    <Text style={styles.logoText}>Y</Text>
+                  </View>
+                  <Text style={styles.appName}>YONE</Text>
+                  <Text style={styles.appTagline}>Your Learning Companion</Text>
+                  <Text style={styles.versionInfo}>Version 1.0.0</Text>
+                </View>
+
+                {/* Description */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>🎯 What is YONE?</Text>
+                  <Text style={styles.sectionText}>
+                    YONE is a comprehensive learning platform designed to help you grow in your programming journey. 
+                    From courses and roadmaps to expert advice and programming terms, YONE provides everything you need 
+                    to become a successful developer.
+                  </Text>
+                </View>
+
+                {/* Features */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>✨ Key Features</Text>
+                  <View style={styles.featureList}>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>📚</Text>
+                      <Text style={styles.featureText}>Interactive Courses with Challenges</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>🗺️</Text>
+                      <Text style={styles.featureText}>Learning Roadmaps & Paths</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>🎧</Text>
+                      <Text style={styles.featureText}>Audio Podcasts & Content</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>💡</Text>
+                      <Text style={styles.featureText}>Expert Advice & Tips</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>📖</Text>
+                      <Text style={styles.featureText}>Programming Terms Dictionary</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>💭</Text>
+                      <Text style={styles.featureText}>Programmer Thoughts & Insights</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>🕌</Text>
+                      <Text style={styles.featureText}>Prayer Times & Notifications</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Text style={styles.featureIcon}>🎬</Text>
+                      <Text style={styles.featureText}>Programming Movies & Content</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Technology */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>⚡ Built With</Text>
+                  <View style={styles.techList}>
+                    <View style={styles.techItem}>
+                      <Text style={styles.techIcon}>⚛️</Text>
+                      <Text style={styles.techText}>React Native & Expo</Text>
+                    </View>
+                    <View style={styles.techItem}>
+                      <Text style={styles.techIcon}>🟢</Text>
+                      <Text style={styles.techText}>Node.js & Express</Text>
+                    </View>
+                    <View style={styles.techItem}>
+                      <Text style={styles.techIcon}>🍃</Text>
+                      <Text style={styles.techText}>MongoDB Database</Text>
+                    </View>
+                    <View style={styles.techItem}>
+                      <Text style={styles.techIcon}>🔐</Text>
+                      <Text style={styles.techText}>JWT Authentication</Text>
+                    </View>
+                    <View style={styles.techItem}>
+                      <Text style={styles.techIcon}>🎵</Text>
+                      <Text style={styles.techText}>Audio & Media Support</Text>
+                    </View>
+                    <View style={styles.techItem}>
+                      <Text style={styles.techIcon}>🔔</Text>
+                      <Text style={styles.techText}>Push Notifications</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Mission */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>🚀 Our Mission</Text>
+                  <Text style={styles.sectionText}>
+                    To democratize programming education and make quality learning resources accessible to everyone. 
+                    We believe that with the right guidance, tools, and community support, anyone can become a 
+                    successful developer and contribute to the tech world.
+                  </Text>
+                </View>
+
+                {/* Contact */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>📞 Contact & Support</Text>
+                  <Text style={styles.sectionText}>
+                    Need help or have suggestions? We're here to support your learning journey. 
+                    Reach out to us through the app's support features or contact our team directly.
+                  </Text>
+                </View>
+
+                {/* Footer */}
+                <View style={styles.modalFooter}>
+                  <Text style={styles.footerText}>Made with ❤️ for the programming community</Text>
+                  <Text style={styles.copyrightText}>© 2025 YONE Learning Platform. All rights reserved.</Text>
+                </View>
+              </ScrollView>
+            </LinearGradient>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -322,5 +468,175 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: '#999999',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    maxHeight: '85%',
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+  },
+  modalGradient: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  closeButton: {
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    backgroundColor: 'rgba(229, 9, 20, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  closeButtonText: {
+    color: '#E50914',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  appInfo: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E50914',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  logoText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+    letterSpacing: 2,
+  },
+  appTagline: {
+    fontSize: 16,
+    color: '#CCCCCC',
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
+  versionInfo: {
+    fontSize: 14,
+    color: '#999999',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginBottom: 12,
+  },
+  sectionText: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    lineHeight: 22,
+  },
+  featureList: {
+    gap: 12,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E50914',
+  },
+  featureIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  featureText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  techList: {
+    gap: 10,
+  },
+  techItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 10,
+    borderRadius: 8,
+  },
+  techIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  techText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#CCCCCC',
+  },
+  modalFooter: {
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#E50914',
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  copyrightText: {
+    fontSize: 12,
+    color: '#999999',
+    textAlign: 'center',
   },
 });
