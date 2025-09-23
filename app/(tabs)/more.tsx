@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ScreenshotTestButton from '../../components/ScreenshotTestButton';
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
@@ -191,11 +190,6 @@ export default function MoreScreen() {
           ))}
         </View>
 
-        {/* Screenshot Protection Test */}
-        <View style={styles.testSection}>
-          <Text style={styles.testTitle}>🔒 Screenshot Protection</Text>
-          <ScreenshotTestButton />
-        </View>
 
         {/* About Section */}
         <View style={styles.aboutSection}>
@@ -553,23 +547,6 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  testSection: {
-    marginHorizontal: 20,
-    marginTop: 30,
-    marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#E50914',
-  },
-  testTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E50914',
-    marginBottom: 15,
-    textAlign: 'center',
   },
   aboutSection: {
     marginHorizontal: 20,

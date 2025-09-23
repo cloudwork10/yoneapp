@@ -8,8 +8,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import TrueScreenshotBlocker from '../services/TrueScreenshotBlocker';
-import NetflixStyleBlackScreen from '../components/NetflixStyleBlackScreen';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -20,31 +18,10 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  const [showScreenshotProtection, setShowScreenshotProtection] = useState(false);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
-    // Enable Netflix-style screenshot blocking
-    const enableScreenshotProtection = async () => {
-      try {
-        // Set callback for screenshot detection
-        TrueScreenshotBlocker.setScreenshotCallback(() => {
-          setShowScreenshotProtection(true);
-          // Hide black screen after 1 second
-          setTimeout(() => {
-            setShowScreenshotProtection(false);
-          }, 1000);
-        });
-        
-        await TrueScreenshotBlocker.enableProtection();
-        // Don't show black screen by default - only when screenshot is detected
-        setShowScreenshotProtection(false);
-        console.log('✅ Netflix-style screenshot blocker service initialized');
-      } catch (error) {
-        console.error('❌ Error initializing Netflix-style screenshot blocker:', error);
-      }
-    };
 
     // Initialize notifications
     const initializeNotifications = async () => {
@@ -106,9 +83,6 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      // Cleanup Netflix-style screenshot blocker
-      TrueScreenshotBlocker.cleanup();
-      setShowScreenshotProtection(false);
     };
   }, []);
 
@@ -151,8 +125,6 @@ export default function RootLayout() {
         </Stack>
       </ThemeProvider>
       
-      {/* Netflix-Style Black Screen */}
-      <NetflixStyleBlackScreen visible={showScreenshotProtection} />
     </UserProvider>
   );
 }
