@@ -8,8 +8,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import TrueScreenshotBlocker from '../services/TrueScreenshotBlocker';
-import ScreenshotProtectionOverlay from '../components/ScreenshotProtectionOverlay';
+import NetflixStyleScreenshotBlocker from '../services/NetflixStyleScreenshotBlocker';
+import NetflixStyleBlackScreen from '../components/NetflixStyleBlackScreen';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -25,24 +25,24 @@ export default function RootLayout() {
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
-    // Enable true screenshot blocking
+    // Enable Netflix-style screenshot blocking
     const enableScreenshotProtection = async () => {
       try {
         // Set callback for screenshot detection
-        TrueScreenshotBlocker.setScreenshotCallback(() => {
+        NetflixStyleScreenshotBlocker.setScreenshotCallback(() => {
           setShowScreenshotProtection(true);
-          // Hide overlay after 8 seconds
+          // Hide black screen after 5 seconds
           setTimeout(() => {
             setShowScreenshotProtection(false);
-          }, 8000);
+          }, 5000);
         });
         
-        await TrueScreenshotBlocker.enableProtection();
-        // Don't show overlay by default - only when screenshot is detected
+        await NetflixStyleScreenshotBlocker.enableProtection();
+        // Don't show black screen by default - only when screenshot is detected
         setShowScreenshotProtection(false);
-        console.log('✅ True screenshot blocker service initialized');
+        console.log('✅ Netflix-style screenshot blocker service initialized');
       } catch (error) {
-        console.error('❌ Error initializing true screenshot blocker:', error);
+        console.error('❌ Error initializing Netflix-style screenshot blocker:', error);
       }
     };
 
@@ -106,8 +106,8 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      // Cleanup true screenshot blocker
-      TrueScreenshotBlocker.cleanup();
+      // Cleanup Netflix-style screenshot blocker
+      NetflixStyleScreenshotBlocker.cleanup();
       setShowScreenshotProtection(false);
     };
   }, []);
@@ -151,8 +151,8 @@ export default function RootLayout() {
         </Stack>
       </ThemeProvider>
       
-      {/* Screenshot Protection Overlay */}
-      <ScreenshotProtectionOverlay visible={showScreenshotProtection} />
+      {/* Netflix-Style Black Screen */}
+      <NetflixStyleBlackScreen visible={showScreenshotProtection} />
     </UserProvider>
   );
 }

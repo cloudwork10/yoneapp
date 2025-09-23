@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import TrueScreenshotBlocker from '../services/TrueScreenshotBlocker';
+import NetflixStyleScreenshotBlocker from '../services/NetflixStyleScreenshotBlocker';
 
 interface ScreenshotTestButtonProps {
   style?: any;
@@ -9,8 +9,8 @@ interface ScreenshotTestButtonProps {
 export default function ScreenshotTestButton({ style }: ScreenshotTestButtonProps) {
   const handleTestScreenshot = () => {
     Alert.alert(
-      '🧪 Test Screenshot Protection',
-      'This will simulate a screenshot detection to test the protection system.',
+      '🔒 Netflix-Style Screenshot Protection Test',
+      'This will simulate a screenshot detection to test the Netflix-style protection system. A black screen will appear for 5 seconds.',
       [
         {
           text: 'Cancel',
@@ -20,7 +20,7 @@ export default function ScreenshotTestButton({ style }: ScreenshotTestButtonProp
           text: 'Test Now',
           style: 'default',
           onPress: () => {
-            TrueScreenshotBlocker.simulateScreenshotDetection();
+            NetflixStyleScreenshotBlocker.simulateScreenshotDetection();
           }
         }
       ]
@@ -32,7 +32,7 @@ export default function ScreenshotTestButton({ style }: ScreenshotTestButtonProp
       style={[styles.button, style]} 
       onPress={handleTestScreenshot}
     >
-      <Text style={styles.buttonText}>🧪 Test Screenshot Protection</Text>
+      <Text style={styles.buttonText}>🔒 Test Netflix-Style Protection</Text>
     </TouchableOpacity>
   );
 }
