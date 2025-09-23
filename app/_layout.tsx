@@ -8,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
+import ScreenshotProtectionService from '../services/ScreenshotProtectionService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -22,6 +23,16 @@ export default function RootLayout() {
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
+    // Enable screenshot protection
+    const enableScreenshotProtection = async () => {
+      try {
+        await ScreenshotProtectionService.enableProtection();
+        console.log('✅ Screenshot protection service initialized');
+      } catch (error) {
+        console.error('❌ Error initializing screenshot protection:', error);
+      }
+    };
+
     // Initialize notifications
     const initializeNotifications = async () => {
       try {
@@ -36,6 +47,9 @@ export default function RootLayout() {
         console.error('Error initializing notifications:', error);
       }
     };
+
+    // Enable screenshot protection
+    enableScreenshotProtection();
 
     // Only initialize once when app starts
     initializeNotifications();
@@ -79,6 +93,8 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
+      // Cleanup screenshot protection
+      ScreenshotProtectionService.cleanup();
     };
   }, []);
 
