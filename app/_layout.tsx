@@ -5,10 +5,11 @@ import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import AlternativeScreenshotProtection from '../services/AlternativeScreenshotProtection';
+import AdvancedScreenshotProtection from '../services/AdvancedScreenshotProtection';
+import ScreenshotProtectionOverlay from '../components/ScreenshotProtectionOverlay';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -19,17 +20,19 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
+  const [showScreenshotProtection, setShowScreenshotProtection] = useState(false);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
-    // Enable alternative screenshot protection
+    // Enable advanced screenshot protection
     const enableScreenshotProtection = async () => {
       try {
-        await AlternativeScreenshotProtection.enableProtection();
-        console.log('✅ Alternative screenshot protection service initialized');
+        await AdvancedScreenshotProtection.enableProtection();
+        setShowScreenshotProtection(true);
+        console.log('✅ Advanced screenshot protection service initialized');
       } catch (error) {
-        console.error('❌ Error initializing alternative screenshot protection:', error);
+        console.error('❌ Error initializing advanced screenshot protection:', error);
       }
     };
 
@@ -93,8 +96,9 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      // Cleanup alternative screenshot protection
-      AlternativeScreenshotProtection.cleanup();
+      // Cleanup advanced screenshot protection
+      AdvancedScreenshotProtection.cleanup();
+      setShowScreenshotProtection(false);
     };
   }, []);
 
@@ -136,6 +140,9 @@ export default function RootLayout() {
           <Stack.Screen name="+not-found" />
         </Stack>
       </ThemeProvider>
+      
+      {/* Screenshot Protection Overlay */}
+      <ScreenshotProtectionOverlay visible={showScreenshotProtection} />
     </UserProvider>
   );
 }
