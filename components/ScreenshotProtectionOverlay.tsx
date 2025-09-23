@@ -67,6 +67,9 @@ export default function ScreenshotProtectionOverlay({ visible }: ScreenshotProte
         <Text style={styles.detailText}>
           Screenshots are monitored and blocked
         </Text>
+        <Text style={styles.legalText}>
+          Unauthorized screenshots are prohibited
+        </Text>
       </View>
 
       {/* Subtle pattern overlay */}
@@ -133,6 +136,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.9,
     fontWeight: '600',
+    marginBottom: 3,
+  },
+  legalText: {
+    color: '#FF4444',
+    fontSize: 9,
+    textAlign: 'center',
+    opacity: 0.8,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   patternOverlay: {
     position: 'absolute',
