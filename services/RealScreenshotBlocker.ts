@@ -11,7 +11,7 @@ class RealScreenshotBlocker {
   private suspiciousActivityCount = 0;
   private lastActivityTime = Date.now();
   private lastDetectionTime = 0;
-  private detectionCooldown = 10000; // 10 seconds cooldown - ONE WARNING ONLY
+  private detectionCooldown = 30000; // 30 seconds cooldown - ONE WARNING ONLY
   private isBlockingActive = false;
   private blackScreenActive = false;
 
@@ -108,7 +108,7 @@ class RealScreenshotBlocker {
       const timeSinceLastChange = now - this.lastAppStateChange;
       
       // Count rapid app state changes (potential screenshot)
-      if (timeSinceLastChange < 500) { // Less than 500ms
+      if (timeSinceLastChange < 200) { // Less than 200ms
         this.appStateChangeCount++;
         this.suspiciousActivityCount++;
       } else {
@@ -125,7 +125,7 @@ class RealScreenshotBlocker {
       }
 
       // Detect suspicious activity patterns
-      if (this.suspiciousActivityCount >= 3 && this.isProtectionEnabled) {
+      if (this.suspiciousActivityCount >= 5 && this.isProtectionEnabled) {
         console.log('🚫 Suspicious activity pattern detected');
         this.handleScreenshotDetection();
         this.suspiciousActivityCount = 0; // Reset counter
@@ -168,7 +168,7 @@ class RealScreenshotBlocker {
       if (this.isProtectionEnabled) {
         this.performProtectionCheck();
       }
-    }, 100); // Check every 100ms for maximum sensitivity
+    }, 1000); // Check every 1000ms to reduce false positives
 
     console.log('🛡️ Real protection monitoring started');
   }
@@ -191,7 +191,7 @@ class RealScreenshotBlocker {
     const now = Date.now();
     
     // Check for suspicious inactivity patterns
-    if (now - this.lastActivityTime > 1500) { // 1.5 seconds of inactivity
+    if (now - this.lastActivityTime > 5000) { // 5 seconds of inactivity
       this.suspiciousActivityCount++;
     }
     
@@ -213,7 +213,7 @@ class RealScreenshotBlocker {
     // 4. System-level events that might indicate screenshots
     
     // For now, we use pattern-based detection
-    if (this.suspiciousActivityCount >= 4) {
+    if (this.suspiciousActivityCount >= 10) {
       console.log('🚫 Multiple suspicious patterns detected');
       this.handleScreenshotDetection();
       this.suspiciousActivityCount = 0;
