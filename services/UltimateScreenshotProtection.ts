@@ -12,6 +12,8 @@ class UltimateScreenshotProtection {
   private appStateChangeCount = 0;
   private suspiciousActivityCount = 0;
   private lastActivityTime = Date.now();
+  private lastDetectionTime = 0;
+  private detectionCooldown = 10000; // 10 seconds cooldown between detections
 
   /**
    * Enable ultimate screenshot protection
@@ -149,7 +151,7 @@ class UltimateScreenshotProtection {
       if (this.isProtectionEnabled) {
         this.performProtectionCheck();
       }
-    }, 300); // Check every 300ms for ultra-sensitive detection
+    }, 1000); // Check every 1 second for balanced detection
 
     console.log('🛡️ Ultimate protection monitoring started');
   }
@@ -200,7 +202,7 @@ class UltimateScreenshotProtection {
     // - Use platform-specific APIs for detection
     
     // For now, we use pattern-based detection
-    if (this.suspiciousActivityCount >= 5) {
+    if (this.suspiciousActivityCount >= 10) {
       console.log('🚫 Multiple suspicious patterns detected');
       this.handleScreenshotDetection();
       this.suspiciousActivityCount = 0;
@@ -211,10 +213,21 @@ class UltimateScreenshotProtection {
    * Handle screenshot detection
    */
   private handleScreenshotDetection(): void {
+    const now = Date.now();
+    
+    // Check cooldown period to prevent spam
+    if (now - this.lastDetectionTime < this.detectionCooldown) {
+      console.log('🚫 Screenshot detection on cooldown, ignoring...');
+      return;
+    }
+    
     if (this.isProtectionEnabled && this.onScreenshotDetected) {
       console.log('🚫 Screenshot detected! Showing protection overlay...');
       this.onScreenshotDetected();
       this.showWarning();
+      
+      // Update last detection time
+      this.lastDetectionTime = now;
       
       // Reset counters
       this.appStateChangeCount = 0;
@@ -286,10 +299,21 @@ class UltimateScreenshotProtection {
    * Simulate screenshot detection (for testing)
    */
   simulateScreenshotDetection(): void {
+    const now = Date.now();
+    
+    // Check cooldown period to prevent spam
+    if (now - this.lastDetectionTime < this.detectionCooldown) {
+      console.log('🚫 Simulated screenshot detection on cooldown, ignoring...');
+      return;
+    }
+    
     if (this.isProtectionEnabled && this.onScreenshotDetected) {
       console.log('🚫 Simulated screenshot detected! Showing protection overlay...');
       this.onScreenshotDetected();
       this.showWarning();
+      
+      // Update last detection time
+      this.lastDetectionTime = now;
     }
   }
 
@@ -323,6 +347,7 @@ class UltimateScreenshotProtection {
       this.warningShown = false;
       this.appStateChangeCount = 0;
       this.suspiciousActivityCount = 0;
+      this.lastDetectionTime = 0;
       console.log('🧹 Ultimate screenshot protection service cleaned up');
     } catch (error) {
       console.error('❌ Error cleaning up ultimate screenshot protection service:', error);
