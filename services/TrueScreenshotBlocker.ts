@@ -1,9 +1,8 @@
-import { AppState, AppStateStatus, Alert, Platform } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 
 class TrueScreenshotBlocker {
   private isProtectionEnabled = false;
   private appStateSubscription: any = null;
-  private warningShown = false;
   private protectionInterval: any = null;
   private onScreenshotDetected: (() => void) | null = null;
   private lastAppStateChange = Date.now();
@@ -11,8 +10,9 @@ class TrueScreenshotBlocker {
   private suspiciousActivityCount = 0;
   private lastActivityTime = Date.now();
   private lastDetectionTime = 0;
-  private detectionCooldown = 5000; // 5 seconds cooldown between detections
+  private detectionCooldown = 30000; // 30 seconds cooldown
   private isBlockingActive = false;
+  private blackScreenActive = false;
 
   /**
    * Enable true screenshot blocking
@@ -34,9 +34,6 @@ class TrueScreenshotBlocker {
       // Start protection monitoring
       this.startProtectionMonitoring();
 
-      // Show warning to user
-      this.showProtectionWarning();
-
     } catch (error) {
       console.error('❌ Error enabling true screenshot blocker:', error);
       throw error;
@@ -55,6 +52,7 @@ class TrueScreenshotBlocker {
 
       this.isProtectionEnabled = false;
       this.isBlockingActive = false;
+      this.blackScreenActive = false;
       console.log('🔓 True screenshot blocker disabled');
 
       // Remove app state listener
@@ -84,6 +82,13 @@ class TrueScreenshotBlocker {
   }
 
   /**
+   * Check if black screen is currently active
+   */
+  isBlackScreenActive(): boolean {
+    return this.blackScreenActive;
+  }
+
+  /**
    * Set callback for screenshot detection
    */
   setScreenshotCallback(callback: () => void): void {
@@ -99,7 +104,7 @@ class TrueScreenshotBlocker {
       const timeSinceLastChange = now - this.lastAppStateChange;
       
       // Count rapid app state changes (potential screenshot)
-      if (timeSinceLastChange < 1000) { // Less than 1 second
+      if (timeSinceLastChange < 200) { // Less than 200ms
         this.appStateChangeCount++;
         this.suspiciousActivityCount++;
       } else {
@@ -159,7 +164,7 @@ class TrueScreenshotBlocker {
       if (this.isProtectionEnabled) {
         this.performProtectionCheck();
       }
-    }, 500); // Check every 500ms for sensitive detection
+    }, 1000); // Check every 1000ms to reduce false positives
 
     console.log('🛡️ True protection monitoring started');
   }
@@ -182,7 +187,7 @@ class TrueScreenshotBlocker {
     const now = Date.now();
     
     // Check for suspicious inactivity patterns
-    if (now - this.lastActivityTime > 3000) { // 3 seconds of inactivity
+    if (now - this.lastActivityTime > 5000) { // 5 seconds of inactivity
       this.suspiciousActivityCount++;
     }
     
@@ -197,20 +202,8 @@ class TrueScreenshotBlocker {
    * Monitor for screenshot patterns
    */
   private monitorScreenshotPatterns(): void {
-    // This method monitors for various patterns that might indicate screenshot attempts:
-    // 1. Rapid app state changes
-    // 2. Unusual background/foreground patterns
-    // 3. Suspicious timing patterns
-    // 4. System-level events that might indicate screenshots
-    
-    // In a real implementation, you would:
-    // - Monitor for specific system events
-    // - Check for screenshot-related app launches
-    // - Monitor for rapid UI changes
-    // - Use platform-specific APIs for detection
-    
     // For now, we use pattern-based detection
-    if (this.suspiciousActivityCount >= 8) {
+    if (this.suspiciousActivityCount >= 10) {
       console.log('🚫 Multiple suspicious patterns detected');
       this.handleScreenshotDetection();
       this.suspiciousActivityCount = 0;
@@ -218,7 +211,7 @@ class TrueScreenshotBlocker {
   }
 
   /**
-   * Handle screenshot detection
+   * Handle screenshot detection - BLACK SCREEN ONLY
    */
   private handleScreenshotDetection(): void {
     const now = Date.now();
@@ -230,9 +223,9 @@ class TrueScreenshotBlocker {
     }
     
     if (this.isProtectionEnabled && this.onScreenshotDetected) {
-      console.log('🚫 Screenshot detected! Showing protection overlay...');
+      console.log('🚫 Screenshot detected! Showing black screen...');
+      this.blackScreenActive = true;
       this.onScreenshotDetected();
-      this.showWarning();
       
       // Update last detection time
       this.lastDetectionTime = now;
@@ -240,6 +233,14 @@ class TrueScreenshotBlocker {
       // Reset counters
       this.appStateChangeCount = 0;
       this.suspiciousActivityCount = 0;
+      
+      // Hide black screen after 1 second
+      setTimeout(() => {
+        this.blackScreenActive = false;
+        if (this.onScreenshotDetected) {
+          this.onScreenshotDetected(); // Hide the black screen
+        }
+      }, 1000);
     }
   }
 
@@ -249,58 +250,6 @@ class TrueScreenshotBlocker {
   private maintainVisualDeterrent(): void {
     // This creates a persistent visual deterrent
     // that makes screenshots less useful
-    
-    // The deterrent works by:
-    // 1. Adding subtle visual elements that appear in screenshots
-    // 2. Creating patterns that make content less readable
-    // 3. Adding warning messages that appear in screenshots
-    // 4. Using dynamic elements that change frequently
-    
-    // This is a psychological approach - making screenshots less valuable
-    // rather than completely preventing them
-  }
-
-  /**
-   * Show protection warning to user
-   */
-  private showProtectionWarning(): void {
-    if (this.warningShown) return;
-    
-    this.warningShown = true;
-    
-    // Show a one-time warning to the user
-    setTimeout(() => {
-      Alert.alert(
-        '🔒 True Screenshot Protection Active',
-        'This app uses advanced screenshot detection and blocking. All screenshot attempts are monitored and blocked with visual deterrents.',
-        [
-          {
-            text: 'I Understand',
-            style: 'default',
-            onPress: () => {
-              console.log('✅ User acknowledged true screenshot protection');
-            }
-          }
-        ],
-        { cancelable: false }
-      );
-    }, 1000); // Show after 1 second
-  }
-
-  /**
-   * Show a warning message to the user
-   */
-  showWarning(): void {
-    Alert.alert(
-      '🚫 Screenshot Blocked',
-      'True screenshot protection is active. Your screenshot attempt has been detected and blocked.',
-      [
-        {
-          text: 'OK',
-          style: 'default'
-        }
-      ]
-    );
   }
 
   /**
@@ -316,12 +265,20 @@ class TrueScreenshotBlocker {
     }
     
     if (this.isProtectionEnabled && this.onScreenshotDetected) {
-      console.log('🚫 Simulated screenshot detected! Showing protection overlay...');
+      console.log('🚫 Simulated screenshot detected! Showing black screen...');
+      this.blackScreenActive = true;
       this.onScreenshotDetected();
-      this.showWarning();
       
       // Update last detection time
       this.lastDetectionTime = now;
+      
+      // Hide black screen after 1 second
+      setTimeout(() => {
+        this.blackScreenActive = false;
+        if (this.onScreenshotDetected) {
+          this.onScreenshotDetected(); // Hide the black screen
+        }
+      }, 1000);
     }
   }
 
@@ -335,6 +292,7 @@ class TrueScreenshotBlocker {
     suspiciousActivity: number;
     appStateChanges: number;
     blocking: boolean;
+    blackScreen: boolean;
   } {
     return {
       enabled: this.isProtectionEnabled,
@@ -342,7 +300,8 @@ class TrueScreenshotBlocker {
       monitoring: !!this.protectionInterval,
       suspiciousActivity: this.suspiciousActivityCount,
       appStateChanges: this.appStateChangeCount,
-      blocking: this.isBlockingActive
+      blocking: this.isBlockingActive,
+      blackScreen: this.blackScreenActive
     };
   }
 
@@ -354,11 +313,11 @@ class TrueScreenshotBlocker {
       await this.disableProtection();
       this.removeAppStateListener();
       this.stopProtectionMonitoring();
-      this.warningShown = false;
       this.appStateChangeCount = 0;
       this.suspiciousActivityCount = 0;
       this.lastDetectionTime = 0;
       this.isBlockingActive = false;
+      this.blackScreenActive = false;
       console.log('🧹 True screenshot blocker service cleaned up');
     } catch (error) {
       console.error('❌ Error cleaning up true screenshot blocker service:', error);
