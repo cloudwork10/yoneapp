@@ -56,13 +56,16 @@ export default function ScreenshotProtectionOverlay({ visible }: ScreenshotProte
       ]}
       pointerEvents="none"
     >
-      {/* Subtle warning text that appears in screenshots */}
+      {/* Strong warning text that appears in screenshots */}
       <View style={styles.warningContainer}>
         <Text style={styles.warningText}>
-          🚫 Screenshot Not Allowed
+          🚫 SCREENSHOT BLOCKED
         </Text>
         <Text style={styles.subWarningText}>
-          This content is protected
+          This content is protected by YONE
+        </Text>
+        <Text style={styles.detailText}>
+          Screenshots are monitored and blocked
         </Text>
       </View>
 
@@ -122,6 +125,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     opacity: 0.8,
+    marginBottom: 5,
+  },
+  detailText: {
+    color: '#FF6B6B',
+    fontSize: 10,
+    textAlign: 'center',
+    opacity: 0.9,
+    fontWeight: '600',
   },
   patternOverlay: {
     position: 'absolute',

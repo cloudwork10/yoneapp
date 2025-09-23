@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import AdvancedScreenshotProtection from '../services/AdvancedScreenshotProtection';
+import RealScreenshotBlocker from '../services/RealScreenshotBlocker';
 
 interface ScreenshotTestButtonProps {
   style?: any;
@@ -20,7 +20,7 @@ export default function ScreenshotTestButton({ style }: ScreenshotTestButtonProp
           text: 'Test Now',
           style: 'default',
           onPress: () => {
-            AdvancedScreenshotProtection.simulateScreenshotDetection();
+            RealScreenshotBlocker.simulateScreenshotDetection();
           }
         }
       ]

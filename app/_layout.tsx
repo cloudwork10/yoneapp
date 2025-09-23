@@ -8,7 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import AdvancedScreenshotProtection from '../services/AdvancedScreenshotProtection';
+import RealScreenshotBlocker from '../services/RealScreenshotBlocker';
 import ScreenshotProtectionOverlay from '../components/ScreenshotProtectionOverlay';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -25,24 +25,24 @@ export default function RootLayout() {
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
-    // Enable advanced screenshot protection
+    // Enable real screenshot blocking
     const enableScreenshotProtection = async () => {
       try {
         // Set callback for screenshot detection
-        AdvancedScreenshotProtection.setScreenshotCallback(() => {
+        RealScreenshotBlocker.setScreenshotCallback(() => {
           setShowScreenshotProtection(true);
-          // Hide overlay after 3 seconds
+          // Hide overlay after 5 seconds
           setTimeout(() => {
             setShowScreenshotProtection(false);
-          }, 3000);
+          }, 5000);
         });
         
-        await AdvancedScreenshotProtection.enableProtection();
+        await RealScreenshotBlocker.enableProtection();
         // Don't show overlay by default - only when screenshot is detected
         setShowScreenshotProtection(false);
-        console.log('✅ Advanced screenshot protection service initialized');
+        console.log('✅ Real screenshot blocker service initialized');
       } catch (error) {
-        console.error('❌ Error initializing advanced screenshot protection:', error);
+        console.error('❌ Error initializing real screenshot blocker:', error);
       }
     };
 
@@ -106,8 +106,8 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      // Cleanup advanced screenshot protection
-      AdvancedScreenshotProtection.cleanup();
+      // Cleanup real screenshot blocker
+      RealScreenshotBlocker.cleanup();
       setShowScreenshotProtection(false);
     };
   }, []);
