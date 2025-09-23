@@ -46,7 +46,19 @@ export default function CoursesScreen() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/courses');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch('http://192.168.100.42:3000/api/public/courses', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
@@ -71,7 +83,13 @@ export default function CoursesScreen() {
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
-      setError('Failed to load courses');
+      if (error.name === 'AbortError') {
+        setError('Request timeout - please check your connection');
+      } else if (error.message.includes('Network request failed')) {
+        setError('Network error - please check your internet connection');
+      } else {
+        setError('Failed to load courses');
+      }
     } finally {
       setLoading(false);
     }
