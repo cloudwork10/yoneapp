@@ -8,8 +8,10 @@ class SimpleContentProtection {
   private lastAppStateChange = Date.now();
   private appStateChangeCount = 0;
   private lastDetectionTime = 0;
-  private detectionCooldown = 2000; // 2 seconds cooldown
+  private detectionCooldown = 10000; // 10 seconds cooldown
   private screenshotAttempts = 0;
+  private lastActivityTime = Date.now();
+  private inactivityCount = 0;
 
   /**
    * Enable simple content protection
@@ -91,10 +93,11 @@ class SimpleContentProtection {
       }
       
       this.lastAppStateChange = now;
+      this.lastActivityTime = now;
 
       // Detect potential screenshot based on app state changes
-      if (this.appStateChangeCount >= 2 && this.isProtectionEnabled) {
-        console.log('🚫 Potential screenshot detected');
+      if (this.appStateChangeCount >= 3 && this.isProtectionEnabled) {
+        console.log('🚫 Potential screenshot detected based on app state changes');
         this.handleScreenshotDetection();
       }
 
@@ -132,7 +135,7 @@ class SimpleContentProtection {
       if (this.isProtectionEnabled) {
         this.performProtectionCheck();
       }
-    }, 500); // Check every 500ms - more frequent
+    }, 1000); // Check every 1 second
 
     console.log('🛡️ Simple protection monitoring started');
   }
@@ -152,18 +155,21 @@ class SimpleContentProtection {
    * Perform protection check
    */
   private performProtectionCheck(): void {
-    // Simulate screenshot detection for testing
-    // In real implementation, this would check for actual screenshot patterns
+    // Real screenshot detection logic
     const now = Date.now();
     
-    // Simulate screenshot detection more frequently for testing
-    this.screenshotAttempts++;
-    
-    // Trigger detection every 10 checks (5 seconds)
-    if (this.screenshotAttempts >= 10) {
-      console.log('🚫 Simulated screenshot detection for testing');
-      this.handleScreenshotDetection();
-      this.screenshotAttempts = 0;
+    // Check for inactivity patterns that might indicate screenshot
+    if (now - this.lastActivityTime > 3000) { // 3 seconds of inactivity
+      this.inactivityCount++;
+      
+      // If user is inactive for too long, might be taking screenshot
+      if (this.inactivityCount >= 5) {
+        console.log('🚫 Inactivity pattern detected - possible screenshot');
+        this.handleScreenshotDetection();
+        this.inactivityCount = 0;
+      }
+    } else {
+      this.inactivityCount = 0;
     }
   }
 
