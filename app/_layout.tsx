@@ -8,6 +8,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
+import SimpleContentProtection from '../services/SimpleContentProtection';
+import ContentProtectionOverlay from '../components/ContentProtectionOverlay';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -20,8 +22,27 @@ export default function RootLayout() {
 
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
+  const [showContentProtection, setShowContentProtection] = useState(false);
 
   useEffect(() => {
+    // Enable simple content protection
+    const enableContentProtection = async () => {
+      try {
+        SimpleContentProtection.setScreenshotCallback(() => {
+          setShowContentProtection(true);
+          // Hide overlay after 3 seconds
+          setTimeout(() => {
+            setShowContentProtection(false);
+          }, 3000);
+        });
+        
+        await SimpleContentProtection.enableProtection();
+        setShowContentProtection(false);
+        console.log('✅ Simple content protection initialized');
+      } catch (error) {
+        console.error('❌ Error initializing simple content protection:', error);
+      }
+    };
 
     // Initialize notifications
     const initializeNotifications = async () => {
@@ -38,10 +59,8 @@ export default function RootLayout() {
       }
     };
 
-    // Enable screenshot protection
-    enableScreenshotProtection();
-
     // Only initialize once when app starts
+    enableContentProtection();
     initializeNotifications();
 
     // Listen for notifications
@@ -83,6 +102,9 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
+      // Cleanup simple content protection
+      SimpleContentProtection.cleanup();
+      setShowContentProtection(false);
     };
   }, []);
 
@@ -125,6 +147,8 @@ export default function RootLayout() {
         </Stack>
       </ThemeProvider>
       
+      {/* Content Protection Overlay */}
+      <ContentProtectionOverlay visible={showContentProtection} />
     </UserProvider>
   );
 }
