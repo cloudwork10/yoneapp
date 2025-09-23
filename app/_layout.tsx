@@ -31,10 +31,10 @@ export default function RootLayout() {
         // Set callback for screenshot detection
         RealScreenshotBlocker.setScreenshotCallback(() => {
           setShowScreenshotProtection(true);
-          // Hide black screen after 3 seconds
+          // Hide black screen after 2 seconds
           setTimeout(() => {
             setShowScreenshotProtection(false);
-          }, 3000);
+          }, 2000);
         });
         
         await RealScreenshotBlocker.enableProtection();

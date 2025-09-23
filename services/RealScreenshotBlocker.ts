@@ -221,12 +221,12 @@ class RealScreenshotBlocker {
   }
 
   /**
-   * Handle screenshot detection - ONE WARNING ONLY
+   * Handle screenshot detection - BLACK SCREEN ONLY
    */
   private handleScreenshotDetection(): void {
     const now = Date.now();
     
-    // Check cooldown period to prevent spam - ONE WARNING ONLY
+    // Check cooldown period to prevent spam
     if (now - this.lastDetectionTime < this.detectionCooldown) {
       console.log('🚫 Screenshot detection on cooldown, ignoring...');
       return;
@@ -237,9 +237,6 @@ class RealScreenshotBlocker {
       this.blackScreenActive = true;
       this.onScreenshotDetected();
       
-      // Show warning ONCE ONLY
-      this.showWarning();
-      
       // Update last detection time
       this.lastDetectionTime = now;
       
@@ -247,13 +244,13 @@ class RealScreenshotBlocker {
       this.appStateChangeCount = 0;
       this.suspiciousActivityCount = 0;
       
-      // Hide black screen after 3 seconds
+      // Hide black screen after 2 seconds
       setTimeout(() => {
         this.blackScreenActive = false;
         if (this.onScreenshotDetected) {
           this.onScreenshotDetected(); // Hide the black screen
         }
-      }, 3000);
+      }, 2000);
     }
   }
 
@@ -273,40 +270,16 @@ class RealScreenshotBlocker {
     
     this.warningShown = true;
     
-    // Show a one-time warning to the user
-    setTimeout(() => {
-      Alert.alert(
-        '🔒 Screenshot Protection Active',
-        'Screenshots are blocked. You will see a black screen when attempting to take screenshots.',
-        [
-          {
-            text: 'OK',
-            style: 'default',
-            onPress: () => {
-              console.log('✅ User acknowledged screenshot protection');
-            }
-          }
-        ],
-        { cancelable: false }
-      );
-    }, 1000); // Show after 1 second
+    // No warning - silent protection
+    console.log('✅ Screenshot protection active - silent mode');
   }
 
   /**
    * Show a warning message to the user - ONE TIME ONLY
    */
   showWarning(): void {
-    // Only show warning once per detection
-    Alert.alert(
-      '🚫 Screenshot Blocked',
-      'Screenshot blocked. Black screen will appear in screenshots.',
-      [
-        {
-          text: 'OK',
-          style: 'default'
-        }
-      ]
-    );
+    // No warning - silent protection
+    console.log('🚫 Screenshot blocked - silent mode');
   }
 
   /**
@@ -325,18 +298,17 @@ class RealScreenshotBlocker {
       console.log('🚫 Simulated screenshot detected! Showing black screen...');
       this.blackScreenActive = true;
       this.onScreenshotDetected();
-      this.showWarning();
       
       // Update last detection time
       this.lastDetectionTime = now;
       
-      // Hide black screen after 3 seconds
+      // Hide black screen after 2 seconds
       setTimeout(() => {
         this.blackScreenActive = false;
         if (this.onScreenshotDetected) {
           this.onScreenshotDetected(); // Hide the black screen
         }
-      }, 3000);
+      }, 2000);
     }
   }
 
