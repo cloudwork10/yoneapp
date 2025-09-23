@@ -8,8 +8,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import SimpleContentProtection from '../services/SimpleContentProtection';
-import ContentProtectionOverlay from '../components/ContentProtectionOverlay';
+import RealScreenshotBlocker from '../services/RealScreenshotBlocker';
+import BlackScreenOverlay from '../components/BlackScreenOverlay';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -22,25 +22,25 @@ export default function RootLayout() {
 
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
-  const [showContentProtection, setShowContentProtection] = useState(false);
+  const [showBlackScreen, setShowBlackScreen] = useState(false);
 
   useEffect(() => {
-    // Enable simple content protection
-    const enableContentProtection = async () => {
+    // Enable real screenshot blocking
+    const enableScreenshotBlocking = async () => {
       try {
-        SimpleContentProtection.setScreenshotCallback(() => {
-          setShowContentProtection(true);
-          // Hide overlay after 3 seconds
+        RealScreenshotBlocker.setScreenshotCallback(() => {
+          setShowBlackScreen(true);
+          // Hide black screen after 2 seconds
           setTimeout(() => {
-            setShowContentProtection(false);
-          }, 3000);
+            setShowBlackScreen(false);
+          }, 2000);
         });
         
-        await SimpleContentProtection.enableProtection();
-        setShowContentProtection(false);
-        console.log('✅ Simple content protection initialized');
+        await RealScreenshotBlocker.enableProtection();
+        setShowBlackScreen(false);
+        console.log('✅ Real screenshot blocker initialized');
       } catch (error) {
-        console.error('❌ Error initializing simple content protection:', error);
+        console.error('❌ Error initializing real screenshot blocker:', error);
       }
     };
 
@@ -60,7 +60,7 @@ export default function RootLayout() {
     };
 
     // Only initialize once when app starts
-    enableContentProtection();
+    enableScreenshotBlocking();
     initializeNotifications();
 
     // Listen for notifications
@@ -102,9 +102,9 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      // Cleanup simple content protection
-      SimpleContentProtection.cleanup();
-      setShowContentProtection(false);
+      // Cleanup real screenshot blocker
+      RealScreenshotBlocker.cleanup();
+      setShowBlackScreen(false);
     };
   }, []);
 
@@ -147,8 +147,8 @@ export default function RootLayout() {
         </Stack>
       </ThemeProvider>
       
-      {/* Content Protection Overlay */}
-      <ContentProtectionOverlay visible={showContentProtection} />
+      {/* Black Screen Overlay */}
+      <BlackScreenOverlay visible={showBlackScreen} />
     </UserProvider>
   );
 }
