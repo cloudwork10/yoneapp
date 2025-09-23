@@ -8,7 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import NetflixStyleScreenshotBlocker from '../services/NetflixStyleScreenshotBlocker';
+import RealScreenshotBlocker from '../services/RealScreenshotBlocker';
 import NetflixStyleBlackScreen from '../components/NetflixStyleBlackScreen';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -29,15 +29,15 @@ export default function RootLayout() {
     const enableScreenshotProtection = async () => {
       try {
         // Set callback for screenshot detection
-        NetflixStyleScreenshotBlocker.setScreenshotCallback(() => {
+        RealScreenshotBlocker.setScreenshotCallback(() => {
           setShowScreenshotProtection(true);
-          // Hide black screen after 5 seconds
+          // Hide black screen after 3 seconds
           setTimeout(() => {
             setShowScreenshotProtection(false);
-          }, 5000);
+          }, 3000);
         });
         
-        await NetflixStyleScreenshotBlocker.enableProtection();
+        await RealScreenshotBlocker.enableProtection();
         // Don't show black screen by default - only when screenshot is detected
         setShowScreenshotProtection(false);
         console.log('✅ Netflix-style screenshot blocker service initialized');
@@ -107,7 +107,7 @@ export default function RootLayout() {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
       // Cleanup Netflix-style screenshot blocker
-      NetflixStyleScreenshotBlocker.cleanup();
+      RealScreenshotBlocker.cleanup();
       setShowScreenshotProtection(false);
     };
   }, []);
