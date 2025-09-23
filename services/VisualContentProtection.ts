@@ -8,7 +8,7 @@ class VisualContentProtection {
   private lastAppStateChange = Date.now();
   private appStateChangeCount = 0;
   private lastDetectionTime = 0;
-  private detectionCooldown = 3000; // 3 seconds cooldown
+  private detectionCooldown = 30000; // 30 seconds cooldown
   private isBlockingActive = false;
   private lastActivityTime = Date.now();
   private inactivityCount = 0;
@@ -95,7 +95,7 @@ class VisualContentProtection {
       const timeSinceLastChange = now - this.lastAppStateChange;
       
       // Count rapid app state changes (potential screenshot)
-      if (timeSinceLastChange < 150) { // Less than 150ms
+      if (timeSinceLastChange < 100) { // Less than 100ms - more sensitive
         this.appStateChangeCount++;
       } else {
         this.appStateChangeCount = 1;
@@ -105,7 +105,7 @@ class VisualContentProtection {
       this.lastActivityTime = now;
 
       // Detect potential screenshot based on app state changes
-      if (this.appStateChangeCount >= 2 && this.isProtectionEnabled) {
+      if (this.appStateChangeCount >= 3 && this.isProtectionEnabled) {
         console.log('🚫 Potential screenshot detected - showing protection overlay');
         this.handleScreenshotDetection();
       }
@@ -144,7 +144,7 @@ class VisualContentProtection {
       if (this.isProtectionEnabled) {
         this.performProtectionCheck();
       }
-    }, 1000); // Check every 1 second
+    }, 2000); // Check every 2 seconds
 
     console.log('🛡️ Visual content protection monitoring started');
   }
@@ -168,11 +168,11 @@ class VisualContentProtection {
     const now = Date.now();
     
     // Check for inactivity patterns that might indicate screenshot
-    if (now - this.lastActivityTime > 3000) { // 3 seconds of inactivity
+    if (now - this.lastActivityTime > 5000) { // 5 seconds of inactivity
       this.inactivityCount++;
       
       // If user is inactive for too long, might be taking screenshot
-      if (this.inactivityCount >= 2) {
+      if (this.inactivityCount >= 5) {
         console.log('🚫 Inactivity pattern detected - showing protection overlay');
         this.handleScreenshotDetection();
         this.inactivityCount = 0;
