@@ -190,6 +190,56 @@ export default function MoreScreen() {
           ))}
         </View>
 
+        {/* About Section */}
+        <View style={styles.aboutSection}>
+          <Text style={styles.aboutTitle}>About</Text>
+          
+          <TouchableOpacity 
+            style={styles.aboutItem}
+            onPress={() => router.push('/terms-conditions')}
+          >
+            <Text style={styles.aboutIcon}>📋</Text>
+            <Text style={styles.aboutText}>Terms & Conditions</Text>
+            <Text style={styles.aboutArrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.aboutItem}
+            onPress={() => router.push('/refund-policy')}
+          >
+            <Text style={styles.aboutIcon}>💰</Text>
+            <Text style={styles.aboutText}>Refund Policy</Text>
+            <Text style={styles.aboutArrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.aboutItem}
+            onPress={() => router.push('/privacy-policy')}
+          >
+            <Text style={styles.aboutIcon}>🔒</Text>
+            <Text style={styles.aboutText}>Privacy Policy</Text>
+            <Text style={styles.aboutArrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.aboutItem}
+            onPress={() => router.push('/contact')}
+          >
+            <Text style={styles.aboutIcon}>📞</Text>
+            <Text style={styles.aboutText}>Contact</Text>
+            <Text style={styles.aboutArrow}>→</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.aboutItem}
+            onPress={() => router.push('/about-us')}
+          >
+            <Text style={styles.aboutIcon}>👥</Text>
+            <Text style={styles.aboutText}>About Us</Text>
+            <Text style={styles.aboutArrow}>→</Text>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.footer}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text style={styles.logoutButtonText}>🚪 Logout</Text>
@@ -497,8 +547,45 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  aboutSection: {
+    marginHorizontal: 20,
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  aboutTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  aboutItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  aboutIcon: {
+    fontSize: 20,
+    marginRight: 15,
+  },
+  aboutText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  aboutArrow: {
+    fontSize: 18,
+    color: '#E50914',
+    fontWeight: 'bold',
+  },
   footer: {
-    marginTop: 40,
+    marginTop: 20,
     alignItems: 'center',
     paddingVertical: 20,
   },

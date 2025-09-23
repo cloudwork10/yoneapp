@@ -104,6 +104,11 @@ export default function RootLayout() {
           <Stack.Screen name="content-management" options={{ headerShown: false }} />
           <Stack.Screen name="notification-settings" options={{ headerShown: false }} />
           <Stack.Screen name="help-support" options={{ headerShown: false }} />
+          <Stack.Screen name="terms-conditions" options={{ headerShown: false }} />
+          <Stack.Screen name="refund-policy" options={{ headerShown: false }} />
+          <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+          <Stack.Screen name="contact" options={{ headerShown: false }} />
+          <Stack.Screen name="about-us" options={{ headerShown: false }} />
           <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
           <Stack.Screen name="article-details" options={{ headerShown: false }} />
           <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
