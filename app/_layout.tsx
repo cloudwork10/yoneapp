@@ -8,8 +8,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import VisualContentProtection from '../services/VisualContentProtection';
-import VisualProtectionOverlay from '../components/VisualProtectionOverlay';
+import SimpleScreenshotBlocker from '../services/SimpleScreenshotBlocker';
+import SimpleBlackScreen from '../components/SimpleBlackScreen';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -22,25 +22,25 @@ export default function RootLayout() {
 
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
-  const [showVisualProtection, setShowVisualProtection] = useState(false);
+  const [showBlackScreen, setShowBlackScreen] = useState(false);
 
   useEffect(() => {
-    // Enable visual content protection
-    const enableVisualProtection = async () => {
+    // Enable simple screenshot blocking
+    const enableScreenshotBlocking = async () => {
       try {
-        VisualContentProtection.setScreenshotCallback(() => {
-          setShowVisualProtection(true);
-          // Hide visual protection after 4 seconds
+        SimpleScreenshotBlocker.setScreenshotCallback(() => {
+          setShowBlackScreen(true);
+          // Hide black screen after 2 seconds
           setTimeout(() => {
-            setShowVisualProtection(false);
-          }, 4000);
+            setShowBlackScreen(false);
+          }, 2000);
         });
         
-        await VisualContentProtection.enableProtection();
-        setShowVisualProtection(false);
-        console.log('✅ Visual content protection initialized');
+        await SimpleScreenshotBlocker.enableProtection();
+        setShowBlackScreen(false);
+        console.log('✅ Simple screenshot blocker initialized');
       } catch (error) {
-        console.error('❌ Error initializing visual content protection:', error);
+        console.error('❌ Error initializing simple screenshot blocker:', error);
       }
     };
 
@@ -60,7 +60,7 @@ export default function RootLayout() {
     };
 
     // Only initialize once when app starts
-    enableVisualProtection();
+    enableScreenshotBlocking();
     initializeNotifications();
 
     // Listen for notifications
@@ -102,9 +102,9 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      // Cleanup visual content protection
-      VisualContentProtection.cleanup();
-      setShowVisualProtection(false);
+      // Cleanup simple screenshot blocker
+      SimpleScreenshotBlocker.cleanup();
+      setShowBlackScreen(false);
     };
   }, []);
 
@@ -147,8 +147,8 @@ export default function RootLayout() {
         </Stack>
       </ThemeProvider>
       
-      {/* Visual Protection Overlay */}
-      <VisualProtectionOverlay visible={showVisualProtection} />
+      {/* Simple Black Screen */}
+      <SimpleBlackScreen visible={showBlackScreen} />
     </UserProvider>
   );
 }
