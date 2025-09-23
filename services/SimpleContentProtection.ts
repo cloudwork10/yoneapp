@@ -8,7 +8,8 @@ class SimpleContentProtection {
   private lastAppStateChange = Date.now();
   private appStateChangeCount = 0;
   private lastDetectionTime = 0;
-  private detectionCooldown = 5000; // 5 seconds cooldown
+  private detectionCooldown = 2000; // 2 seconds cooldown
+  private screenshotAttempts = 0;
 
   /**
    * Enable simple content protection
@@ -83,7 +84,7 @@ class SimpleContentProtection {
       const timeSinceLastChange = now - this.lastAppStateChange;
       
       // Count rapid app state changes (potential screenshot)
-      if (timeSinceLastChange < 300) { // Less than 300ms
+      if (timeSinceLastChange < 100) { // Less than 100ms - more sensitive
         this.appStateChangeCount++;
       } else {
         this.appStateChangeCount = 1;
@@ -131,7 +132,7 @@ class SimpleContentProtection {
       if (this.isProtectionEnabled) {
         this.performProtectionCheck();
       }
-    }, 2000); // Check every 2 seconds
+    }, 500); // Check every 500ms - more frequent
 
     console.log('🛡️ Simple protection monitoring started');
   }
@@ -151,8 +152,19 @@ class SimpleContentProtection {
    * Perform protection check
    */
   private performProtectionCheck(): void {
-    // Simple protection logic
-    // This can be enhanced based on needs
+    // Simulate screenshot detection for testing
+    // In real implementation, this would check for actual screenshot patterns
+    const now = Date.now();
+    
+    // Simulate screenshot detection more frequently for testing
+    this.screenshotAttempts++;
+    
+    // Trigger detection every 10 checks (5 seconds)
+    if (this.screenshotAttempts >= 10) {
+      console.log('🚫 Simulated screenshot detection for testing');
+      this.handleScreenshotDetection();
+      this.screenshotAttempts = 0;
+    }
   }
 
   /**
