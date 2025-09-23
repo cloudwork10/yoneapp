@@ -54,8 +54,7 @@
           "sounds": ["./assets/sounds/notification.wav"]
         }
       ],
-      "react-native-video",
-      "expo-screen-capture"
+      "react-native-video"
     ],
     "experiments": {
       "typedRoutes": true
