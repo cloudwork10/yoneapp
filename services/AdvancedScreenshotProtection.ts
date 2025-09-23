@@ -5,6 +5,14 @@ class AdvancedScreenshotProtection {
   private appStateSubscription: any = null;
   private warningShown = false;
   private protectionInterval: any = null;
+  private onScreenshotDetected: (() => void) | null = null;
+
+  /**
+   * Set callback for screenshot detection
+   */
+  setScreenshotCallback(callback: () => void): void {
+    this.onScreenshotDetected = callback;
+  }
 
   /**
    * Enable advanced screenshot protection
@@ -142,6 +150,17 @@ class AdvancedScreenshotProtection {
     
     // For now, we'll use a psychological deterrent approach
     this.maintainVisualDeterrent();
+  }
+
+  /**
+   * Simulate screenshot detection (for testing)
+   */
+  simulateScreenshotDetection(): void {
+    if (this.isProtectionEnabled && this.onScreenshotDetected) {
+      console.log('🚫 Screenshot detected! Showing protection overlay...');
+      this.onScreenshotDetected();
+      this.showWarning();
+    }
   }
 
   /**

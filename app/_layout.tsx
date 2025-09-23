@@ -28,8 +28,18 @@ export default function RootLayout() {
     // Enable advanced screenshot protection
     const enableScreenshotProtection = async () => {
       try {
+        // Set callback for screenshot detection
+        AdvancedScreenshotProtection.setScreenshotCallback(() => {
+          setShowScreenshotProtection(true);
+          // Hide overlay after 3 seconds
+          setTimeout(() => {
+            setShowScreenshotProtection(false);
+          }, 3000);
+        });
+        
         await AdvancedScreenshotProtection.enableProtection();
-        setShowScreenshotProtection(true);
+        // Don't show overlay by default - only when screenshot is detected
+        setShowScreenshotProtection(false);
         console.log('✅ Advanced screenshot protection service initialized');
       } catch (error) {
         console.error('❌ Error initializing advanced screenshot protection:', error);
