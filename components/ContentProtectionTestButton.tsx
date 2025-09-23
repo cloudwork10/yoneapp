@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
-import RealScreenshotBlocker from '../services/RealScreenshotBlocker';
+import VisualContentProtection from '../services/VisualContentProtection';
 
 interface ContentProtectionTestButtonProps {
   style?: any;
@@ -9,8 +9,8 @@ interface ContentProtectionTestButtonProps {
 export default function ContentProtectionTestButton({ style }: ContentProtectionTestButtonProps) {
   const handleTestProtection = () => {
     Alert.alert(
-      '🔒 Test Screenshot Blocker',
-      'This will simulate a screenshot detection to test the black screen protection.',
+      '🔒 Test Visual Protection',
+      'This will simulate a screenshot detection to test the visual content protection.',
       [
         {
           text: 'Cancel',
@@ -20,7 +20,7 @@ export default function ContentProtectionTestButton({ style }: ContentProtection
           text: 'Test Now',
           style: 'default',
           onPress: () => {
-            RealScreenshotBlocker.simulateScreenshotDetection();
+            VisualContentProtection.simulateScreenshotDetection();
           }
         }
       ]
@@ -32,7 +32,7 @@ export default function ContentProtectionTestButton({ style }: ContentProtection
       style={[styles.button, style]} 
       onPress={handleTestProtection}
     >
-      <Text style={styles.buttonText}>🔒 Test Screenshot Blocker</Text>
+      <Text style={styles.buttonText}>🔒 Test Visual Protection</Text>
     </TouchableOpacity>
   );
 }

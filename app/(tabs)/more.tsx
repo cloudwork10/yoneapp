@@ -193,7 +193,7 @@ export default function MoreScreen() {
 
         {/* Content Protection Test */}
         <View style={styles.testSection}>
-          <Text style={styles.testTitle}>🔒 Screenshot Blocker</Text>
+          <Text style={styles.testTitle}>🔒 Visual Content Protection</Text>
           <ContentProtectionTestButton />
         </View>
 
