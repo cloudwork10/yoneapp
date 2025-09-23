@@ -8,8 +8,10 @@ class RealScreenshotBlocker {
   private lastAppStateChange = Date.now();
   private appStateChangeCount = 0;
   private lastDetectionTime = 0;
-  private detectionCooldown = 15000; // 15 seconds cooldown
+  private detectionCooldown = 5000; // 5 seconds cooldown
   private isBlockingActive = false;
+  private lastActivityTime = Date.now();
+  private inactivityCount = 0;
 
   /**
    * Enable real screenshot blocking
@@ -93,16 +95,17 @@ class RealScreenshotBlocker {
       const timeSinceLastChange = now - this.lastAppStateChange;
       
       // Count rapid app state changes (potential screenshot)
-      if (timeSinceLastChange < 50) { // Less than 50ms - very sensitive
+      if (timeSinceLastChange < 200) { // Less than 200ms
         this.appStateChangeCount++;
       } else {
         this.appStateChangeCount = 1;
       }
       
       this.lastAppStateChange = now;
+      this.lastActivityTime = now;
 
       // Detect potential screenshot based on app state changes
-      if (this.appStateChangeCount >= 4 && this.isProtectionEnabled) {
+      if (this.appStateChangeCount >= 2 && this.isProtectionEnabled) {
         console.log('🚫 Potential screenshot detected based on app state changes');
         this.handleScreenshotDetection();
       }
@@ -141,7 +144,7 @@ class RealScreenshotBlocker {
       if (this.isProtectionEnabled) {
         this.performProtectionCheck();
       }
-    }, 2000); // Check every 2 seconds
+    }, 500); // Check every 500ms
 
     console.log('🛡️ Real protection monitoring started');
   }
@@ -162,7 +165,21 @@ class RealScreenshotBlocker {
    */
   private performProtectionCheck(): void {
     // Real screenshot detection logic
-    // This monitors for actual screenshot patterns
+    const now = Date.now();
+    
+    // Check for inactivity patterns that might indicate screenshot
+    if (now - this.lastActivityTime > 2000) { // 2 seconds of inactivity
+      this.inactivityCount++;
+      
+      // If user is inactive for too long, might be taking screenshot
+      if (this.inactivityCount >= 3) {
+        console.log('🚫 Inactivity pattern detected - possible screenshot');
+        this.handleScreenshotDetection();
+        this.inactivityCount = 0;
+      }
+    } else {
+      this.inactivityCount = 0;
+    }
   }
 
   /**
