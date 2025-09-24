@@ -12,7 +12,7 @@ export const refreshAuthToken = async (retryCount = 0) => {
       await new Promise(resolve => setTimeout(resolve, delay));
     }
     
-    const refreshResponse = await fetch('http://192.168.100.42:3000/api/auth/login', {
+    const refreshResponse = await fetch('http://localhost:3000/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -73,7 +73,7 @@ router.post('/upload-image', uploadLimiter, upload.single('image'), async (req, 
       });
     }
 
-    const imageUrl = `http://192.168.100.42:3000/uploads/images/${req.file.filename}`;
+    const imageUrl = `http://localhost:3000/uploads/images/${req.file.filename}`;
     
     res.json({
       status: 'success',
@@ -103,7 +103,7 @@ router.post('/upload-video', requireAuth, uploadLimiter, upload.single('video'),
       });
     }
 
-    const videoUrl = `http://192.168.100.42:3000/uploads/videos/${req.file.filename}`;
+    const videoUrl = `http://localhost:3000/uploads/videos/${req.file.filename}`;
 
     res.json({
       status: 'success',
@@ -164,7 +164,7 @@ router.post('/upload-audio', uploadLimiter, (req, res, next) => {
       path: req.file.path
     });
 
-    const audioUrl = `http://192.168.100.42:3000/uploads/audios/${req.file.filename}`;
+    const audioUrl = `http://localhost:3000/uploads/audios/${req.file.filename}`;
 
     console.log('✅ Audio uploaded successfully, URL:', audioUrl);
 
@@ -198,7 +198,7 @@ router.post('/upload-audio-simple', async (req, res) => {
       status: 'success',
       message: 'Simple audio upload endpoint working',
       data: {
-        audioUrl: 'http://192.168.100.42:3000/uploads/audios/test-audio.m4a',
+        audioUrl: 'http://localhost:3000/uploads/audios/test-audio.m4a',
         filename: 'test-audio.m4a'
       }
     });

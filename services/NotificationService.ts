@@ -342,7 +342,7 @@ class NotificationService {
         return;
       }
 
-      const response = await fetch('http://192.168.100.42:3000/api/admin/send-notification', {
+      const response = await fetch('http://localhost:3000/api/admin/send-notification', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
