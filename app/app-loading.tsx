@@ -209,7 +209,7 @@ export default function AppLoadingScreen() {
       // Optional: Verify token in background (don't block user)
       setTimeout(async () => {
         try {
-          const response = await fetch('http://192.168.100.42:3000/api/auth/verify', {
+          const response = await fetch('http://localhost:3000/api/auth/verify', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,

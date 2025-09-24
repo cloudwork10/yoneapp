@@ -50,7 +50,7 @@ export default function DashboardScreen() {
       console.log('🔐 Fetching admin data with token:', token.substring(0, 20) + '...');
 
       // Fetch users
-      const usersResponse = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/users');
+      const usersResponse = await makeAuthenticatedRequest('http://localhost:3000/api/admin/users');
 
       console.log('📊 Users response status:', usersResponse.status);
 
@@ -88,7 +88,7 @@ export default function DashboardScreen() {
           // Add delay for rate limiting
           await new Promise(resolve => setTimeout(resolve, 2000));
           
-          const refreshResponse = await fetch('http://192.168.100.42:3000/api/auth/login', {
+          const refreshResponse = await fetch('http://localhost:3000/api/auth/login', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export default function DashboardScreen() {
             console.log('✅ Token refreshed successfully');
             
             // Retry the request with new token
-            const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/users', {
+            const retryResponse = await fetch('http://localhost:3000/api/admin/users', {
               headers: {
                 'Authorization': `Bearer ${newToken}`,
                 'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ export default function DashboardScreen() {
         // Wait and retry once
         setTimeout(async () => {
           try {
-            const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/users', {
+            const retryResponse = await fetch('http://localhost:3000/api/admin/users', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',

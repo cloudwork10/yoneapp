@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import SimpleTestButton from '../../components/SimpleTestButton';
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
@@ -57,13 +56,6 @@ export default function MoreScreen() {
     },
     {
       id: 7,
-      title: 'Screenshot Protection',
-      description: 'Configure screenshot and recording protection',
-      icon: '🔒',
-      route: '/screenshot-settings'
-    },
-    {
-      id: 8,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
@@ -128,8 +120,6 @@ export default function MoreScreen() {
       router.push('/notification-settings');
     } else if (route === '/help') {
       router.push('/help-support');
-    } else if (route === '/screenshot-settings') {
-      router.push('/screenshot-settings');
     } else if (route === '/about') {
       console.log('🔍 About button pressed, opening modal...');
       setShowAboutModal(true);
@@ -247,19 +237,6 @@ export default function MoreScreen() {
             <Text style={styles.aboutIcon}>👥</Text>
             <Text style={styles.aboutText}>About Us</Text>
             <Text style={styles.aboutArrow}>→</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Screenshot Protection Test */}
-        <View style={styles.testSection}>
-          <Text style={styles.testSectionTitle}>🔒 اختبار منع لقطات الشاشة</Text>
-          <SimpleTestButton />
-          
-          <TouchableOpacity 
-            style={styles.advancedTestButton}
-            onPress={() => router.push('/test-screenshot')}
-          >
-            <Text style={styles.advancedTestButtonText}>🧪 صفحة اختبار متقدمة</Text>
           </TouchableOpacity>
         </View>
 
@@ -606,36 +583,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#E50914',
     fontWeight: 'bold',
-  },
-  testSection: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 20,
-    backgroundColor: 'rgba(229, 9, 20, 0.1)',
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.3)',
-  },
-  testSectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#E50914',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  advancedTestButton: {
-    backgroundColor: '#4ECDC4',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  advancedTestButtonText: {
-    color: '#000000',
-    fontSize: 14,
-    fontWeight: '600',
   },
   footer: {
     marginTop: 20,

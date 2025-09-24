@@ -42,7 +42,7 @@ export default function ProgrammingTermsScreen() {
       setLoading(true);
       console.log('⚡ Fetching programming terms from database...');
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/programming-terms');
+      const response = await fetch('http://localhost:3000/api/public/programming-terms');
       
       if (response.ok) {
         const data = await response.json();

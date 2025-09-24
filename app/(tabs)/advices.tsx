@@ -45,7 +45,7 @@ export default function AdvicesScreen() {
       setLoading(true);
       setError('');
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/content/advices');
+      const response = await fetch('http://localhost:3000/api/public/content/advices');
       
       if (response.ok) {
         const data = await response.json();
@@ -68,85 +68,15 @@ export default function AdvicesScreen() {
         
         setAdvices(transformedAdvices);
       } else {
-        console.log('💡 API failed, using fallback data');
-        setAdvices(getFallbackAdvices());
+        setError('Failed to load advices');
       }
     } catch (error) {
       console.error('Error fetching advices:', error);
-      console.log('💡 Network error, using fallback data');
-      setAdvices(getFallbackAdvices());
+      setError('Network error');
     } finally {
       setLoading(false);
     }
   };
-
-  const getFallbackAdvices = () => [
-    {
-      id: '1',
-      title: 'Start Your Programming Journey',
-      category: 'motivation',
-      content: 'Programming is not just about writing code, it\'s about solving problems and creating solutions that make a difference in people\'s lives.',
-      author: 'Ahmed Hassan',
-      likes: 125,
-      isLiked: false,
-      duration: '3 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: false,
-      audioUrl: ''
-    },
-    {
-      id: '2',
-      title: 'Consistency is Key',
-      category: 'productivity',
-      content: 'The secret to success in programming is not talent, but consistency. Code every day, even if it\'s just for 30 minutes.',
-      author: 'Sarah Mohamed',
-      likes: 89,
-      isLiked: false,
-      duration: '2 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: false,
-      audioUrl: ''
-    },
-    {
-      id: '3',
-      title: 'Learn by Building',
-      category: 'learning',
-      content: 'Don\'t just watch tutorials. Build projects, make mistakes, and learn from them. That\'s how you become a real developer.',
-      author: 'Omar Ali',
-      likes: 156,
-      isLiked: false,
-      duration: '4 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1517077304055-6e89abbf09b0?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: false,
-      audioUrl: ''
-    },
-    {
-      id: '4',
-      title: 'Embrace the Debugging Process',
-      category: 'problem-solving',
-      content: 'Debugging is not a sign of failure, it\'s a sign of learning. Every bug you fix makes you a better programmer.',
-      author: 'Fatma Ibrahim',
-      likes: 78,
-      isLiked: false,
-      duration: '3 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: false,
-      audioUrl: ''
-    },
-    {
-      id: '5',
-      title: 'Stay Curious',
-      category: 'mindset',
-      content: 'The best developers are those who never stop learning. Technology evolves rapidly, and so should you.',
-      author: 'Mahmoud Youssef',
-      likes: 134,
-      isLiked: false,
-      duration: '2 min read',
-      thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-      isRecorded: false,
-      audioUrl: ''
-    }
-  ];
 
   // Initialize audio mode
   useEffect(() => {

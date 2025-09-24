@@ -40,18 +40,13 @@ export default function CoursesScreen() {
 
   const categories = ['All', 'Programming', 'Design', 'Business', 'Marketing', 'Data Science'];
 
-  // Load courses on component mount
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
 
   const fetchCourses = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/courses');
+      const response = await fetch('http://localhost:3000/api/public/courses');
       
       if (response.ok) {
         const data = await response.json();
@@ -72,74 +67,15 @@ export default function CoursesScreen() {
         console.log('📚 Mapped courses:', fetchedCourses.length, 'courses');
         setCourses(fetchedCourses);
       } else {
-        console.log('📚 API failed, using fallback data');
-        setCourses(getFallbackCourses());
-        setError(null); // Clear any previous errors
+        setError('Failed to load courses');
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
-      console.log('📚 Network error, using fallback data');
-      setCourses(getFallbackCourses());
-      setError(null); // Clear any previous errors
+      setError('Failed to load courses');
     } finally {
       setLoading(false);
     }
   };
-
-  const getFallbackCourses = () => [
-    {
-      id: '1',
-      title: 'React Native Fundamentals',
-      instructor: 'John Doe',
-      duration: '8 hours',
-      level: 'Beginner',
-      rating: 4.8,
-      students: 1250,
-      thumbnail: 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=React+Native',
-      description: 'Learn React Native from scratch with hands-on projects',
-      price: 'Free',
-      category: 'Programming'
-    },
-    {
-      id: '2',
-      title: 'Node.js Backend Development',
-      instructor: 'Jane Smith',
-      duration: '12 hours',
-      level: 'Intermediate',
-      rating: 4.9,
-      students: 980,
-      thumbnail: 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=Node.js',
-      description: 'Build robust backend APIs with Node.js and Express',
-      price: 'Free',
-      category: 'Programming'
-    },
-    {
-      id: '3',
-      title: 'UI/UX Design Principles',
-      instructor: 'Mike Johnson',
-      duration: '6 hours',
-      level: 'Beginner',
-      rating: 4.7,
-      students: 750,
-      thumbnail: 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=UI+UX',
-      description: 'Master the fundamentals of user interface design',
-      price: 'Free',
-      category: 'Design'
-    },
-    {
-      id: '4',
-      title: 'JavaScript ES6+',
-      instructor: 'Sarah Wilson',
-      duration: '10 hours',
-      level: 'Intermediate',
-      rating: 4.6,
-      students: 1100,
-      thumbnail: 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=JavaScript',
-      description: 'Modern JavaScript features and best practices',
-      price: 'Free',
-      category: 'Programming'
-    }
-  ];
 
   const handleCoursePress = (course: Course) => {
     router.push({

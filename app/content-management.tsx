@@ -162,8 +162,8 @@ export default function ContentManagementScreen() {
       }
 
       console.log('📊 Fetching content statistics...');
-      console.log('🔗 URL: http://192.168.100.42:3000/api/admin/stats');
-      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/stats');
+      console.log('🔗 URL: http://localhost:3000/api/admin/stats');
+      const response = await makeAuthenticatedRequest('http://localhost:3000/api/admin/stats');
 
       console.log('📡 Response status:', response.status);
       
@@ -186,7 +186,7 @@ export default function ContentManagementScreen() {
         
         if (newToken) {
           // Retry the request with new token
-          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/stats', {
+          const retryResponse = await fetch('http://localhost:3000/api/admin/stats', {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ export default function ContentManagementScreen() {
         // Wait and retry once
         setTimeout(async () => {
           try {
-            const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/stats', {
+            const retryResponse = await fetch('http://localhost:3000/api/admin/stats', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -269,7 +269,7 @@ export default function ContentManagementScreen() {
         return;
       }
 
-      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/cv-templates');
+      const response = await makeAuthenticatedRequest('http://localhost:3000/api/admin/content/cv-templates');
 
       if (response.ok) {
         const data = await response.json();
@@ -281,7 +281,7 @@ export default function ContentManagementScreen() {
         
         if (newToken) {
           // Retry the request with new token
-          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/cv-templates', {
+          const retryResponse = await fetch('http://localhost:3000/api/admin/content/cv-templates', {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -312,7 +312,7 @@ export default function ContentManagementScreen() {
         console.log('⏳ Rate limited for CV templates, waiting before retry...');
         setTimeout(async () => {
           try {
-            const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/cv-templates', {
+            const retryResponse = await fetch('http://localhost:3000/api/admin/content/cv-templates', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -345,7 +345,7 @@ export default function ContentManagementScreen() {
         return;
       }
 
-      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/advices');
+      const response = await makeAuthenticatedRequest('http://localhost:3000/api/admin/content/advices');
 
       if (response.ok) {
         const data = await response.json();
@@ -357,7 +357,7 @@ export default function ContentManagementScreen() {
         
         if (newToken) {
           // Retry the request with new token
-          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/advices', {
+          const retryResponse = await fetch('http://localhost:3000/api/admin/content/advices', {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -400,7 +400,7 @@ export default function ContentManagementScreen() {
       }
 
       console.log('✅ Token found, making request...');
-      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/articles');
+      const response = await makeAuthenticatedRequest('http://localhost:3000/api/admin/content/articles');
 
       console.log('📡 Response status:', response.status);
       
@@ -417,7 +417,7 @@ export default function ContentManagementScreen() {
         
         if (newToken) {
           // Retry the request with new token
-          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/articles', {
+          const retryResponse = await fetch('http://localhost:3000/api/admin/content/articles', {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -449,7 +449,7 @@ export default function ContentManagementScreen() {
         console.log('⏳ Rate limited for articles, waiting before retry...');
         setTimeout(async () => {
           try {
-            const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/articles', {
+            const retryResponse = await fetch('http://localhost:3000/api/admin/content/articles', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -495,7 +495,7 @@ export default function ContentManagementScreen() {
       }
 
       console.log('✅ Token found, making request...');
-      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/roadmaps');
+      const response = await makeAuthenticatedRequest('http://localhost:3000/api/admin/content/roadmaps');
 
       console.log('📡 Response status:', response.status);
       
@@ -512,7 +512,7 @@ export default function ContentManagementScreen() {
         
         if (newToken) {
           // Retry the request with new token
-          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/roadmaps', {
+          const retryResponse = await fetch('http://localhost:3000/api/admin/content/roadmaps', {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -544,7 +544,7 @@ export default function ContentManagementScreen() {
         console.log('⏳ Rate limited for roadmaps, waiting before retry...');
         setTimeout(async () => {
           try {
-            const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/roadmaps', {
+            const retryResponse = await fetch('http://localhost:3000/api/admin/content/roadmaps', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -590,7 +590,7 @@ export default function ContentManagementScreen() {
       }
 
       console.log('✅ Token found, making request...');
-      const response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/podcasts');
+      const response = await makeAuthenticatedRequest('http://localhost:3000/api/admin/content/podcasts');
 
       console.log('📡 Response status:', response.status);
 
@@ -606,7 +606,7 @@ export default function ContentManagementScreen() {
         
         if (newToken) {
           // Retry the request with new token
-          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/podcasts', {
+          const retryResponse = await fetch('http://localhost:3000/api/admin/content/podcasts', {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -637,7 +637,7 @@ export default function ContentManagementScreen() {
         console.log('⏳ Rate limited for podcasts, waiting before retry...');
         setTimeout(async () => {
           try {
-            const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/podcasts', {
+            const retryResponse = await fetch('http://localhost:3000/api/admin/content/podcasts', {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -683,7 +683,7 @@ export default function ContentManagementScreen() {
         return;
       }
 
-      const response = await fetch('http://192.168.100.42:3000/api/public/courses');
+      const response = await fetch('http://localhost:3000/api/public/courses');
 
       if (response.ok) {
         const data = await response.json();
@@ -692,7 +692,7 @@ export default function ContentManagementScreen() {
         console.log('🔄 Token expired, attempting to refresh...');
         const newToken = await refreshToken();
         if (newToken) {
-          const retryResponse = await fetch('http://192.168.100.42:3000/api/admin/content/courses', {
+          const retryResponse = await fetch('http://localhost:3000/api/admin/content/courses', {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -726,7 +726,7 @@ export default function ContentManagementScreen() {
     try {
       console.log('⚡ Fetching programming terms...');
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/programming-terms');
+      const response = await fetch('http://localhost:3000/api/public/programming-terms');
       
       if (response.ok) {
         const data = await response.json();
@@ -750,7 +750,7 @@ export default function ContentManagementScreen() {
     try {
       console.log('💭 Fetching programmer thoughts...');
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/programmer-thoughts');
+      const response = await fetch('http://localhost:3000/api/public/programmer-thoughts');
       
       if (response.ok) {
         const data = await response.json();
@@ -1353,7 +1353,7 @@ export default function ContentManagementScreen() {
               const AsyncStorage = require('@react-native-async-storage/async-storage').default;
               const token = await AsyncStorage.getItem('token');
               
-              const response = await fetch(`http://192.168.100.42:3000/api/admin/content/cv-templates/${cvId}`, {
+              const response = await fetch(`http://localhost:3000/api/admin/content/cv-templates/${cvId}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -1391,7 +1391,7 @@ export default function ContentManagementScreen() {
               const AsyncStorage = require('@react-native-async-storage/async-storage').default;
               const token = await AsyncStorage.getItem('token');
               
-              const response = await fetch(`http://192.168.100.42:3000/api/admin/content/advices/${adviceId}`, {
+              const response = await fetch(`http://localhost:3000/api/admin/content/advices/${adviceId}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -1427,7 +1427,7 @@ export default function ContentManagementScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`http://192.168.100.42:3000/api/public/programming-terms/${termId}`, {
+              const response = await fetch(`http://localhost:3000/api/public/programming-terms/${termId}`, {
                 method: 'DELETE',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1461,7 +1461,7 @@ export default function ContentManagementScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`http://192.168.100.42:3000/api/public/programmer-thoughts/${thoughtId}`, {
+              const response = await fetch(`http://localhost:3000/api/public/programmer-thoughts/${thoughtId}`, {
                 method: 'DELETE',
                 headers: {
                   'Content-Type': 'application/json',
@@ -1498,7 +1498,7 @@ export default function ContentManagementScreen() {
               const AsyncStorage = require('@react-native-async-storage/async-storage').default;
               const token = await AsyncStorage.getItem('token');
               
-              const response = await fetch(`http://192.168.100.42:3000/api/admin/content/articles/${articleId}`, {
+              const response = await fetch(`http://localhost:3000/api/admin/content/articles/${articleId}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -1742,7 +1742,7 @@ export default function ContentManagementScreen() {
               const AsyncStorage = require('@react-native-async-storage/async-storage').default;
               const token = await AsyncStorage.getItem('token');
               
-              const response = await fetch(`http://192.168.100.42:3000/api/admin/content/roadmaps/${roadmapId}`, {
+              const response = await fetch(`http://localhost:3000/api/admin/content/roadmaps/${roadmapId}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -1780,7 +1780,7 @@ export default function ContentManagementScreen() {
               const AsyncStorage = require('@react-native-async-storage/async-storage').default;
               const token = await AsyncStorage.getItem('token');
               
-              const response = await fetch(`http://192.168.100.42:3000/api/admin/content/podcasts/${podcastId}`, {
+              const response = await fetch(`http://localhost:3000/api/admin/content/podcasts/${podcastId}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -1815,7 +1815,7 @@ export default function ContentManagementScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await fetch(`http://192.168.100.42:3000/api/public/courses/${courseId}`, {
+              const response = await fetch(`http://localhost:3000/api/public/courses/${courseId}`, {
                 method: 'DELETE',
                 headers: {
                   'Content-Type': 'application/json',
@@ -2177,7 +2177,7 @@ export default function ContentManagementScreen() {
                     if (editingCV) {
                       // Update existing CV
                       console.log('Updating CV:', editingCV._id);
-                      response = await makeAuthenticatedRequest(`http://192.168.100.42:3000/api/admin/content/cv-templates/${editingCV._id}`, {
+                      response = await makeAuthenticatedRequest(`http://localhost:3000/api/admin/content/cv-templates/${editingCV._id}`, {
                         method: 'PUT',
                         headers: {
                           'Content-Type': 'application/json',
@@ -2187,7 +2187,7 @@ export default function ContentManagementScreen() {
                     } else {
                       // Add new CV
                       console.log('Creating new CV');
-                      response = await makeAuthenticatedRequest('http://192.168.100.42:3000/api/admin/content/cv-templates', {
+                      response = await makeAuthenticatedRequest('http://localhost:3000/api/admin/content/cv-templates', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
@@ -2260,8 +2260,8 @@ export default function ContentManagementScreen() {
                       const token = await AsyncStorage.getItem('token');
                       
                       const url = editingArticle 
-                        ? `http://192.168.100.42:3000/api/admin/content/articles/${editingArticle._id}`
-                        : 'http://192.168.100.42:3000/api/admin/content/articles';
+                        ? `http://localhost:3000/api/admin/content/articles/${editingArticle._id}`
+                        : 'http://localhost:3000/api/admin/content/articles';
                       
                       const response = await fetch(url, {
                         method: editingArticle ? 'PUT' : 'POST',
@@ -2339,8 +2339,8 @@ export default function ContentManagementScreen() {
                       }
                       
                       const url = editingRoadmap 
-                        ? `http://192.168.100.42:3000/api/admin/content/roadmaps/${editingRoadmap._id}`
-                        : 'http://192.168.100.42:3000/api/admin/content/roadmaps';
+                        ? `http://localhost:3000/api/admin/content/roadmaps/${editingRoadmap._id}`
+                        : 'http://localhost:3000/api/admin/content/roadmaps';
                       
                       console.log('Saving roadmap:', roadmapData);
                       console.log('Image data:', roadmapData.image);
@@ -2420,8 +2420,8 @@ export default function ContentManagementScreen() {
                       console.log('🎬 Episodes length in save:', podcastData.episodes?.length || 0);
                       
                       const url = editingPodcast 
-                        ? `http://192.168.100.42:3000/api/admin/content/podcasts/${editingPodcast._id}`
-                        : 'http://192.168.100.42:3000/api/admin/content/podcasts';
+                        ? `http://localhost:3000/api/admin/content/podcasts/${editingPodcast._id}`
+                        : 'http://localhost:3000/api/admin/content/podcasts';
                       
                       const method = editingPodcast ? 'PUT' : 'POST';
 
@@ -2506,8 +2506,8 @@ export default function ContentManagementScreen() {
                       
                       const response = await fetch(
                         editingCourse 
-                          ? `http://192.168.100.42:3000/api/public/courses/${editingCourse._id}`
-                          : 'http://192.168.100.42:3000/api/public/courses',
+                          ? `http://localhost:3000/api/public/courses/${editingCourse._id}`
+                          : 'http://localhost:3000/api/public/courses',
                         {
                           method: editingCourse ? 'PUT' : 'POST',
                           headers: {
@@ -2579,8 +2579,8 @@ export default function ContentManagementScreen() {
                       console.log('💡 Saving advice:', JSON.stringify(adviceData, null, 2));
                       
                       const url = editingAdvice 
-                        ? `http://192.168.100.42:3000/api/admin/content/advices/${editingAdvice._id}`
-                        : 'http://192.168.100.42:3000/api/admin/content/advices';
+                        ? `http://localhost:3000/api/admin/content/advices/${editingAdvice._id}`
+                        : 'http://localhost:3000/api/admin/content/advices';
                       
                       const method = editingAdvice ? 'PUT' : 'POST';
                       
@@ -2658,8 +2658,8 @@ export default function ContentManagementScreen() {
                       
                       const response = await fetch(
                         editingThought 
-                          ? `http://192.168.100.42:3000/api/public/programmer-thoughts/${editingThought._id}`
-                          : 'http://192.168.100.42:3000/api/public/programmer-thoughts',
+                          ? `http://localhost:3000/api/public/programmer-thoughts/${editingThought._id}`
+                          : 'http://localhost:3000/api/public/programmer-thoughts',
                         {
                           method: editingThought ? 'PUT' : 'POST',
                           headers: {
@@ -2733,8 +2733,8 @@ export default function ContentManagementScreen() {
                       
                       const response = await fetch(
                         editingTerm 
-                          ? `http://192.168.100.42:3000/api/public/programming-terms/${editingTerm._id}`
-                          : 'http://192.168.100.42:3000/api/public/programming-terms',
+                          ? `http://localhost:3000/api/public/programming-terms/${editingTerm._id}`
+                          : 'http://localhost:3000/api/public/programming-terms',
                         {
                           method: editingTerm ? 'PUT' : 'POST',
                           headers: {
@@ -3224,7 +3224,7 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
         name: 'image.jpg',
       } as any);
 
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+      const response = await fetch('http://localhost:3000/api/admin/content/upload-image', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -3675,7 +3675,7 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
         name: 'course-thumbnail.jpg',
       } as any);
 
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+      const response = await fetch('http://localhost:3000/api/admin/content/upload-image', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -6178,7 +6178,7 @@ const styles = StyleSheet.create({
         name: 'podcast-thumbnail.jpg',
       } as any);
 
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+      const response = await fetch('http://localhost:3000/api/admin/content/upload-image', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -7372,8 +7372,8 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
       const token = await AsyncStorage.getItem('token');
       
       const url = advice 
-        ? `http://192.168.100.42:3000/api/admin/content/advices/${advice._id}`
-        : 'http://192.168.100.42:3000/api/admin/content/advices';
+        ? `http://localhost:3000/api/admin/content/advices/${advice._id}`
+        : 'http://localhost:3000/api/admin/content/advices';
       
       const method = advice ? 'PUT' : 'POST';
       
@@ -7442,7 +7442,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         const token = await AsyncStorage.getItem('token');
         
-        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+        const uploadResponse = await fetch('http://localhost:3000/api/admin/content/upload-image', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -7484,7 +7484,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         const token = await AsyncStorage.getItem('token');
         
-        const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+        const uploadResponse = await fetch('http://localhost:3000/api/admin/content/upload-audio', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -7586,7 +7586,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       const token = await AsyncStorage.getItem('token');
       
-      const uploadResponse = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+      const uploadResponse = await fetch('http://localhost:3000/api/admin/content/upload-audio', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -8615,7 +8615,7 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
 
       console.log('📤 FormData created, making request...');
 
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-audio', {
+      const response = await fetch('http://localhost:3000/api/admin/content/upload-audio', {
         method: 'POST',
         body: formDataUpload,
         // Remove Content-Type header to let FormData set it with boundary
@@ -9408,7 +9408,7 @@ const ThoughtForm = ({ thought, onSave, onCancel }: { thought: any, onSave: (dat
         name: `thought-thumbnail-${Date.now()}.jpg`,
       } as any);
 
-      const response = await fetch('http://192.168.100.42:3000/api/admin/content/upload-image', {
+      const response = await fetch('http://localhost:3000/api/admin/content/upload-image', {
         method: 'POST',
         body: formDataUpload,
       });

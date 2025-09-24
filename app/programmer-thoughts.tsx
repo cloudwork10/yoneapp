@@ -148,7 +148,7 @@ export default function ProgrammerThoughts() {
       setLoading(true);
       console.log('💭 Fetching programmer thoughts from database...');
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/programmer-thoughts');
+      const response = await fetch('http://localhost:3000/api/public/programmer-thoughts');
       
       if (response.ok) {
         const data = await response.json();

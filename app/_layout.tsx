@@ -5,10 +5,9 @@ import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import SimpleScreenshotBlocker from '../services/SimpleScreenshotBlocker';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -38,15 +37,8 @@ export default function RootLayout() {
       }
     };
 
-    // تفعيل منع لقطات الشاشة
-    const enableScreenshotBlocker = () => {
-      console.log('🔒 تفعيل منع لقطات الشاشة...');
-      SimpleScreenshotBlocker.enable();
-    };
-
     // Only initialize once when app starts
     initializeNotifications();
-    enableScreenshotBlocker();
 
     // Listen for notifications
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -87,9 +79,6 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      
-      // إلغاء تفعيل منع لقطات الشاشة
-      SimpleScreenshotBlocker.disable();
     };
   }, []);
 
@@ -120,8 +109,6 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="contact" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />
-          <Stack.Screen name="screenshot-settings" options={{ headerShown: false }} />
-          <Stack.Screen name="test-screenshot" options={{ headerShown: false }} />
           <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
           <Stack.Screen name="article-details" options={{ headerShown: false }} />
           <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
@@ -132,7 +119,6 @@ export default function RootLayout() {
           <Stack.Screen name="top-cv" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
-        
       </ThemeProvider>
     </UserProvider>
   );

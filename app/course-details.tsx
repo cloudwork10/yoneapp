@@ -103,7 +103,7 @@ export default function CourseDetailsScreen() {
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
-        const response = await fetch(`http://192.168.100.42:3000/api/public/courses/${courseId}`);
+        const response = await fetch(`http://localhost:3000/api/public/courses/${courseId}`);
         if (response.ok) {
           const result = await response.json();
           setCourse(result.data.course);

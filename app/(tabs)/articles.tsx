@@ -36,7 +36,7 @@ export default function ArticlesScreen() {
       // Show loading for at least 1.5 seconds for better UX
       const startTime = Date.now();
       
-      const response = await fetch('http://192.168.100.42:3000/api/public/articles');
+      const response = await fetch('http://localhost:3000/api/public/articles');
       if (response.ok) {
         const data = await response.json();
         
