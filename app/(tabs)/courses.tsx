@@ -51,6 +51,7 @@ export default function CoursesScreen() {
       if (response.ok) {
         const data = await response.json();
         console.log('📚 Courses fetched from API:', data.data.courses.length, 'courses');
+        console.log('📚 Raw courses data:', data.data.courses);
         const fetchedCourses = data.data.courses.map(course => ({
           id: course._id,
           title: course.title,
@@ -191,6 +192,7 @@ export default function CoursesScreen() {
 
   const filterCourses = () => {
     console.log('🔍 Filtering courses. Total courses:', courses.length);
+    console.log('🔍 All courses:', courses);
     let filtered = courses;
 
     // Filter by category
@@ -398,9 +400,9 @@ export default function CoursesScreen() {
 
         {/* Courses List */}
         <View style={styles.coursesContainer}>
-          {filteredCourses.map((course) => (
+          {filteredCourses.map((course, index) => (
             <View key={`course-${course.id}`}>
-              {renderCourse({ item: course, index: 0 })}
+              {renderCourse({ item: course, index })}
             </View>
           ))}
         </View>
