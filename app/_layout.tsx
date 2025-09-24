@@ -5,11 +5,11 @@ import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import SimpleScreenshotBlocker from '../services/SimpleScreenshotBlocker';
-import SimpleBlackScreen from '../components/SimpleBlackScreen';
+import AdvancedScreenshotBlocker from '../services/AdvancedScreenshotBlocker';
+import ScreenshotWarning from '../components/ScreenshotWarning';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -22,28 +22,9 @@ export default function RootLayout() {
 
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
-  const [showBlackScreen, setShowBlackScreen] = useState(false);
+  const [showScreenshotWarning, setShowScreenshotWarning] = useState(false);
 
   useEffect(() => {
-    // Enable simple screenshot blocking
-    const enableScreenshotBlocking = async () => {
-      try {
-        SimpleScreenshotBlocker.setScreenshotCallback(() => {
-          setShowBlackScreen(true);
-          // Hide black screen after 2 seconds
-          setTimeout(() => {
-            setShowBlackScreen(false);
-          }, 2000);
-        });
-        
-        await SimpleScreenshotBlocker.enableProtection();
-        setShowBlackScreen(false);
-        console.log('✅ Simple screenshot blocker initialized');
-      } catch (error) {
-        console.error('❌ Error initializing simple screenshot blocker:', error);
-      }
-    };
-
     // Initialize notifications
     const initializeNotifications = async () => {
       try {
@@ -59,9 +40,36 @@ export default function RootLayout() {
       }
     };
 
+    // Initialize screenshot blocker
+    const initializeScreenshotBlocker = async () => {
+      try {
+        console.log('🔒 Initializing Screenshot Blocker...');
+        
+        await AdvancedScreenshotBlocker.initialize({
+          enableHapticFeedback: true,
+          enableVisualFeedback: true,
+          enableLogging: true,
+          blockScreenshots: true,
+          blockScreenRecording: true,
+          enableAdvancedDetection: true,
+          cooldownPeriod: 2000,
+        });
+
+        // Set up screenshot attempt callback
+        AdvancedScreenshotBlocker.setOnScreenshotAttempt((event) => {
+          console.log('📸 Screenshot attempt detected:', event);
+          setShowScreenshotWarning(true);
+        });
+
+        console.log('✅ Screenshot Blocker initialized successfully');
+      } catch (error) {
+        console.error('❌ Error initializing Screenshot Blocker:', error);
+      }
+    };
+
     // Only initialize once when app starts
-    enableScreenshotBlocking();
     initializeNotifications();
+    initializeScreenshotBlocker();
 
     // Listen for notifications
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -102,9 +110,9 @@ export default function RootLayout() {
       if (responseListener.current) {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
-      // Cleanup simple screenshot blocker
-      SimpleScreenshotBlocker.cleanup();
-      setShowBlackScreen(false);
+      
+      // Cleanup screenshot blocker
+      AdvancedScreenshotBlocker.cleanup();
     };
   }, []);
 
@@ -135,6 +143,7 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="contact" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />
+          <Stack.Screen name="screenshot-settings" options={{ headerShown: false }} />
           <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
           <Stack.Screen name="article-details" options={{ headerShown: false }} />
           <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
@@ -145,10 +154,13 @@ export default function RootLayout() {
           <Stack.Screen name="top-cv" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
+        
+        {/* Screenshot Warning Overlay */}
+        <ScreenshotWarning 
+          visible={showScreenshotWarning}
+          onAnimationComplete={() => setShowScreenshotWarning(false)}
+        />
       </ThemeProvider>
-      
-      {/* Simple Black Screen */}
-      <SimpleBlackScreen visible={showBlackScreen} />
     </UserProvider>
   );
 }

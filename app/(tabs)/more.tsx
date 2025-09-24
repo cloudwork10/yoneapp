@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import ContentProtectionTestButton from '../../components/ContentProtectionTestButton';
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
@@ -57,6 +56,13 @@ export default function MoreScreen() {
     },
     {
       id: 7,
+      title: 'Screenshot Protection',
+      description: 'Configure screenshot and recording protection',
+      icon: '🔒',
+      route: '/screenshot-settings'
+    },
+    {
+      id: 8,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
@@ -121,6 +127,8 @@ export default function MoreScreen() {
       router.push('/notification-settings');
     } else if (route === '/help') {
       router.push('/help-support');
+    } else if (route === '/screenshot-settings') {
+      router.push('/screenshot-settings');
     } else if (route === '/about') {
       console.log('🔍 About button pressed, opening modal...');
       setShowAboutModal(true);
@@ -189,12 +197,6 @@ export default function MoreScreen() {
               </View>
             </TouchableOpacity>
           ))}
-        </View>
-
-        {/* Content Protection Test */}
-        <View style={styles.testSection}>
-          <Text style={styles.testTitle}>🔒 Black Screen Protection</Text>
-          <ContentProtectionTestButton />
         </View>
 
         {/* About Section */}
@@ -553,23 +555,6 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  testSection: {
-    marginHorizontal: 20,
-    marginTop: 30,
-    marginBottom: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: '#E50914',
-  },
-  testTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#E50914',
-    marginBottom: 15,
-    textAlign: 'center',
   },
   aboutSection: {
     marginHorizontal: 20,

@@ -4,8 +4,6 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
-    "start:legacy": "expo start",
-    "start:simple": "npx expo start --no-dev --minify",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
@@ -32,6 +30,7 @@
     "expo-linking": "~7.1.7",
     "expo-notifications": "~0.31.4",
     "expo-router": "~5.1.7",
+    "expo-screen-capture": "~7.2.0",
     "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
     "expo-symbols": "~0.4.5",
@@ -44,7 +43,6 @@
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "~4.11.1",
-    "react-native-screenshot-prevent": "^1.2.1",
     "react-native-video": "^6.16.1",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5"
