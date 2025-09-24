@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import AdvancedScreenshotBlocker from '../services/AdvancedScreenshotBlocker';
+import RealScreenshotBlocker from '../services/RealScreenshotBlocker';
+import ScreenshotTestButton from './ScreenshotTestButton';
 
 interface ScreenshotSettingsProps {
   onConfigChange?: (config: any) => void;
@@ -25,14 +26,14 @@ export default function ScreenshotSettings({ onConfigChange }: ScreenshotSetting
 
   useEffect(() => {
     // Load current configuration
-    const currentConfig = AdvancedScreenshotBlocker.getConfig();
+    const currentConfig = RealScreenshotBlocker.getConfig();
     setConfig({
       enableHapticFeedback: currentConfig.enableHapticFeedback,
       enableVisualFeedback: currentConfig.enableVisualFeedback,
       enableLogging: currentConfig.enableLogging,
       blockScreenshots: currentConfig.blockScreenshots,
       blockScreenRecording: currentConfig.blockScreenRecording,
-      enableAdvancedDetection: currentConfig.enableAdvancedDetection,
+      enableAdvancedDetection: currentConfig.enableSecureFlag,
     });
   }, []);
 
@@ -41,7 +42,7 @@ export default function ScreenshotSettings({ onConfigChange }: ScreenshotSetting
     setConfig(newConfig);
     
     // Update the blocker configuration
-    AdvancedScreenshotBlocker.updateConfig({ [key]: value });
+    RealScreenshotBlocker.updateConfig({ [key]: value });
     
     // Notify parent component
     if (onConfigChange) {
@@ -50,13 +51,13 @@ export default function ScreenshotSettings({ onConfigChange }: ScreenshotSetting
   };
 
   const showStats = () => {
-    const stats = AdvancedScreenshotBlocker.getDetailedStats();
+    const stats = RealScreenshotBlocker.getStats();
     Alert.alert(
       'Screenshot Protection Stats',
       `Attempts Blocked: ${stats.attempts}\n` +
       `Last Attempt: ${stats.lastAttempt ? new Date(stats.lastAttempt).toLocaleString() : 'Never'}\n` +
-      `Detection Methods: ${stats.detectionMethods.length}\n` +
-      `Status: ${AdvancedScreenshotBlocker.isBlockerEnabled() ? 'Active' : 'Inactive'}`,
+      `Overlay Active: ${stats.overlayActive ? 'Yes' : 'No'}\n` +
+      `Status: ${RealScreenshotBlocker.isBlockerEnabled() ? 'Active' : 'Inactive'}`,
       [{ text: 'OK' }]
     );
   };
@@ -177,9 +178,7 @@ export default function ScreenshotSettings({ onConfigChange }: ScreenshotSetting
           <Text style={styles.actionButtonText}>📊 View Statistics</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.actionButton} onPress={testProtection}>
-          <Text style={styles.actionButtonText}>🧪 Test Protection</Text>
-        </TouchableOpacity>
+        <ScreenshotTestButton onScreenshotAttempt={testProtection} />
       </View>
 
       <View style={styles.infoSection}>

@@ -8,8 +8,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
-import AdvancedScreenshotBlocker from '../services/AdvancedScreenshotBlocker';
+import RealScreenshotBlocker from '../services/RealScreenshotBlocker';
+import NativeScreenshotBlocker from '../services/NativeScreenshotBlocker';
 import ScreenshotWarning from '../components/ScreenshotWarning';
+import ContentProtectionOverlay from '../components/ContentProtectionOverlay';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -23,6 +25,7 @@ export default function RootLayout() {
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
   const [showScreenshotWarning, setShowScreenshotWarning] = useState(false);
+  const [showContentProtection, setShowContentProtection] = useState(false);
 
   useEffect(() => {
     // Initialize notifications
@@ -43,27 +46,32 @@ export default function RootLayout() {
     // Initialize screenshot blocker
     const initializeScreenshotBlocker = async () => {
       try {
-        console.log('🔒 Initializing Screenshot Blocker...');
+        console.log('🔒 Initializing Enhanced Screenshot Blocker...');
         
-        await AdvancedScreenshotBlocker.initialize({
+        // Initialize native screenshot blocker first
+        await NativeScreenshotBlocker.initialize();
+        
+        // Initialize real screenshot blocker
+        await RealScreenshotBlocker.initialize({
           enableHapticFeedback: true,
           enableVisualFeedback: true,
           enableLogging: true,
           blockScreenshots: true,
           blockScreenRecording: true,
-          enableAdvancedDetection: true,
-          cooldownPeriod: 2000,
+          enableSecureFlag: true,
+          enableContentProtection: true,
         });
 
         // Set up screenshot attempt callback
-        AdvancedScreenshotBlocker.setOnScreenshotAttempt((event) => {
+        RealScreenshotBlocker.setOnScreenshotAttempt((event) => {
           console.log('📸 Screenshot attempt detected:', event);
           setShowScreenshotWarning(true);
+          setShowContentProtection(true);
         });
 
-        console.log('✅ Screenshot Blocker initialized successfully');
+        console.log('✅ Enhanced Screenshot Blocker initialized successfully');
       } catch (error) {
-        console.error('❌ Error initializing Screenshot Blocker:', error);
+        console.error('❌ Error initializing Enhanced Screenshot Blocker:', error);
       }
     };
 
@@ -111,8 +119,9 @@ export default function RootLayout() {
         Notifications.removeNotificationSubscription(responseListener.current);
       }
       
-      // Cleanup screenshot blocker
-      AdvancedScreenshotBlocker.cleanup();
+      // Cleanup screenshot blockers
+      RealScreenshotBlocker.cleanup();
+      NativeScreenshotBlocker.cleanup();
     };
   }, []);
 
@@ -159,6 +168,12 @@ export default function RootLayout() {
         <ScreenshotWarning 
           visible={showScreenshotWarning}
           onAnimationComplete={() => setShowScreenshotWarning(false)}
+        />
+        
+        {/* Content Protection Overlay */}
+        <ContentProtectionOverlay 
+          visible={showContentProtection}
+          onAnimationComplete={() => setShowContentProtection(false)}
         />
       </ThemeProvider>
     </UserProvider>
