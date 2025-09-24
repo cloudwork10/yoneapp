@@ -254,6 +254,13 @@ export default function MoreScreen() {
         <View style={styles.testSection}>
           <Text style={styles.testSectionTitle}>🔒 اختبار منع لقطات الشاشة</Text>
           <SimpleTestButton />
+          
+          <TouchableOpacity 
+            style={styles.advancedTestButton}
+            onPress={() => router.push('/test-screenshot')}
+          >
+            <Text style={styles.advancedTestButtonText}>🧪 صفحة اختبار متقدمة</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.footer}>
@@ -616,6 +623,19 @@ const styles = StyleSheet.create({
     color: '#E50914',
     marginBottom: 15,
     textAlign: 'center',
+  },
+  advancedTestButton: {
+    backgroundColor: '#4ECDC4',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  advancedTestButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '600',
   },
   footer: {
     marginTop: 20,

@@ -121,6 +121,7 @@ export default function RootLayout() {
           <Stack.Screen name="contact" options={{ headerShown: false }} />
           <Stack.Screen name="about-us" options={{ headerShown: false }} />
           <Stack.Screen name="screenshot-settings" options={{ headerShown: false }} />
+          <Stack.Screen name="test-screenshot" options={{ headerShown: false }} />
           <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
           <Stack.Screen name="article-details" options={{ headerShown: false }} />
           <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
