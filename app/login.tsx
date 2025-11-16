@@ -1,3 +1,5 @@
+import { useUser } from '@/contexts/UserContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -13,7 +15,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUser } from '@/contexts/UserContext';
+import API_BASE_URL from '../config/api';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -40,7 +42,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,10 +75,16 @@ export default function LoginScreen() {
         
         if (data.data.tokens && data.data.tokens.accessToken) {
           const token = data.data.tokens.accessToken;
+          const refreshToken = data.data.tokens.refreshToken;
           console.log('✅ Token found, saving to storage:', token.substring(0, 20) + '...');
+          console.log('✅ Refresh token found, saving to storage:', refreshToken ? refreshToken.substring(0, 20) + '...' : 'No refresh token');
           
           // Save token and user data via UserContext
-          await login(userContextData, token);
+          await login(userContextData, token, refreshToken);
+          
+          // Verify token was saved
+          const savedToken = await AsyncStorage.getItem('token');
+          console.log('🔍 Token saved verification:', savedToken ? savedToken.substring(0, 20) + '...' : 'No token saved');
         } else {
           console.warn('❌ No token received from server');
           console.log('🔍 Available data keys:', Object.keys(data.data || {}));
@@ -86,8 +94,8 @@ export default function LoginScreen() {
         
         console.log('Login successful:', userData);
         
-        // Navigate to main app
-        router.replace('/(tabs)');
+        // Navigate to app-loading to properly handle auth state
+        router.replace('/app-loading');
       } else {
         Alert.alert('Login Failed', data.message || 'Invalid email or password');
       }

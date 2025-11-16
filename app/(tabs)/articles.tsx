@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LoadingScreen from '../../components/LoadingScreen';
 import { ArticleCardSkeleton } from '../../components/SkeletonLoader';
+import API_BASE_URL from '../../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -36,7 +37,7 @@ export default function ArticlesScreen() {
       // Show loading for at least 1.5 seconds for better UX
       const startTime = Date.now();
       
-      const response = await fetch('http://localhost:3000/api/public/articles');
+      const response = await fetch(`${API_BASE_URL}/api/public/articles`);
       if (response.ok) {
         const data = await response.json();
         

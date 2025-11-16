@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     ImageBackground,
     Modal,
@@ -14,6 +15,9 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../config/api';
+import { useUser } from '../contexts/UserContext';
+import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +30,7 @@ interface CourseVideo {
   description: string;
   isCompleted: boolean;
   category: string;
+  isLocked?: boolean;
 }
 
 interface CourseTask {
@@ -59,6 +64,7 @@ interface CourseReview {
 
 export default function CourseDetailsScreen() {
   const { courseId } = useLocalSearchParams();
+  const { user } = useUser();
   const [selectedVideo, setSelectedVideo] = useState<CourseVideo | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -66,6 +72,8 @@ export default function CourseDetailsScreen() {
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   // Generate course videos from course sections and lessons
   const courseVideos: CourseVideo[] = React.useMemo(() => {
@@ -95,15 +103,16 @@ export default function CourseDetailsScreen() {
         description: lesson.description || lesson.title || 'وصف الدرس',
         isCompleted: lesson.isCompleted || false,
         category: section.title || `القسم ${sectionIndex + 1}`,
+        isLocked: !hasActiveSubscription && (sectionIndex > 0 || lessonIndex > 0) // First lesson is free, rest require subscription
       })) || []
     );
-  }, [course]);
+  }, [course, hasActiveSubscription]);
 
   // Fetch course details from API
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
-        const response = await fetch(`http://localhost:3000/api/public/courses/${courseId}`);
+        const response = await fetch(`${API_BASE_URL}/api/public/courses/${courseId}`);
         if (response.ok) {
           const result = await response.json();
           setCourse(result.data.course);
@@ -133,6 +142,52 @@ export default function CourseDetailsScreen() {
       setExpandedCategories(categories);
     }
   }, [course]);
+
+  // Check user subscription status
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user) {
+        setSubscriptionLoading(false);
+        return;
+      }
+
+      try {
+        const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/subscription`);
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.data.subscription) {
+          const subscription = data.data.subscription;
+          const isActive = subscription.status === 'active' && new Date(subscription.endDate) > new Date();
+          setHasActiveSubscription(isActive);
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setHasActiveSubscription(false);
+      } finally {
+        setSubscriptionLoading(false);
+      }
+    };
+
+    checkSubscription();
+  }, [user]);
+
+  // Generate course lessons with subscription logic
+  const courseLessons: CourseLesson[] = React.useMemo(() => {
+    const lessons = [
+      { id: '1', title: 'Introduction to React Native', duration: '15:30', type: 'video' as const, isCompleted: true },
+      { id: '2', title: 'Setting Up Development Environment', duration: '22:45', type: 'video' as const, isCompleted: false },
+      { id: '3', title: 'Components and Styling', duration: '28:15', type: 'video' as const, isCompleted: false },
+      { id: '4', title: 'Navigation and Routing', duration: '35:20', type: 'video' as const, isCompleted: false },
+      { id: '5', title: 'State Management with Redux', duration: '42:10', type: 'video' as const, isCompleted: false },
+      { id: '6', title: 'API Integration', duration: '38:25', type: 'video' as const, isCompleted: false },
+      { id: '7', title: 'App Deployment', duration: '25:40', type: 'video' as const, isCompleted: false }
+    ];
+
+    return lessons.map((lesson, index) => ({
+      ...lesson,
+      isLocked: !hasActiveSubscription && index > 0 // First lesson (intro) is free, rest require subscription
+    }));
+  }, [hasActiveSubscription]);
 
   // Show loading screen if course data is not loaded yet
   if (loading || !course) {
@@ -179,16 +234,6 @@ export default function CourseDetailsScreen() {
     }
   ];
 
-  const courseLessons: CourseLesson[] = [
-    { id: '1', title: 'Introduction to React Native', duration: '15:30', type: 'video', isCompleted: true, isLocked: false },
-    { id: '2', title: 'Setting Up Development Environment', duration: '22:45', type: 'video', isCompleted: true, isLocked: false },
-    { id: '3', title: 'Components and Styling', duration: '28:15', type: 'video', isCompleted: false, isLocked: false },
-    { id: '4', title: 'Navigation and Routing', duration: '35:20', type: 'video', isCompleted: false, isLocked: false },
-    { id: '5', title: 'State Management with Redux', duration: '42:10', type: 'video', isCompleted: false, isLocked: true },
-    { id: '6', title: 'API Integration', duration: '38:25', type: 'video', isCompleted: false, isLocked: true },
-    { id: '7', title: 'App Deployment', duration: '25:40', type: 'video', isCompleted: false, isLocked: true }
-  ];
-
   const courseReviews: CourseReview[] = [
     {
       id: '1',
@@ -217,8 +262,19 @@ export default function CourseDetailsScreen() {
   ];
 
   const handleVideoPress = (video: CourseVideo) => {
-    setSelectedVideo(video);
-    setShowVideoModal(true);
+    if (video.isLocked) {
+      Alert.alert(
+        '🔒 Premium Content',
+        'This video is part of our premium content. Subscribe now to unlock all videos and get unlimited access to our courses!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Subscribe Now', onPress: () => router.push('/subscription') }
+        ]
+      );
+    } else {
+      setSelectedVideo(video);
+      setShowVideoModal(true);
+    }
   };
 
   const toggleCategory = (category: string) => {
@@ -233,6 +289,22 @@ export default function CourseDetailsScreen() {
     // In real app, this would call API to enroll user
   };
 
+  const handleLessonPress = (lesson: CourseLesson) => {
+    if (lesson.isLocked) {
+      Alert.alert(
+        '🔒 Premium Content',
+        'This lesson is part of our premium content. Subscribe now to unlock all lessons and get unlimited access to our courses!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Subscribe Now', onPress: () => router.push('/subscription') }
+        ]
+      );
+    } else {
+      // Handle lesson opening logic here
+      console.log('Opening lesson:', lesson.title);
+    }
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Text key={i} style={styles.star}>
@@ -243,11 +315,11 @@ export default function CourseDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+          <StatusBar barStyle="light-content" backgroundColor="#000000" />
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)/courses')}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Course Details</Text>
@@ -375,7 +447,7 @@ export default function CourseDetailsScreen() {
                       lesson.isCompleted && styles.moduleCompleted,
                       lesson.isLocked && styles.moduleLocked
                     ]}
-                    disabled={lesson.isLocked}
+                    onPress={() => handleLessonPress(lesson)}
                   >
                     <View style={styles.moduleIcon}>
                       <Text style={styles.moduleIconText}>

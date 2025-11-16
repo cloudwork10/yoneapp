@@ -13,6 +13,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -64,7 +65,7 @@ export default function RoadmapDetailsScreen() {
       
       console.log('🔍 Fetching roadmap:', roadmapId);
       
-      const response = await fetch(`http://localhost:3000/api/public/roadmaps/${roadmapId}`);
+      const response = await fetch(`${API_BASE_URL}/api/public/roadmaps/${roadmapId}`);
       
       if (response.ok) {
         const data = await response.json();

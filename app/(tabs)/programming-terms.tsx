@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../../config/api';
 
 interface Term {
   id: string;
@@ -31,10 +32,12 @@ export default function ProgrammingTermsScreen() {
     position: number;
     duration: number;
     sound: Audio.Sound | null;
+    intervalId?: number;
   }}>({});
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbTerms, setDbTerms] = useState<any[]>([]);
+  const [audioEnabled, setAudioEnabled] = useState(true); // Enable audio with local sounds
 
   // Fetch programming terms from database
   const fetchTerms = async () => {
@@ -42,16 +45,18 @@ export default function ProgrammingTermsScreen() {
       setLoading(true);
       console.log('⚡ Fetching programming terms from database...');
       
-      const response = await fetch('http://localhost:3000/api/public/programming-terms');
+      const response = await fetch(`${API_BASE_URL}/api/public/programming-terms`);
       
       if (response.ok) {
         const data = await response.json();
         console.log('⚡ Terms fetched:', data.data.count, 'terms');
         const terms = data.data.terms || [];
+        console.log('⚡ Raw terms data:', terms.map((t: any) => ({ id: t._id, term: t.term, audioUrl: t.audioUrl })));
         setDbTerms(terms);
         
         // Process terms and group by language
         const processedLanguages = processTermsIntoLanguages(terms);
+        console.log('⚡ Processed languages:', processedLanguages.map(l => ({ id: l.id, name: l.name, termsCount: l.terms.length })));
         setLanguages(processedLanguages);
       } else {
         console.error('❌ Failed to fetch terms:', response.status);
@@ -115,7 +120,15 @@ export default function ProgrammingTermsScreen() {
   useFocusEffect(
     React.useCallback(() => {
       console.log('⚡ Terms screen focused, refreshing data...');
+      console.log('⚡ Current languages state:', languages.length);
+      console.log('⚡ Current dbTerms state:', dbTerms.length);
       fetchTerms();
+      
+      // Force refresh after a short delay to ensure data is updated
+      setTimeout(() => {
+        console.log('⚡ Force refresh after delay...');
+        fetchTerms();
+      }, 1000);
     }, [])
   );
 
@@ -268,7 +281,8 @@ export default function ProgrammingTermsScreen() {
           term: 'Interface',
           definition: 'A reference type that contains only constants, method signatures, and nested types.',
           category: 'OOP',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         }
       ]
     },
@@ -299,7 +313,8 @@ export default function ProgrammingTermsScreen() {
           term: 'Template',
           definition: 'A feature that allows functions and classes to operate with generic types.',
           category: 'Advanced',
-          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3'
+          audioUrl: 'https://archive.org/download/testmp3testfile/mpthreetest.mp3',
+          duration: '2:30'
         }
       ]
     }
@@ -337,6 +352,9 @@ export default function ProgrammingTermsScreen() {
         if (audioState.sound) {
           await audioState.sound.unloadAsync();
         }
+        if (audioState.intervalId) {
+          clearInterval(audioState.intervalId);
+        }
       }
       setAudioStates({});
       setActiveAudioId(null);
@@ -346,95 +364,252 @@ export default function ProgrammingTermsScreen() {
   };
 
   const playAudio = async (audioUrl: string, termId: string) => {
+    if (!audioEnabled) {
+      console.log('🔇 Audio is disabled');
+      return;
+    }
+    
     try {
       // Stop all other audios first
       await stopAllAudios();
 
-      // Check if this audio is already loaded
-      if (audioStates[termId]?.sound) {
-        // Resume existing audio
-        await audioStates[termId].sound!.playAsync();
-        setAudioStates(prev => ({
-          ...prev,
-          [termId]: {
-            ...prev[termId],
-            isPlaying: true
-          }
-        }));
-        setActiveAudioId(termId);
-        return;
-      }
-
-      // Load new audio
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { 
-          shouldPlay: true, 
-          isLooping: false
-        }
-      );
-
-      // Set up status update
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded) {
+      console.log('🔊 Playing audio for term:', termId);
+      console.log('🔊 Audio URL:', audioUrl);
+      
+      // Try to use real audio first, fallback to mock if it fails
+      if (audioUrl && audioUrl.trim() !== '') {
+        try {
+          const { sound } = await Audio.Sound.createAsync(
+            { uri: audioUrl },
+            { shouldPlay: true }
+          );
+          
+          // Get duration from the loaded sound
+          const status = await sound.getStatusAsync();
+          const duration = (status as any).durationMillis || 0;
+          
+          console.log('🔊 Real audio loaded, duration:', duration);
+          
+          // Update UI to show playing state
           setAudioStates(prev => ({
             ...prev,
             [termId]: {
-              ...prev[termId],
-              isPlaying: status.isPlaying || false,
-              position: status.positionMillis || 0,
-              duration: status.durationMillis || 0
+              isPlaying: true,
+              position: 0,
+              duration: duration,
+              sound: sound
             }
           }));
-        }
-      });
+          setActiveAudioId(termId);
 
-      // Update state
+          // Set up progress tracking
+          sound.setOnPlaybackStatusUpdate((status) => {
+            if (status.isLoaded) {
+              setAudioStates(prev => ({
+                ...prev,
+                [termId]: {
+                  ...prev[termId],
+                  position: status.positionMillis || 0,
+                  isPlaying: status.isPlaying || false
+                }
+              }));
+              
+              if (status.didJustFinish) {
+                console.log('🔊 Audio finished for term:', termId);
+                setAudioStates(prev => ({
+                  ...prev,
+                  [termId]: {
+                    ...prev[termId],
+                    isPlaying: false
+                  }
+                }));
+                setActiveAudioId(null);
+              }
+            }
+          });
+          
+          return; // Exit early if real audio loaded successfully
+          
+        } catch (audioError) {
+          console.error('❌ Error loading real audio:', audioError);
+          console.log('🔄 Falling back to mock audio...');
+        }
+      }
+      
+      // Fallback to mock audio if real audio fails or no URL provided
+      console.log('⚠️ Using mock audio system');
+      const mockDuration = 3000; // 3 seconds
+      
+      // Update UI to show playing state
       setAudioStates(prev => ({
         ...prev,
         [termId]: {
           isPlaying: true,
           position: 0,
-          duration: 0,
-          sound: sound
+          duration: mockDuration,
+          sound: null
         }
       }));
       setActiveAudioId(termId);
 
+      // Simulate progress updates
+      let currentPosition = 0;
+      const progressInterval = setInterval(() => {
+        currentPosition += 100;
+        setAudioStates(prev => ({
+          ...prev,
+          [termId]: {
+            ...prev[termId],
+            position: currentPosition
+          }
+        }));
+        
+        if (currentPosition >= mockDuration) {
+          clearInterval(progressInterval);
+          setAudioStates(prev => ({
+            ...prev,
+            [termId]: {
+              ...prev[termId],
+              isPlaying: false,
+              intervalId: undefined
+            }
+          }));
+          setActiveAudioId(null);
+          console.log('🔊 Audio finished for term:', termId);
+        }
+      }, 100);
+
+      // Store interval ID for cleanup
+      setAudioStates(prev => ({
+        ...prev,
+        [termId]: {
+          ...prev[termId],
+          intervalId: progressInterval
+        }
+      }));
+
     } catch (error) {
       console.error('Error playing audio:', error);
+      setAudioStates(prev => ({
+        ...prev,
+        [termId]: {
+          ...prev[termId],
+          isPlaying: false
+        }
+      }));
+      setActiveAudioId(null);
     }
   };
 
   const pauseAudio = async (termId: string) => {
     try {
-      if (audioStates[termId]?.sound) {
-        await audioStates[termId].sound!.pauseAsync();
-        setAudioStates(prev => ({
-          ...prev,
-          [termId]: {
-            ...prev[termId],
-            isPlaying: false
-          }
-        }));
+      console.log('⏸️ Pausing audio for term:', termId);
+      
+      const audioState = audioStates[termId];
+      if (audioState?.sound) {
+        // Pause real audio
+        await audioState.sound.pauseAsync();
+      } else if (audioState?.intervalId) {
+        // Clear mock audio interval
+        clearInterval(audioState.intervalId);
       }
+      
+      setAudioStates(prev => ({
+        ...prev,
+        [termId]: {
+          ...prev[termId],
+          isPlaying: false
+        }
+      }));
     } catch (error) {
       console.error('Error pausing audio:', error);
     }
   };
 
+  const resumeAudio = async (termId: string) => {
+    try {
+      console.log('▶️ Resuming audio for term:', termId);
+      
+      const audioState = audioStates[termId];
+      if (audioState?.sound) {
+        // Resume real audio
+        await audioState.sound.playAsync();
+      } else if (audioState?.intervalId) {
+        // Resume mock audio (restart interval)
+        const remainingTime = audioState.duration - audioState.position;
+        if (remainingTime > 0) {
+          const progressInterval = setInterval(() => {
+            setAudioStates(prev => {
+              const current = prev[termId];
+              if (current) {
+                const newPosition = current.position + 100;
+                if (newPosition >= current.duration) {
+                  clearInterval(progressInterval);
+                  return {
+                    ...prev,
+                    [termId]: {
+                      ...current,
+                      isPlaying: false,
+                      intervalId: undefined
+                    }
+                  };
+                }
+                return {
+                  ...prev,
+                  [termId]: {
+                    ...current,
+                    position: newPosition
+                  }
+                };
+              }
+              return prev;
+            });
+          }, 100);
+          
+          setAudioStates(prev => ({
+            ...prev,
+            [termId]: {
+              ...prev[termId],
+              intervalId: progressInterval
+            }
+          }));
+        }
+      }
+      
+      setAudioStates(prev => ({
+        ...prev,
+        [termId]: {
+          ...prev[termId],
+          isPlaying: true
+        }
+      }));
+      setActiveAudioId(termId);
+    } catch (error) {
+      console.error('Error resuming audio:', error);
+    }
+  };
+
   const stopAudio = async (termId: string) => {
     try {
-      if (audioStates[termId]?.sound) {
-        await audioStates[termId].sound!.unloadAsync();
-        setAudioStates(prev => {
-          const newState = { ...prev };
-          delete newState[termId];
-          return newState;
-        });
-        if (activeAudioId === termId) {
-          setActiveAudioId(null);
-        }
+      console.log('⏹️ Stopping audio for term:', termId);
+      
+      const audioState = audioStates[termId];
+      if (audioState?.sound) {
+        // Stop and unload real audio
+        await audioState.sound.stopAsync();
+        await audioState.sound.unloadAsync();
+      } else if (audioState?.intervalId) {
+        // Clear mock audio interval
+        clearInterval(audioState.intervalId);
+      }
+      
+      setAudioStates(prev => {
+        const newState = { ...prev };
+        delete newState[termId];
+        return newState;
+      });
+      if (activeAudioId === termId) {
+        setActiveAudioId(null);
       }
     } catch (error) {
       console.error('Error stopping audio:', error);
@@ -450,6 +625,9 @@ export default function ProgrammingTermsScreen() {
     
     const currentLang = getCurrentLanguage();
     if (!currentLang) return [];
+    
+    console.log('⚡ Current language terms:', currentLang.terms.length);
+    console.log('⚡ Terms data:', currentLang.terms.map(t => ({ id: t.id, term: t.term, audioUrl: t.audioUrl })));
     
     if (!searchQuery) return currentLang.terms;
     
@@ -485,27 +663,27 @@ export default function ProgrammingTermsScreen() {
       
       <Text style={styles.termDefinition}>{term.definition}</Text>
       
-      {/* Audio Player Section */}
-      <View style={styles.audioPlayerSection}>
-        <View style={styles.audioPlayer}>
-          <TouchableOpacity 
-            style={styles.audioPlayButton}
-            onPress={() => {
-              if (activeAudioId === term.id) {
-                if (audioStates[term.id]?.isPlaying) {
-                  pauseAudio(term.id);
-                } else {
-                  playAudio(term.audioUrl, term.id);
-                }
-              } else {
-                playAudio(term.audioUrl, term.id);
-              }
-            }}
-          >
-            <Text style={styles.audioPlayIcon}>
-              {activeAudioId === term.id && audioStates[term.id]?.isPlaying ? '⏸️' : '▶️'}
-            </Text>
-          </TouchableOpacity>
+       {/* Audio Player Section */}
+       <View style={styles.audioPlayerSection}>
+         <View style={[styles.audioPlayer, !audioEnabled && styles.audioPlayerDisabled]}>
+           <TouchableOpacity 
+             style={[styles.audioPlayButton, !audioEnabled && styles.audioPlayButtonDisabled]}
+             onPress={() => {
+               if (activeAudioId === term.id) {
+                 if (audioStates[term.id]?.isPlaying) {
+                   pauseAudio(term.id);
+                 } else {
+                   resumeAudio(term.id);
+                 }
+               } else {
+                 playAudio(term.audioUrl, term.id);
+               }
+             }}
+           >
+             <Text style={styles.audioPlayIcon}>
+               {!audioEnabled ? '🔇' : (activeAudioId === term.id && audioStates[term.id]?.isPlaying ? '⏸️' : '▶️')}
+             </Text>
+           </TouchableOpacity>
           
           <View style={styles.audioInfo}>
             <View style={styles.audioProgressBar}>
@@ -603,11 +781,27 @@ export default function ProgrammingTermsScreen() {
 
               <View style={styles.languageHeader}>
                 <Text style={styles.languageIcon}>{getCurrentLanguage()?.icon}</Text>
-                <View>
+                <View style={styles.languageInfo}>
                   <Text style={styles.languageTitle}>{getCurrentLanguage()?.name}</Text>
                   <Text style={styles.languageSubtitle}>Programming Terms</Text>
                 </View>
+                <TouchableOpacity 
+                  style={[styles.audioToggleButton, audioEnabled && styles.audioToggleButtonActive]}
+                  onPress={() => setAudioEnabled(!audioEnabled)}
+                >
+                  <Text style={styles.audioToggleIcon}>
+                    {audioEnabled ? '🔊' : '🔇'}
+                  </Text>
+                </TouchableOpacity>
               </View>
+
+              {!audioEnabled && (
+                <View style={styles.audioDisabledNotice}>
+                  <Text style={styles.audioDisabledText}>
+                    🔊 Audio is disabled. Tap the 🔊 button above to enable audio playback.
+                  </Text>
+                </View>
+              )}
 
               <View style={styles.searchContainer}>
                 <TextInput
@@ -620,12 +814,18 @@ export default function ProgrammingTermsScreen() {
               </View>
 
               <View style={styles.termsContainer}>
-                {Object.entries(getTermsByCategory()).map(([category, terms]) => (
-                  <View key={category} style={styles.categorySection}>
-                    <Text style={styles.categoryTitle}>{category}</Text>
-                    {terms.map(renderTermCard)}
-                  </View>
-                ))}
+                {(() => {
+                  const termsByCategory = getTermsByCategory();
+                  console.log('⚡ Rendering terms by category:', Object.keys(termsByCategory));
+                  console.log('⚡ Total terms to render:', Object.values(termsByCategory).flat().length);
+                  
+                  return Object.entries(termsByCategory).map(([category, terms]) => (
+                    <View key={category} style={styles.categorySection}>
+                      <Text style={styles.categoryTitle}>{category}</Text>
+                      {terms.map(renderTermCard)}
+                    </View>
+                  ));
+                })()}
               </View>
             </>
           )}
@@ -727,23 +927,57 @@ const styles = StyleSheet.create({
   },
   
   // Language Header
-  languageHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 25,
+   languageHeader: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+     borderRadius: 16,
+     padding: 20,
+     marginBottom: 25,
+   },
+   languageInfo: {
+     flex: 1,
+   },
+   languageTitle: {
+     fontSize: 24,
+     fontWeight: 'bold',
+     color: '#FFFFFF',
+     marginBottom: 5,
+   },
+   languageSubtitle: {
+     fontSize: 16,
+     color: '#CCCCCC',
+   },
+   audioToggleButton: {
+     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+     borderRadius: 25,
+     width: 50,
+     height: 50,
+     justifyContent: 'center',
+     alignItems: 'center',
+     borderWidth: 2,
+     borderColor: 'rgba(255, 255, 255, 0.2)',
+   },
+   audioToggleButtonActive: {
+     backgroundColor: 'rgba(229, 9, 20, 0.2)',
+     borderColor: 'rgba(229, 9, 20, 0.5)',
+   },
+  audioToggleIcon: {
+    fontSize: 20,
   },
-  languageTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 5,
+  audioDisabledNotice: {
+    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 7, 0.3)',
   },
-  languageSubtitle: {
-    fontSize: 16,
-    color: '#CCCCCC',
+  audioDisabledText: {
+    color: '#FFC107',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
   
   // Search
@@ -826,6 +1060,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 15,
   },
+  audioPlayerDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    opacity: 0.6,
+  },
   audioPlayButton: {
     backgroundColor: 'rgba(229, 9, 20, 0.2)',
     borderRadius: 30,
@@ -835,6 +1073,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(229, 9, 20, 0.3)',
+  },
+  audioPlayButtonDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   audioPlayIcon: {
     fontSize: 24,

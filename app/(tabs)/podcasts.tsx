@@ -2,132 +2,185 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    ImageBackground,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  Dimensions,
+  ImageBackground,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../../config/api';
+import { useUser } from '../../contexts/UserContext';
+import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
 
+interface Podcast {
+  _id?: string;
+  id?: string;
+  title: string;
+  host: string;
+  category: string;
+  thumbnail?: string;
+  rating?: number;
+  listeners?: number;
+  isPremium?: boolean;
+}
+
 export default function PodcastsScreen() {
+  const { user } = useUser();
+  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
+  const [filteredPodcasts, setFilteredPodcasts] = useState<Podcast[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [podcasts, setPodcasts] = useState([]);
-  const [loading, setLoading] = useState(false); // Simple loading state
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+
   const categories = ['All', 'Technology', 'Programming', 'Business', 'Design', 'Career'];
 
-
-  // Fetch podcasts from API
   useEffect(() => {
     fetchPodcasts();
+    checkSubscription();
   }, []);
 
-  // Add refresh function
-  const onRefresh = () => {
-    fetchPodcasts();
-  };
-
+  useEffect(() => {
+    filterPodcasts();
+  }, [searchQuery, selectedCategory, podcasts]);
 
   const fetchPodcasts = async () => {
     try {
       setLoading(true);
       console.log('🎧 Fetching podcasts from API...');
-      
-      const response = await fetch('http://localhost:3000/api/public/podcasts');
+      const response = await fetch(`${API_BASE_URL}/api/public/podcasts`);
       
       if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Podcasts fetched:', result.data.podcasts.length);
-        setPodcasts(result.data.podcasts);
+        const data = await response.json();
+        console.log('✅ Podcasts fetched:', data.data.podcasts.length);
+        setPodcasts(data.data.podcasts || []);
       } else {
-        console.error('❌ Failed to fetch podcasts:', response.status);
-        Alert.alert('خطأ', 'فشل في تحميل البودكاست');
+        console.error('Failed to fetch podcasts:', response.status);
+        setPodcasts([]);
       }
     } catch (error) {
-      console.error('❌ Network error:', error);
-      Alert.alert('خطأ شبكة', 'فشل في الاتصال بالخادم');
+      console.error('Error fetching podcasts:', error);
+      setPodcasts([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredPodcasts = podcasts.filter(podcast => {
-    const matchesSearch = podcast.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         podcast.host.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || podcast.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const checkSubscription = async () => {
+    if (!user) return;
 
-  const handlePodcastPress = (podcastId: string) => {
+    try {
+      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/subscription`);
+      if (response.ok) {
+        const data = await response.json();
+        setHasActiveSubscription(data.data?.isActive || false);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+    }
+  };
+
+  const filterPodcasts = () => {
+    let filtered = podcasts;
+
+    if (searchQuery) {
+      filtered = filtered.filter(podcast =>
+        podcast.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        podcast.host?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        podcast.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(podcast => podcast.category === selectedCategory);
+    }
+
+    setFilteredPodcasts(filtered);
+  };
+
+  const onRefresh = () => {
+    fetchPodcasts();
+    checkSubscription();
+  };
+
+  const handlePodcastPress = (podcast: Podcast) => {
+    if (podcast.isPremium && !hasActiveSubscription) {
+      Alert.alert(
+        'Premium Content',
+        'This podcast is available for premium subscribers only. Upgrade to access all content.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => router.push('/subscription') }
+        ]
+      );
+      return;
+    }
+
     router.push({
       pathname: '/podcast-details',
-      params: { podcastId }
+      params: { podcastId: podcast._id || podcast.id }
     });
   };
 
-  const renderPodcast = ({ item: podcast }) => (
-    <TouchableOpacity 
-      style={styles.podcastCard}
-      onPress={() => handlePodcastPress(podcast._id)}
-    >
-      <View style={styles.podcastThumbnail}>
-        {podcast.thumbnail.startsWith('http') ? (
-          <ImageBackground
-            source={{ uri: podcast.thumbnail }}
-            style={styles.podcastImage}
-            resizeMode="cover"
-          >
-            <LinearGradient
-              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
-              style={styles.thumbnailGradient}
-            >
-              <Text style={styles.thumbnailIcon}>🎙️</Text>
-            </LinearGradient>
-          </ImageBackground>
-        ) : (
-          <LinearGradient
-            colors={['#E50914', '#B81D13']}
-            style={styles.thumbnailGradient}
-          >
-            <Text style={styles.thumbnailIcon}>{podcast.thumbnail}</Text>
-          </LinearGradient>
-        )}
-        <View style={styles.playButtonOverlay}>
-          <Text style={styles.playIcon}>▶</Text>
+  const renderPodcast = ({ item: podcast }: { item: Podcast }) => {
+    const isLocked = podcast.isPremium && !hasActiveSubscription;
+    
+    return (
+      <TouchableOpacity 
+        style={[styles.podcastCard, isLocked && styles.lockedCard]}
+        onPress={() => handlePodcastPress(podcast)}
+      >
+        <View style={styles.podcastThumbnail}>
+          {podcast.thumbnail ? (
+            <ImageBackground
+              source={{ uri: podcast.thumbnail }}
+              style={styles.thumbnailImage}
+              imageStyle={styles.thumbnailImageStyle}
+            />
+          ) : (
+            <View style={styles.defaultThumbnail}>
+              <Text style={styles.defaultThumbnailText}>🎧</Text>
+            </View>
+          )}
+          {isLocked && (
+            <View style={styles.lockOverlay}>
+              <Text style={styles.lockIcon}>🔒</Text>
+            </View>
+          )}
         </View>
-        <View style={styles.durationBadge}>
-          <Text style={styles.durationText}>{podcast.duration}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.podcastInfo}>
-        <Text style={styles.podcastTitle} numberOfLines={2}>{podcast.title}</Text>
-        <Text style={styles.podcastInstructor}>By {podcast.host}</Text>
         
-        <View style={styles.podcastStats}>
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>⭐</Text>
-            <Text style={styles.statText}>{podcast.rating}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>👥</Text>
-            <Text style={styles.statText}>{podcast.totalListeners.toLocaleString()}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🎯</Text>
-            <Text style={styles.statText}>{podcast.category}</Text>
+        <View style={styles.podcastInfo}>
+          <Text style={styles.podcastTitle} numberOfLines={2}>
+            {podcast.title}
+          </Text>
+          <Text style={styles.podcastHost} numberOfLines={1}>
+            {podcast.host}
+          </Text>
+          <View style={styles.podcastStats}>
+            <View style={styles.statItem}>
+              <Text style={styles.statIcon}>⭐</Text>
+              <Text style={styles.statText}>{podcast.rating || 'N/A'}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statIcon}>👥</Text>
+              <Text style={styles.statText}>{podcast.listeners || 0}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statIcon}>📅</Text>
+              <Text style={styles.statText}>{podcast.category}</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <ScrollView 
@@ -245,7 +298,7 @@ export default function PodcastsScreen() {
           </View>
         ) : filteredPodcasts.length > 0 ? (
           filteredPodcasts.map((podcast) => (
-            <View key={`podcast-${podcast._id}`}>
+            <View key={`podcast-${podcast._id || podcast.id}`}>
               {renderPodcast({ item: podcast })}
             </View>
           ))
@@ -277,38 +330,35 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   heroGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   heroSafeArea: {
     flex: 1,
     justifyContent: 'flex-end',
-    paddingBottom: 20,
   },
   heroContent: {
     paddingHorizontal: 20,
+    paddingBottom: 40,
     alignItems: 'center',
   },
   heroTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
     textAlign: 'center',
+    marginBottom: 10,
   },
   heroSubtitle: {
     fontSize: 16,
     color: '#CCCCCC',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 30,
   },
   heroStats: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
+    justifyContent: 'space-around',
+    width: '100%',
   },
   heroStatItem: {
     alignItems: 'center',
@@ -317,35 +367,28 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#E50914',
-    textAlign: 'center',
+    marginBottom: 5,
   },
   heroStatLabel: {
     fontSize: 12,
     color: '#CCCCCC',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
   // Search Section Styles
   searchSectionGradient: {
-    paddingVertical: 20,
-    marginTop: -40,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   searchSection: {
-    backgroundColor: 'transparent',
-    paddingVertical: 20,
     paddingHorizontal: 20,
-    marginBottom: -10,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 12,
-    paddingHorizontal: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 25,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.3)',
+    marginBottom: 20,
   },
   searchInput: {
     flex: 1,
@@ -354,14 +397,14 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     fontSize: 18,
-    color: '#E50914',
+    color: '#CCCCCC',
     marginLeft: 10,
   },
   categoriesContainer: {
     marginBottom: 15,
   },
   categoriesContent: {
-    paddingHorizontal: 5,
+    paddingRight: 20,
   },
   categoryButton: {
     paddingHorizontal: 20,
@@ -394,157 +437,116 @@ const styles = StyleSheet.create({
   // Podcasts List Styles
   podcastsContainer: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 100,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  loadingText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  emptyText: {
-    color: '#888888',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  refreshContainer: {
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  refreshButton: {
-    backgroundColor: '#E50914',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E50914',
-  },
-  refreshButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    paddingTop: 20,
   },
   podcastCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 15,
+    marginBottom: 15,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  lockedCard: {
+    opacity: 0.7,
   },
   podcastThumbnail: {
     height: 200,
     position: 'relative',
   },
-  podcastImage: {
+  thumbnailImage: {
     width: '100%',
     height: '100%',
   },
-  thumbnailGradient: {
-    flex: 1,
+  thumbnailImageStyle: {
+    resizeMode: 'cover',
+  },
+  defaultThumbnail: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#1a1a1a',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  thumbnailIcon: {
-    fontSize: 60,
+  defaultThumbnailText: {
+    fontSize: 48,
   },
-  playButtonOverlay: {
+  lockOverlay: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -25 }, { translateY: -25 }],
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  playIcon: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    marginLeft: 3,
-  },
-  durationBadge: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  durationText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+  lockIcon: {
+    fontSize: 32,
+    color: '#E50914',
   },
   podcastInfo: {
-    padding: 20,
+    padding: 15,
   },
   podcastTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
-    lineHeight: 24,
+    marginBottom: 5,
   },
-  podcastInstructor: {
+  podcastHost: {
     fontSize: 14,
-    color: '#E50914',
-    marginBottom: 12,
+    color: '#CCCCCC',
+    marginBottom: 10,
   },
   podcastStats: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 15,
   },
   statIcon: {
-    fontSize: 12,
+    fontSize: 14,
     marginRight: 5,
   },
   statText: {
-    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
+    color: '#CCCCCC',
   },
-  // Skeleton Styles
-  skeletonContainer: {
-    paddingHorizontal: 20,
-    gap: 16,
-    marginTop: 20,
-  },
-  // Simple Loading Styles
+  // Loading and Empty States
   simpleLoadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 40,
-    minHeight: 200,
+    alignItems: 'center',
   },
   simpleLoadingText: {
     color: '#CCCCCC',
     fontSize: 16,
-    textAlign: 'center',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#CCCCCC',
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  refreshContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  refreshButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -254,6 +254,16 @@ router.get('/content/advices', async (req, res) => {
       .sort({ createdAt: -1 })
       .select('-createdBy -updatedBy -__v');
 
+    console.log('💡 Backend: Found advices:', advices.length);
+    console.log('💡 Backend: Advices data:', advices.map(a => ({ 
+      _id: a._id, 
+      title: a.title, 
+      category: a.category,
+      thumbnail: a.thumbnail,
+      author: a.author,
+      content: a.content
+    })));
+
     res.json({
       status: 'success',
       data: {

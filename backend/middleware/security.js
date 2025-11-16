@@ -107,17 +107,30 @@ const speedLimiter = slowDown({
 // CORS Configuration - Secure
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+    const allowedOrigins = [
       'http://localhost:3000',
       'http://localhost:8081',
       'http://localhost:8082',
-      'http://localhost:3000',
       'http://192.168.100.42:8081',
-      'http://192.168.100.42:8082'
+      'http://192.168.100.42:8082',
+      'http://192.168.100.43:8081',
+      'http://192.168.100.43:8082',
+      'http://192.168.100.43:3000',
+      'http://192.168.100.41:8081',
+      'http://192.168.100.41:8082',
+      'http://192.168.100.41:3000'
     ];
     
     // Allow requests with no origin (mobile apps, etc.)
     if (!origin) return callback(null, true);
+    
+    // In development, be more permissive with CORS
+    if (process.env.NODE_ENV === 'development') {
+      // Allow any local network IP for development
+      if (origin.includes('192.168.') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        return callback(null, true);
+      }
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);

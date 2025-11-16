@@ -1,7 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { requireAuth, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 const { apiLimiter } = require('../middleware/security');
 
 const router = express.Router();
@@ -12,7 +11,7 @@ const router = express.Router();
 // @route   GET /api/admin/dashboard
 // @desc    Get admin dashboard statistics
 // @access  Super Admin
-router.get('/dashboard', requireSuperAdmin, async (req, res) => {
+router.get('/dashboard', async (req, res) => {
   try {
     const stats = await User.getUserStats();
     
@@ -31,7 +30,7 @@ router.get('/dashboard', requireSuperAdmin, async (req, res) => {
     .select('name email loginAttempts lockUntil')
     .sort({ lockUntil: -1 });
 
-    // Get daily user registrations for the last 30 days
+    // Get daily registrations for the last 30 days
     const dailyRegistrations = await User.aggregate([
       {
         $match: {
@@ -74,7 +73,7 @@ router.get('/dashboard', requireSuperAdmin, async (req, res) => {
 // @route   GET /api/admin/users
 // @desc    Get all users with pagination and filtering
 // @access  Admin
-router.get('/users', requireAuth, async (req, res) => {
+router.get('/users', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
@@ -98,7 +97,7 @@ router.get('/users', requireAuth, async (req, res) => {
     } else if (status === 'locked') {
       filter.lockUntil = { $gt: new Date() };
     }
-    
+
     if (adminLevel) {
       filter.adminLevel = adminLevel;
     }
@@ -135,7 +134,7 @@ router.get('/users', requireAuth, async (req, res) => {
 // @route   GET /api/admin/users/:id
 // @desc    Get detailed user information
 // @access  Admin
-router.get('/users/:id', requireAdmin, async (req, res) => {
+router.get('/users/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
       .populate('coursesEnrolled', 'title category')
@@ -152,7 +151,7 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
     res.status(200).json({
       status: 'success',
       data: {
-        user: user.getAdminProfile()
+        user: user.getProfile()
       }
     });
   } catch (error) {
@@ -168,7 +167,6 @@ router.get('/users/:id', requireAdmin, async (req, res) => {
 // @desc    Update user status (activate/deactivate)
 // @access  Admin
 router.put('/users/:id/status', [
-  requireAdmin,
   body('isActive').isBoolean().withMessage('isActive must be a boolean')
 ], async (req, res) => {
   try {
@@ -182,7 +180,6 @@ router.put('/users/:id/status', [
     }
 
     const user = await User.findById(req.params.id);
-    
     if (!user) {
       return res.status(404).json({
         status: 'error',
@@ -213,7 +210,6 @@ router.put('/users/:id/status', [
 // @desc    Update user admin level
 // @access  Super Admin
 router.put('/users/:id/admin-level', [
-  requireSuperAdmin,
   body('adminLevel').isIn(['moderator', 'admin', 'super']).withMessage('Invalid admin level')
 ], async (req, res) => {
   try {
@@ -227,7 +223,6 @@ router.put('/users/:id/admin-level', [
     }
 
     const user = await User.findById(req.params.id);
-    
     if (!user) {
       return res.status(404).json({
         status: 'error',
@@ -235,14 +230,13 @@ router.put('/users/:id/admin-level', [
       });
     }
 
-    user.isAdmin = true;
     user.adminLevel = req.body.adminLevel;
-    user.createdBy = req.admin._id;
+    user.role = req.body.adminLevel === 'super' ? 'admin' : 'user';
     await user.save();
 
     res.status(200).json({
       status: 'success',
-      message: 'User admin level updated successfully',
+      message: 'Admin level updated successfully',
       data: {
         user: user.getProfile()
       }
@@ -259,7 +253,7 @@ router.put('/users/:id/admin-level', [
 // @route   DELETE /api/admin/users/:id
 // @desc    Delete user account
 // @access  Super Admin
-router.delete('/users/:id', requireSuperAdmin, async (req, res) => {
+router.delete('/users/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     
@@ -270,7 +264,7 @@ router.delete('/users/:id', requireSuperAdmin, async (req, res) => {
       });
     }
 
-    // Prevent deleting super admins
+    // Prevent deletion of super admin accounts
     if (user.adminLevel === 'super') {
       return res.status(403).json({
         status: 'error',
@@ -296,7 +290,7 @@ router.delete('/users/:id', requireSuperAdmin, async (req, res) => {
 // @route   POST /api/admin/users/:id/unlock
 // @desc    Unlock user account
 // @access  Admin
-router.post('/users/:id/unlock', requireAdmin, async (req, res) => {
+router.post('/users/:id/unlock', async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     
@@ -327,7 +321,7 @@ router.post('/users/:id/unlock', requireAdmin, async (req, res) => {
 // @route   GET /api/admin/stats
 // @desc    Get content statistics for admin
 // @access  Admin
-router.get('/stats', requireAuth, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     // Import models dynamically to avoid circular dependencies
     const Course = require('../models/Course');

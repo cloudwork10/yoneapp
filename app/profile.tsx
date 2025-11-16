@@ -1,9 +1,9 @@
+import { useUser } from '@/contexts/UserContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUser } from '@/contexts/UserContext';
 
 export default function ProfileScreen() {
   const { user, logout, isAdmin, isLoading } = useUser();
@@ -86,7 +86,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
         <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <TouchableOpacity 

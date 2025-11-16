@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     Dimensions,
@@ -12,6 +12,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -30,15 +31,25 @@ interface Course {
 }
 
 export default function CoursesScreen() {
+  const params = useLocalSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    (params.category as string) || 'All'
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
 
   const categories = ['All', 'Programming', 'Design', 'Business', 'Marketing', 'Data Science'];
+
+  // Update category if passed from navigation
+  useEffect(() => {
+    if (params.category) {
+      setSelectedCategory(params.category as string);
+    }
+  }, [params.category]);
 
 
   const fetchCourses = async () => {
@@ -46,13 +57,13 @@ export default function CoursesScreen() {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('http://localhost:3000/api/public/courses');
+      const response = await fetch(`${API_BASE_URL}/api/public/courses`);
       
       if (response.ok) {
         const data = await response.json();
         console.log('📚 Courses fetched from API:', data.data.courses.length, 'courses');
         console.log('📚 Raw courses data:', data.data.courses);
-        const fetchedCourses = data.data.courses.map(course => ({
+        const fetchedCourses = data.data.courses.map((course: any) => ({
           id: course._id,
           title: course.title,
           instructor: course.instructor,
@@ -78,7 +89,7 @@ export default function CoursesScreen() {
     }
   };
 
-  const handleCoursePress = (course: Course) => {
+  const handleCoursePress = (course: any) => {
     router.push({
       pathname: '/course-details',
       params: { courseId: course.id }
@@ -166,10 +177,6 @@ export default function CoursesScreen() {
       category: 'Business',
     },
   ];
-
-  useEffect(() => {
-    fetchCourses();
-  }, []);
 
   // Add refresh functionality
   const handleRefresh = () => {
@@ -402,7 +409,7 @@ export default function CoursesScreen() {
         <View style={styles.coursesContainer}>
           {filteredCourses.map((course, index) => (
             <View key={`course-${course.id}`}>
-              {renderCourse({ item: course, index })}
+              {renderCourse({ item: course })}
             </View>
           ))}
         </View>

@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     Dimensions,
     ImageBackground,
@@ -15,14 +15,29 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LoadingScreen from '../../components/LoadingScreen';
 import { RoadmapCardSkeleton } from '../../components/SkeletonLoader';
+import API_BASE_URL from '../../config/api';
 
 const { width } = Dimensions.get('window');
+
+interface Roadmap {
+  _id?: string;
+  id?: string;
+  title: string;
+  description: string;
+  category: string;
+  image?: string;
+  icon?: string;
+  difficulty?: string;
+  duration?: string;
+  color?: string;
+  steps?: any[];
+}
 
 export default function RoadmapsScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [roadmaps, setRoadmaps] = useState([]);
+  const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   
@@ -36,11 +51,6 @@ export default function RoadmapsScreen() {
     { id: 'Data Science', name: 'Data Science', icon: '📊' },
     { id: 'AI/ML', name: 'AI/ML', icon: '🤖' },
   ];
-
-  // Fetch roadmaps from API
-  useEffect(() => {
-    fetchRoadmaps();
-  }, []);
 
   // Refresh roadmaps when screen comes into focus
   useFocusEffect(
@@ -58,7 +68,7 @@ export default function RoadmapsScreen() {
       // Show loading for at least 1.5 seconds for better UX
       const startTime = Date.now();
       
-      const response = await fetch('http://localhost:3000/api/public/roadmaps');
+      const response = await fetch(`${API_BASE_URL}/api/public/roadmaps`);
       
       if (response.ok) {
         const data = await response.json();

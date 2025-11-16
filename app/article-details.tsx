@@ -12,6 +12,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,7 +37,7 @@ export default function ArticleDetailsScreen() {
       setLoading(true);
       console.log('📄 Fetching article with ID:', articleId);
       
-      const response = await fetch(`http://localhost:3000/api/public/articles/${articleId}`);
+      const response = await fetch(`${API_BASE_URL}/api/public/articles/${articleId}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -58,7 +59,7 @@ export default function ArticleDetailsScreen() {
     try {
       console.log('📄 Fetching related articles...');
       
-      const response = await fetch(`http://localhost:3000/api/public/articles`);
+      const response = await fetch(`${API_BASE_URL}/api/public/articles`);
       
       if (response.ok) {
         const data = await response.json();

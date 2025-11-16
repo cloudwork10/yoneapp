@@ -1,7 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Animated } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -54,6 +56,9 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Welcome back!</Text>
           <Text style={styles.subtitle}>Continue your learning journey</Text>
         </View>
+
+        {/* Scholarship mini-banner */}
+        <ScholarshipPromo />
 
         <View style={styles.statsContainer}>
           {quickStats.map((stat, index) => (
@@ -109,6 +114,57 @@ export default function HomeScreen() {
         </ScrollView>
       </View>
     </SafeAreaView>
+  );
+}
+
+function ScholarshipPromo() {
+  const [hidden, setHidden] = React.useState(false);
+  if (hidden) return null;
+
+  const scale = React.useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    const animate = () => {
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 1.03, duration: 450, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 0.98, duration: 450, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1.0, duration: 350, useNativeDriver: true })
+      ]).start(() => animate());
+    };
+    animate();
+    return () => scale.stopAnimation();
+  }, [scale]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => router.push('/(tabs)/scholarship')}
+      style={styles.promoTouchable}
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <LinearGradient
+          colors={['#E50914', '#B20710']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.promoCard}
+        >
+          <View style={styles.promoLeft}>
+            <Text style={styles.promoIcon}>🎓</Text>
+          </View>
+          <View style={styles.promoCenter}>
+            <Text style={styles.promoTitle}>Live Scholarship</Text>
+            <Text style={styles.promoSubtitle}>Only 250 EGP • Limited seats</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setHidden(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            style={styles.promoClose}
+          >
+            <Text style={styles.promoCloseText}>✕</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </Animated.View>
+    </TouchableOpacity>
   );
 }
 
@@ -210,7 +266,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 16,
   },
   greeting: {
     fontSize: 28,
@@ -330,5 +386,50 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     textAlign: 'center',
+  },
+  promoTouchable: {
+    width: '100%',
+    marginBottom: 12,
+  },
+  promoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  promoLeft: {
+    width: 50,
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  promoIcon: {
+    fontSize: 30,
+  },
+  promoCenter: {
+    flex: 1,
+  },
+  promoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 5,
+  },
+  promoSubtitle: {
+    fontSize: 12,
+    color: '#CCCCCC',
+  },
+  promoClose: {
+    padding: 5,
+  },
+  promoCloseText: {
+    fontSize: 20,
+    color: '#FFFFFF',
   },
 });

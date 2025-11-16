@@ -13,7 +13,13 @@ const {
   notFoundHandler,
   logger
 } = require('./middleware/security');
-require('dotenv').config();
+require('dotenv').config({ path: './config.env' });
+
+// Log environment variables for debugging
+console.log('🔍 Environment variables loaded:');
+console.log('🔍 JWT_SECRET exists:', !!process.env.JWT_SECRET);
+console.log('🔍 JWT_EXPIRES_IN:', process.env.JWT_EXPIRES_IN);
+console.log('🔍 JWT_REFRESH_EXPIRES_IN:', process.env.JWT_REFRESH_EXPIRES_IN);
 
 const app = express();
 
@@ -27,17 +33,25 @@ if (!fs.existsSync(logsDir)) {
 // (Public routes will use publicSecurityMiddleware)
 
 // Body parsing middleware with size limits
-app.use(express.json({ 
-  limit: process.env.MAX_FILE_SIZE || '10mb',
-  verify: (req, res, buf) => {
-    // Additional JSON validation can be added here
-    try {
-      JSON.parse(buf);
-    } catch (e) {
-      throw new Error('Invalid JSON');
-    }
+// Skip JSON parsing for DELETE requests entirely
+app.use((req, res, next) => {
+  if (req.method === 'DELETE') {
+    return next();
   }
-}));
+  express.json({ 
+    limit: process.env.MAX_FILE_SIZE || '10mb',
+    verify: (req, res, buf) => {
+      // Additional JSON validation can be added here
+      if (buf && buf.length) {
+        try {
+          JSON.parse(buf);
+        } catch (e) {
+          throw new Error('Invalid JSON');
+        }
+      }
+    }
+  })(req, res, next);
+});
 app.use(express.urlencoded({ 
   extended: true, 
   limit: process.env.MAX_FILE_SIZE || '10mb' 
@@ -107,7 +121,9 @@ app.use('/api/public', publicSecurityMiddleware, require('./routes/public'));
 app.use('/api/auth', securityMiddleware, require('./routes/auth'));
 app.use('/api/users', securityMiddleware, require('./routes/users'));
 app.use('/api/courses', securityMiddleware, require('./routes/courses'));
+app.use('/api/payments', publicSecurityMiddleware, require('./routes/payments'));
 app.use('/api/admin/content', require('./routes/content'));
+app.use('/api/public/content', require('./routes/content'));
 app.use('/api/admin', securityMiddleware, require('./routes/admin'));
 app.use('/api/admin', securityMiddleware, require('./routes/notifications'));
 

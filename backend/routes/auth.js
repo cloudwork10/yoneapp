@@ -235,11 +235,20 @@ router.post('/login', authLimiter, accountLockout, loginValidation, async (req, 
       ip: req.ip
     });
 
+    // Get user profile and ensure admin status is correct
+    const userProfile = user.getProfile();
+    
+    // Ensure admin status is properly set
+    if (user.role === 'admin') {
+      userProfile.isAdmin = true;
+      userProfile.adminLevel = user.adminLevel || 'admin';
+    }
+
     res.json({
       status: 'success',
       message: 'Login successful',
       data: {
-        user: user.getProfile(),
+        user: userProfile,
         tokens: {
           accessToken,
           refreshToken

@@ -16,6 +16,7 @@ import {
     View
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import API_BASE_URL from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -202,7 +203,7 @@ export default function PodcastDetailsScreen() {
       setLoading(true);
       console.log('🎧 Fetching podcast details for ID:', podcastId);
       
-      const response = await fetch(`http://localhost:3000/api/public/podcasts/${podcastId}`);
+      const response = await fetch(`${API_BASE_URL}/api/public/podcasts/${podcastId}`);
       
       if (response.ok) {
         const result = await response.json();
@@ -367,7 +368,7 @@ export default function PodcastDetailsScreen() {
               colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
               style={styles.heroGradient}
             >
-              <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)/podcasts')}>
                 <Text style={styles.backButtonText}>←</Text>
               </TouchableOpacity>
               

@@ -21,41 +21,48 @@ export default function MoreScreen() {
     },
     {
       id: 2,
+      title: 'Subscription',
+      description: 'Choose your premium plan',
+      icon: '💎',
+      route: '/subscription'
+    },
+    {
+      id: 3,
       title: 'برنامج خواطر مبرمج',
       description: '10 حلقات من الخبرات والتجارب البرمجية',
       icon: '💭',
       route: '/programmer-thoughts'
     },
     {
-      id: 3,
+      id: 4,
       title: 'مواعيد الصلاة',
       description: 'Prayer times and notifications',
       icon: '🕌',
       route: '/prayer-times'
     },
     {
-      id: 4,
+      id: 5,
       title: 'Movies',
       description: 'Best movies for programming and coding',
       icon: '🎬',
       route: '/movies'
     },
     {
-      id: 5,
+      id: 6,
       title: 'Help & Support',
       description: 'Get help and contact support',
       icon: '❓',
       route: '/help'
     },
     {
-      id: 6,
+      id: 7,
       title: 'Notification Settings',
       description: 'Manage your notification preferences',
       icon: '🔔',
       route: '/notification-settings'
     },
     {
-      id: 7,
+      id: 9,
       title: 'About',
       description: 'Learn more about YONE',
       icon: 'ℹ️',
@@ -66,7 +73,7 @@ export default function MoreScreen() {
   // Add Dashboard only for admin users
   const adminMenuItems = [
     {
-      id: 9,
+      id: 10,
       title: 'Admin Dashboard',
       description: 'Manage users and monitor system',
       icon: '👑',
@@ -74,7 +81,7 @@ export default function MoreScreen() {
       isAdmin: true
     },
     {
-      id: 10,
+      id: 11,
       title: 'Content Management',
       description: 'Manage courses, articles, and all content',
       icon: '📝',
@@ -87,17 +94,20 @@ export default function MoreScreen() {
   const menuItems = isAdmin 
     ? [
         baseMenuItems[0], // Profile
-        baseMenuItems[1], // برنامج خواطر مبرمج
-        baseMenuItems[2], // Prayer Times
-        baseMenuItems[3], // Movies
+        baseMenuItems[1], // Subscription
+        baseMenuItems[2], // برنامج خواطر مبرمج
+        baseMenuItems[3], // Prayer Times
+        baseMenuItems[4], // Movies
         ...adminMenuItems, // Admin Dashboard
-        ...baseMenuItems.slice(4) // Settings, Help, About
+        ...baseMenuItems.slice(5) // Settings, Help, About
       ]
     : baseMenuItems;
 
   const handleMenuPress = (route: string) => {
     if (route === '/profile') {
       router.push('/profile');
+    } else if (route === '/subscription') {
+      router.push('/subscription');
     } else if (route === '/programmer-thoughts') {
       router.push('/programmer-thoughts');
     } else if (route === '/prayer-times') {
@@ -141,7 +151,8 @@ export default function MoreScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/login');
+            // Redirect to app-loading to properly handle auth state
+            router.replace('/app-loading');
           }
         }
       ]
@@ -261,9 +272,7 @@ export default function MoreScreen() {
           setShowAboutModal(false);
         }}
       >
-        {console.log('🔍 Modal rendering, visible:', showAboutModal)}
         <View style={styles.modalOverlay}>
-          {console.log('🔍 Modal overlay rendering')}
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               {/* Modal Header */}
@@ -448,6 +457,7 @@ export default function MoreScreen() {
           </View>
         </View>
       </Modal>
+
     </SafeAreaView>
   );
 }
@@ -632,15 +642,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     zIndex: 10000,
   },
+  modalScrollView: {
+    flex: 1,
+    width: '100%',
+  },
   modalContent: {
     flex: 1,
     backgroundColor: '#000000',
-  },
-  modalScrollView: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 30,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -671,10 +679,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
   },
   appInfo: {
     alignItems: 'center',
@@ -803,12 +807,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#E50914',
-    fontWeight: '600',
-    marginBottom: 5,
   },
   copyrightText: {
     fontSize: 12,

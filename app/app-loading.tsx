@@ -11,6 +11,7 @@ import {
     Text,
     View
 } from 'react-native';
+import API_BASE_URL from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,7 +29,13 @@ export default function AppLoadingScreen() {
   useEffect(() => {
     startLoadingAnimation();
     playWelcomeSound();
-    checkAuthAndRedirect();
+    
+    // Delay the auth check to ensure Root Layout is ready
+    const timer = setTimeout(() => {
+      checkAuthAndRedirect();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const startLoadingAnimation = () => {
@@ -186,7 +193,7 @@ export default function AppLoadingScreen() {
   const checkAuthAndRedirect = async () => {
     try {
       // Minimum loading time for smooth UX
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
@@ -194,6 +201,8 @@ export default function AppLoadingScreen() {
       console.log('🔐 App Loading: Checking auth status...');
       console.log('🔐 Token exists:', !!token);
       console.log('🔐 User data exists:', !!userData);
+      console.log('🔐 Token value:', token ? token.substring(0, 20) + '...' : 'null');
+      console.log('🔐 User data value:', userData ? JSON.parse(userData).email : 'null');
       
       if (!token || !userData) {
         console.log('🔐 No auth found, redirecting to login...');
@@ -209,7 +218,7 @@ export default function AppLoadingScreen() {
       // Optional: Verify token in background (don't block user)
       setTimeout(async () => {
         try {
-          const response = await fetch('http://localhost:3000/api/auth/verify', {
+          const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,

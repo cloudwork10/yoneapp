@@ -1,9 +1,11 @@
 import { useUser } from '@/contexts/UserContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../config/api';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 export default function DashboardScreen() {
@@ -38,7 +40,6 @@ export default function DashboardScreen() {
     try {
       setLoading(true);
       setError(null);
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
       let token = await AsyncStorage.getItem('token');
       
       if (!token) {
@@ -50,7 +51,7 @@ export default function DashboardScreen() {
       console.log('🔐 Fetching admin data with token:', token.substring(0, 20) + '...');
 
       // Fetch users
-      const usersResponse = await makeAuthenticatedRequest('http://localhost:3000/api/admin/users');
+      const usersResponse = await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/users`);
 
       console.log('📊 Users response status:', usersResponse.status);
 
@@ -88,7 +89,7 @@ export default function DashboardScreen() {
           // Add delay for rate limiting
           await new Promise(resolve => setTimeout(resolve, 2000));
           
-          const refreshResponse = await fetch('http://localhost:3000/api/auth/login', {
+          const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -106,7 +107,7 @@ export default function DashboardScreen() {
             console.log('✅ Token refreshed successfully');
             
             // Retry the request with new token
-            const retryResponse = await fetch('http://localhost:3000/api/admin/users', {
+            const retryResponse = await fetch(`${API_BASE_URL}/api/admin/users`, {
               headers: {
                 'Authorization': `Bearer ${newToken}`,
                 'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ export default function DashboardScreen() {
         // Wait and retry once
         setTimeout(async () => {
           try {
-            const retryResponse = await fetch('http://localhost:3000/api/admin/users', {
+            const retryResponse = await fetch(`${API_BASE_URL}/api/admin/users`, {
               headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -275,7 +276,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
         <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <TouchableOpacity 

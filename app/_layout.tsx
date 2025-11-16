@@ -18,8 +18,8 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
 
   useEffect(() => {
     // Initialize notifications
@@ -39,6 +39,7 @@ export default function RootLayout() {
 
     // Only initialize once when app starts
     initializeNotifications();
+    
 
     // Listen for notifications
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
@@ -49,35 +50,26 @@ export default function RootLayout() {
       console.log('👆 Notification tapped:', response);
       
       // Handle notification tap
-      const data = response.notification.request.content.data;
-      if (data?.type === 'new_content') {
-        // Navigate to content based on type
-        switch (data.contentType) {
-          case 'advice':
-            router.push('/advices');
-            break;
-          case 'podcast':
-            router.push('/podcasts');
-            break;
-          case 'article':
-            router.push('/articles');
-            break;
-          case 'roadmap':
-            router.push('/roadmaps');
-            break;
+      if (response.notification.request.content.data) {
+        const data = response.notification.request.content.data;
+        
+        // Navigate based on notification type
+        if (data.type === 'prayer') {
+          router.push('/prayer-times');
+        } else if (data.type === 'course') {
+          router.push('/(tabs)/courses');
+        } else if (data.type === 'podcast') {
+          router.push('/(tabs)/podcasts');
         }
-      } else if (data?.type === 'prayer') {
-        // Could navigate to prayer times or Islamic content
-        console.log('🕌 Prayer notification tapped');
       }
     });
 
     return () => {
       if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
+        notificationListener.current.remove();
       }
       if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
+        responseListener.current.remove();
       }
     };
   }, []);
@@ -85,8 +77,6 @@ export default function RootLayout() {
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
-      // Navigate to loading screen which will handle auth check
-      router.replace('/app-loading');
     }
   }, [loaded]);
 
@@ -116,6 +106,8 @@ export default function RootLayout() {
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="register" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="subscription" options={{ headerShown: false }} />
+          <Stack.Screen name="payment" options={{ headerShown: false }} />
           <Stack.Screen name="top-cv" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>

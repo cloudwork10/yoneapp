@@ -1,10 +1,13 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+    Alert,
     Dimensions,
     ImageBackground,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -12,6 +15,9 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../../config/api';
+import { useUser } from '../../contexts/UserContext';
+import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,8 +36,10 @@ interface Advice {
 }
 
 export default function AdvicesScreen() {
+  const { user } = useUser();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeAudioId, setActiveAudioId] = useState<string | null>(null);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [audioStates, setAudioStates] = useState<{[key: string]: {
     isPlaying: boolean;
     position: number;
@@ -45,28 +53,96 @@ export default function AdvicesScreen() {
       setLoading(true);
       setError('');
       
-      const response = await fetch('http://localhost:3000/api/public/content/advices');
+      // Clear existing data first to force refresh
+      console.log('💡 Clearing existing advices data...');
+      setAdvices([]);
+      setLoading(true);
+      setError('');
+      
+      console.log('💡 Fetching advices from API...');
+      const timestamp = Date.now();
+      const apiUrl = `${API_BASE_URL}/api/public/content/advices?t=${timestamp}`;
+      console.log('💡 API URL:', apiUrl);
+      const response = await fetch(apiUrl);
+      
+      console.log('💡 Response status:', response.status);
+      console.log('💡 Response ok:', response.ok);
       
       if (response.ok) {
         const data = await response.json();
+        console.log('💡 Full API response:', JSON.stringify(data, null, 2));
         const fetchedAdvices = data.data.advices || [];
         
+        console.log('💡 Fetched advices count:', fetchedAdvices.length);
+        console.log('💡 Fetched advices details:', fetchedAdvices.map((a: any) => ({
+          _id: a._id,
+          title: a.title,
+          content: a.content,
+          category: a.category,
+          author: a.author,
+          thumbnail: a.thumbnail,
+          isActive: a.isActive,
+          createdAt: a.createdAt
+        })));
+        
+        console.log('💡 Raw advices data:', fetchedAdvices.map((a: any) => ({ 
+          id: a._id, 
+          title: a.title, 
+          content: a.content,
+          category: a.category,
+          thumbnail: a.thumbnail,
+          author: a.author 
+        })));
+        
         // Transform data to match frontend interface
-        const transformedAdvices = fetchedAdvices.map((advice: any) => ({
-          id: advice._id,
-          title: advice.title || 'Untitled Advice',
-          category: advice.category || 'motivation',
-          content: advice.content || '',
-          author: advice.author || 'Unknown Author',
-          likes: advice.likes || 0,
-          isLiked: false, // Default to false, can be enhanced with user preferences
-          duration: advice.duration || '5 min read',
-          thumbnail: advice.thumbnail || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
-          isRecorded: advice.isRecorded || false,
-          audioUrl: advice.audioUrl || ''
-        }));
+        const transformedAdvices = fetchedAdvices
+          .filter((advice: any) => advice.title && advice.title.trim() !== '') // Filter out empty titles
+          .map((advice: any) => ({
+            id: advice._id,
+            title: advice.title || 'نصيحة مفيدة',
+            category: advice.category || 'motivation',
+            content: advice.content || 'نصيحة مفيدة ومهمة لتحسين حياتك المهنية والشخصية.',
+            author: advice.author || 'فريق يون',
+            likes: advice.likes || 0,
+            isLiked: false, // Default to false, can be enhanced with user preferences
+            duration: advice.duration || '5 min read',
+            thumbnail: advice.thumbnail || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+            isRecorded: advice.isRecorded || false,
+            audioUrl: advice.audioUrl || ''
+          }));
+        
+        console.log('💡 Transformed advices:', transformedAdvices.map((a: any) => ({ 
+          id: a.id, 
+          title: a.title, 
+          category: a.category,
+          thumbnail: a.thumbnail,
+          author: a.author 
+        })));
         
         setAdvices(transformedAdvices);
+        console.log('💡 Advices state updated, count:', transformedAdvices.length);
+        console.log('💡 New advices data:', transformedAdvices.map((a: any) => ({ 
+          id: a.id, 
+          title: a.title, 
+          content: a.content,
+          category: a.category,
+          author: a.author,
+          thumbnail: a.thumbnail
+        })));
+        
+        // Log available categories in the data
+        const availableCategories = [...new Set(transformedAdvices.map((a: any) => a.category))];
+        console.log('💡 Available categories in data:', availableCategories);
+        
+        // Reset category selection to 'all' when new data is loaded
+        if (selectedCategory !== 'all') {
+          console.log('💡 Resetting category selection to "all"');
+          setSelectedCategory('all');
+        }
+        
+        // Force UI update by triggering a re-render
+        console.log('💡 Forcing UI update...');
+        setRefreshKey(prev => prev + 1);
       } else {
         setError('Failed to load advices');
       }
@@ -75,6 +151,25 @@ export default function AdvicesScreen() {
       setError('Network error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check user subscription status
+  const checkSubscription = async () => {
+    if (!user) return;
+
+    try {
+      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/subscription`);
+      const data = await response.json();
+      
+      if (data.status === 'success' && data.data.subscription) {
+        const subscription = data.data.subscription;
+        const isActive = subscription.status === 'active' && new Date(subscription.endDate) > new Date();
+        setHasActiveSubscription(isActive);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setHasActiveSubscription(false);
     }
   };
 
@@ -107,7 +202,9 @@ export default function AdvicesScreen() {
   // Fetch advices when screen comes into focus
   useFocusEffect(
     useCallback(() => {
+      console.log('💡 Advices screen focused, refreshing data...');
       fetchAdvices();
+      checkSubscription();
     }, [])
   );
 
@@ -124,10 +221,32 @@ export default function AdvicesScreen() {
   const [advices, setAdvices] = useState<Advice[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const filteredAdvices = selectedCategory === 'all' 
     ? advices 
     : advices.filter(advice => advice.category === selectedCategory);
+    
+  // Log filtering information
+  console.log('💡 Category filtering - selectedCategory:', selectedCategory);
+  console.log('💡 Total advices:', advices.length);
+  console.log('💡 Filtered advices:', filteredAdvices.length);
+  console.log('💡 Current advices in state:', advices.map((a: any) => ({ 
+    id: a.id, 
+    title: a.title, 
+    content: a.content,
+    category: a.category,
+    author: a.author,
+    thumbnail: a.thumbnail
+  })));
+  console.log('💡 Filtered advices data:', filteredAdvices.map((a: any) => ({ 
+    id: a.id, 
+    title: a.title, 
+    content: a.content,
+    category: a.category,
+    author: a.author,
+    thumbnail: a.thumbnail
+  })));
 
   const handleLike = (id: string) => {
     setAdvices(prev => prev.map(advice => 
@@ -252,8 +371,33 @@ export default function AdvicesScreen() {
   };
 
 
-  const renderAdviceCard = (advice: Advice) => (
-    <TouchableOpacity key={`advice-${advice.id}`} style={styles.adviceCard}>
+  const renderAdviceCard = (advice: Advice, index: number) => {
+    // First 2 advices are free, rest require subscription
+    const isFreeAdvice = index < 2;
+    const isLocked = !hasActiveSubscription && !isFreeAdvice;
+    
+    const handleAdvicePress = () => {
+      if (isLocked) {
+        Alert.alert(
+          '🔒 Premium Content',
+          'This advice is part of our premium content. Subscribe now to unlock all advices and get unlimited access!',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Subscribe Now', onPress: () => router.push('/subscription') }
+          ]
+        );
+      } else {
+        // Handle advice opening logic here
+        console.log('Opening advice:', advice.title);
+      }
+    };
+    
+    return (
+    <TouchableOpacity 
+      key={`advice-${advice.id}`} 
+      style={[styles.adviceCard, isLocked && styles.lockedCard]}
+      onPress={handleAdvicePress}
+    >
       <ImageBackground
         source={{ uri: advice.thumbnail }}
         style={styles.adviceThumbnail}
@@ -276,6 +420,12 @@ export default function AdvicesScreen() {
             {advice.isRecorded && (
               <View style={styles.recordedBadge}>
                 <Text style={styles.recordedIcon}>🎙️</Text>
+              </View>
+            )}
+            
+            {isLocked && (
+              <View style={styles.premiumBadge}>
+                <Text style={styles.premiumText}>🔒</Text>
               </View>
             )}
           </View>
@@ -372,15 +522,45 @@ export default function AdvicesScreen() {
     </TouchableOpacity>
   );
 
+}
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView} 
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={() => {
+                console.log('💡 Pull to refresh triggered');
+                setRefreshKey(prev => prev + 1);
+                fetchAdvices();
+              }}
+              tintColor="#FFFFFF"
+              colors={['#E50914']}
+            />
+          }
+        >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Advice Center</Text>
-            <Text style={styles.subtitle}>Expert guidance for life and career development</Text>
-            
+            <View style={styles.headerTop}>
+              <View>
+                <Text style={styles.title}>Advice Center</Text>
+                <Text style={styles.subtitle}>Expert guidance for life and career development</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.refreshHeaderButton} 
+                onPress={() => {
+                  console.log('💡 Manual refresh triggered');
+                  setRefreshKey(prev => prev + 1);
+                  fetchAdvices();
+                }}
+              >
+                <Text style={styles.refreshHeaderButtonText}>🔄</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Categories */}
@@ -397,7 +577,10 @@ export default function AdvicesScreen() {
                   styles.categoryButton,
                   selectedCategory === category.id && styles.categoryButtonActive
                 ]}
-                onPress={() => setSelectedCategory(category.id)}
+                onPress={() => {
+                  console.log('💡 Category selected:', category.id);
+                  setSelectedCategory(category.id);
+                }}
               >
                 <Text style={styles.categoryButtonIcon}>{category.icon}</Text>
                 <Text style={[
@@ -421,7 +604,10 @@ export default function AdvicesScreen() {
           {error && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>❌ {error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={fetchAdvices}>
+              <TouchableOpacity style={styles.retryButton} onPress={() => {
+                setRefreshKey(prev => prev + 1);
+                fetchAdvices();
+              }}>
                 <Text style={styles.retryButtonText}>🔄 Retry</Text>
               </TouchableOpacity>
             </View>
@@ -433,7 +619,10 @@ export default function AdvicesScreen() {
               <Text style={styles.emptyIcon}>💡</Text>
               <Text style={styles.emptyTitle}>No advice available</Text>
               <Text style={styles.emptyText}>New advice will be added soon</Text>
-              <TouchableOpacity style={styles.refreshButton} onPress={fetchAdvices}>
+              <TouchableOpacity style={styles.refreshButton} onPress={() => {
+                setRefreshKey(prev => prev + 1);
+                fetchAdvices();
+              }}>
                 <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
               </TouchableOpacity>
             </View>
@@ -441,12 +630,23 @@ export default function AdvicesScreen() {
 
           {/* Advice Cards */}
           {!loading && !error && filteredAdvices.length > 0 && (
-            <View style={styles.advicesContainer}>
-              {filteredAdvices.map(renderAdviceCard)}
+            <View style={styles.advicesContainer} key={refreshKey}>
+              {(() => {
+                console.log('💡 Rendering advices in UI:', filteredAdvices.length);
+                console.log('💡 Advices data:', filteredAdvices.map((a: any) => ({ 
+                  id: a.id, 
+                  title: a.title, 
+                  content: a.content,
+                  category: a.category,
+                  thumbnail: a.thumbnail,
+                  author: a.author 
+                })));
+                
+                return filteredAdvices.map((advice, index) => renderAdviceCard(advice, index));
+              })()}
             </View>
           )}
         </ScrollView>
-
       </LinearGradient>
     </SafeAreaView>
   );
@@ -466,6 +666,21 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     paddingTop: 10,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  refreshHeaderButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 10,
+    marginLeft: 10,
+  },
+  refreshHeaderButtonText: {
+    fontSize: 18,
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 32,
@@ -691,6 +906,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  premiumText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  lockedCard: {
+    opacity: 0.7,
   },
   // Loading, Error, and Empty States
   loadingContainer: {

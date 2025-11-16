@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+    Alert,
     Animated,
     Dimensions,
     Image,
@@ -16,6 +17,9 @@ import {
     View
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import API_BASE_URL from '../config/api';
+import { useUser } from '../contexts/UserContext';
+import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
 
@@ -134,6 +138,7 @@ const episodes = [
 ];
 
 export default function ProgrammerThoughts() {
+  const { user } = useUser();
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
@@ -141,6 +146,7 @@ export default function ProgrammerThoughts() {
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState(['All']);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
 
   // Fetch episodes from database
   const fetchEpisodes = async () => {
@@ -148,7 +154,7 @@ export default function ProgrammerThoughts() {
       setLoading(true);
       console.log('💭 Fetching programmer thoughts from database...');
       
-      const response = await fetch('http://localhost:3000/api/public/programmer-thoughts');
+      const response = await fetch(`${API_BASE_URL}/api/public/programmer-thoughts`);
       
       if (response.ok) {
         const data = await response.json();
@@ -197,12 +203,32 @@ export default function ProgrammerThoughts() {
     }
   };
 
+  // Check user subscription status
+  const checkSubscription = async () => {
+    if (!user) return;
+
+    try {
+      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/subscription`);
+      const data = await response.json();
+      
+      if (data.status === 'success' && data.data.subscription) {
+        const subscription = data.data.subscription;
+        const isActive = subscription.status === 'active' && new Date(subscription.endDate) > new Date();
+        setHasActiveSubscription(isActive);
+      }
+    } catch (error) {
+      console.error('Error checking subscription:', error);
+      setHasActiveSubscription(false);
+    }
+  };
+
   // Static episodes as fallback
   const staticEpisodes = episodes;
 
   useEffect(() => {
     // Fetch episodes first
     fetchEpisodes();
+    checkSubscription();
     
     // Then start entrance animation
     Animated.parallel([
@@ -229,11 +255,27 @@ export default function ProgrammerThoughts() {
     useCallback(() => {
       console.log('💭 Thoughts screen focused, refreshing data...');
       fetchEpisodes();
+      checkSubscription();
     }, [])
   );
 
-  const openEpisode = (episode) => {
-    setSelectedEpisode(episode);
+  const openEpisode = (episode, index) => {
+    // First 2 episodes are free, rest require subscription
+    const isFreeEpisode = index < 2;
+    const isLocked = !hasActiveSubscription && !isFreeEpisode;
+    
+    if (isLocked) {
+      Alert.alert(
+        '🔒 Premium Content',
+        'This episode is part of our premium content. Subscribe now to unlock all episodes and get unlimited access!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Subscribe Now', onPress: () => router.push('/subscription') }
+        ]
+      );
+    } else {
+      setSelectedEpisode(episode);
+    }
   };
 
   const closeEpisode = () => {
@@ -242,6 +284,8 @@ export default function ProgrammerThoughts() {
 
   const renderEpisodeCard = (episode, index) => {
     const cardAnim = new Animated.Value(0);
+    const isFreeEpisode = index < 2;
+    const isLocked = !hasActiveSubscription && !isFreeEpisode;
     
     // Start animation immediately
     setTimeout(() => {
@@ -258,6 +302,7 @@ export default function ProgrammerThoughts() {
         key={episode.id}
         style={[
           styles.episodeCard,
+          isLocked && styles.lockedCard,
           {
             opacity: cardAnim,
             transform: [
@@ -279,7 +324,7 @@ export default function ProgrammerThoughts() {
       >
         <TouchableOpacity
           style={styles.episodeTouchable}
-          onPress={() => openEpisode(episode)}
+          onPress={() => openEpisode(episode, index)}
           activeOpacity={0.8}
         >
           <LinearGradient
@@ -290,7 +335,7 @@ export default function ProgrammerThoughts() {
           >
             {/* Episode Number Badge */}
             <View style={styles.episodeNumberBadge}>
-              <Text style={styles.episodeNumberText}>{episode.id}</Text>
+              <Text style={styles.episodeNumberText}>{index + 1}</Text>
             </View>
 
             {/* Thumbnail */}
@@ -308,6 +353,11 @@ export default function ProgrammerThoughts() {
               <View style={styles.durationBadge}>
                 <Text style={styles.durationText}>{episode.duration}</Text>
               </View>
+              {isLocked && (
+                <View style={styles.premiumBadge}>
+                  <Text style={styles.premiumText}>🔒</Text>
+                </View>
+              )}
             </View>
 
             {/* Content */}
@@ -661,6 +711,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  premiumText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  lockedCard: {
+    opacity: 0.7,
   },
   shineEffect: {
     position: 'absolute',
