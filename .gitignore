@@ -2,39 +2,11 @@
 node_modules/
 backend/node_modules/
 
-# Logs
-logs/
-backend/logs/
-*.log
-backend/server.log
-
-# Builds and caches
-.expo/
-.expo-shared/
-dist/
-build/
-.DS_Store
-
-# Environment and secrets
-backend/config.env
-backend/.env
-backend/.env.local
-
-# Uploads/media
-backend/uploads/
-
-# OS/Editor
-.idea/
-.vscode/
-*.swp
-
-# Dependencies
-node_modules/
-backend/node_modules/
-
 # Environment variables
 .env
 backend/.env
+backend/config.env
+config.env
 
 # Logs
 *.log
@@ -129,6 +101,10 @@ yarn-error.*
 # Temporary files
 *.tmp
 *.temp
+
+# Uploaded files (too large for GitHub)
+backend/uploads/
+uploads/
 
 # IDE
 .vscode/
