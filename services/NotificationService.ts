@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import API_BASE_URL from '../config/api';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -342,7 +343,7 @@ class NotificationService {
         return;
       }
 
-      const response = await fetch('http://localhost:3000/api/admin/send-notification', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/send-notification`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

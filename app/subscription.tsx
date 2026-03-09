@@ -103,9 +103,16 @@ export default function SubscriptionScreen() {
       return;
     }
 
+    if (!user) {
+      Alert.alert('Error', 'Please login to continue');
+      router.push('/login');
+      return;
+    }
+
     setSubscribing(true);
 
     try {
+      console.log('Creating payment order for plan:', selectedPlan);
       const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/create-order`, {
         method: 'POST',
         headers: {
@@ -117,9 +124,39 @@ export default function SubscriptionScreen() {
         }),
       });
 
-      const data = await response.json();
+      console.log('Payment order response status:', response.status);
 
-      if (data.status === 'success') {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Payment order error:', errorData);
+        Alert.alert(
+          'Payment Error',
+          errorData.message || 'Failed to create payment order. Please try again later.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Payment order data:', data);
+
+      if (data.status === 'success' && data.data) {
+        // Check if test mode
+        if (data.data.testMode) {
+          Alert.alert(
+            'Test Mode',
+            'Payment service is in test mode. Paymob API keys are not configured.\n\n' +
+            'To enable real payments, add Paymob API keys to backend/config.env',
+            [
+              { text: 'OK', onPress: () => {
+                // In test mode, just show success message
+                Alert.alert('Success', 'Test payment order created successfully!');
+              }}
+            ]
+          );
+          return;
+        }
+
         // Navigate to payment screen
         router.push({
           pathname: '/payment',
@@ -133,11 +170,27 @@ export default function SubscriptionScreen() {
           }
         });
       } else {
-        Alert.alert('Error', data.message || 'Failed to create payment order');
+        Alert.alert(
+          'Error',
+          data.message || 'Failed to create payment order. Please contact support if the problem persists.',
+          [{ text: 'OK' }]
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating subscription:', error);
-      Alert.alert('Error', 'Failed to create subscription');
+      let errorMessage = 'Failed to create subscription. Please check your internet connection and try again.';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.response) {
+        errorMessage = `Network error: ${error.response.statusText || 'Unknown error'}`;
+      }
+
+      Alert.alert(
+        'Error',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
     } finally {
       setSubscribing(false);
     }

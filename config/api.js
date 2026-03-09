@@ -1,12 +1,20 @@
 // API Configuration
-// For iOS simulator and Android emulator, use localhost (they run on the same machine)
-// For physical devices, you may need to change this to your machine's IP address
-// To find your IP: ifconfig | grep "inet " | grep -v 127.0.0.1
-const API_BASE_URL = 'http://localhost:3000';
+// - Android emulator: 10.0.2.2 is the host machine's localhost
+// - iOS simulator: localhost works
+// - Physical device: set EXPO_PUBLIC_API_URL in .env (e.g. http://192.168.1.5:3000)
+import { Platform } from 'react-native';
 
-// Uncomment and update IP for physical device testing:
-// const API_BASE_URL = 'http://192.168.100.43:3000';
+const getApiBaseUrl = () => {
+  if (typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '');
+  }
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000';
+  }
+  return 'http://localhost:3000';
+};
 
+const API_BASE_URL = getApiBaseUrl();
 export default API_BASE_URL;
 
 

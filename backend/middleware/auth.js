@@ -33,15 +33,14 @@ const generateTokens = (user) => {
 // Verify JWT Token
 const verifyToken = (token) => {
   try {
-    console.log('🔍 JWT_SECRET exists:', !!process.env.JWT_SECRET);
-    console.log('🔍 Verifying token:', token.substring(0, 20) + '...');
-    
     return jwt.verify(token, process.env.JWT_SECRET, {
       issuer: 'yone-app',
       audience: 'yone-users'
     });
   } catch (error) {
-    console.error('❌ Token verification failed:', error.message);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.error('Token verification failed:', error.message);
+    }
     throw new Error('Invalid or expired token');
   }
 };
@@ -50,10 +49,7 @@ const verifyToken = (token) => {
 const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
-    
-    console.log('🔍 requireAuth - Authorization header:', authHeader ? authHeader.substring(0, 20) + '...' : 'No header');
-    console.log('🔍 requireAuth - URL:', req.originalUrl);
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       logger.warn('Authentication failed: No token provided', {
         ip: req.ip,
@@ -68,12 +64,10 @@ const requireAuth = async (req, res, next) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    console.log('🔍 requireAuth - Token extracted:', token.substring(0, 20) + '...');
-    
+
     // Verify token
     const decoded = verifyToken(token);
-    console.log('🔍 requireAuth - Token decoded successfully:', decoded.id);
-    
+
     // Check if user still exists and is active
     const user = await User.findById(decoded.id).select('-password');
     

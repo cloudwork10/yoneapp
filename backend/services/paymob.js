@@ -3,15 +3,28 @@ const fetch = require('node-fetch');
 const PAYMOB_BASE = process.env.PAYMOB_BASE_URL || 'https://accept.paymob.com/api';
 
 async function getAuthToken() {
+  if (!process.env.PAYMOB_API_KEY) {
+    throw new Error('Paymob API key is not configured');
+  }
+
   const res = await fetch(`${PAYMOB_BASE}/auth/tokens`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ api_key: process.env.PAYMOB_API_KEY })
   });
+  
   if (!res.ok) {
-    throw new Error(`Paymob auth failed: ${res.status}`);
+    const errorText = await res.text();
+    console.error('Paymob auth error:', res.status, errorText);
+    throw new Error(`Paymob authentication failed: ${res.status} - ${errorText}`);
   }
+  
   const data = await res.json();
+  
+  if (!data.token) {
+    throw new Error('Paymob authentication failed: No token received');
+  }
+  
   return data.token;
 }
 
@@ -28,13 +41,27 @@ async function createOrder(authToken, amountCents, merchantOrderId, items = []) 
       items
     })
   });
+  
   if (!res.ok) {
-    throw new Error(`Paymob create order failed: ${res.status}`);
+    const errorText = await res.text();
+    console.error('Paymob create order error:', res.status, errorText);
+    throw new Error(`Paymob create order failed: ${res.status} - ${errorText}`);
   }
-  return await res.json();
+  
+  const data = await res.json();
+  
+  if (!data.id) {
+    throw new Error('Paymob create order failed: No order ID received');
+  }
+  
+  return data;
 }
 
 async function generatePaymentKey(authToken, amountCents, orderId, billingData, integrationId) {
+  if (!integrationId) {
+    throw new Error('Paymob integration ID is not configured');
+  }
+
   const res = await fetch(`${PAYMOB_BASE}/acceptance/payment_keys`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -49,10 +76,20 @@ async function generatePaymentKey(authToken, amountCents, orderId, billingData, 
       lock_order_when_paid: true
     })
   });
+  
   if (!res.ok) {
-    throw new Error(`Paymob payment_key failed: ${res.status}`);
+    const errorText = await res.text();
+    console.error('Paymob payment key error:', res.status, errorText);
+    throw new Error(`Paymob payment key generation failed: ${res.status} - ${errorText}`);
   }
-  return await res.json();
+  
+  const data = await res.json();
+  
+  if (!data.token) {
+    throw new Error('Paymob payment key generation failed: No token received');
+  }
+  
+  return data;
 }
 
 function verifyHmac(queryOrBody, hmac) {

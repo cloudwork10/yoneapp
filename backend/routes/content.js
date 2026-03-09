@@ -73,7 +73,8 @@ router.post('/upload-image', uploadLimiter, upload.single('image'), async (req, 
       });
     }
 
-    const imageUrl = `http://localhost:3000/uploads/images/${req.file.filename}`;
+    const baseUrl = process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
+    const imageUrl = `${baseUrl}/uploads/images/${req.file.filename}`;
     
     res.json({
       status: 'success',
@@ -103,7 +104,8 @@ router.post('/upload-video', uploadLimiter, upload.single('video'), async (req, 
       });
     }
 
-    const videoUrl = `http://localhost:3000/uploads/videos/${req.file.filename}`;
+    const baseUrl = process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
+    const videoUrl = `${baseUrl}/uploads/videos/${req.file.filename}`;
 
     res.json({
       status: 'success',
@@ -164,7 +166,8 @@ router.post('/upload-audio', uploadLimiter, (req, res, next) => {
       path: req.file.path
     });
 
-    const audioUrl = `http://localhost:3000/uploads/audios/${req.file.filename}`;
+    const baseUrl = process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
+    const audioUrl = `${baseUrl}/uploads/audios/${req.file.filename}`;
 
     console.log('✅ Audio uploaded successfully, URL:', audioUrl);
 
@@ -198,7 +201,7 @@ router.post('/upload-audio-simple', async (req, res) => {
       status: 'success',
       message: 'Simple audio upload endpoint working',
       data: {
-        audioUrl: 'http://localhost:3000/uploads/audios/test-audio.m4a',
+        audioUrl: `${process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000'}/uploads/audios/test-audio.m4a`,
         filename: 'test-audio.m4a'
       }
     });
@@ -665,7 +668,7 @@ router.post('/advices',  async (req, res) => {
     
     const adviceData = {
       ...bodyData,
-      createdBy: req.user.id
+      createdBy: (req.user && req.user.id) || null
     };
 
     const advice = await Advice.create(adviceData);
@@ -693,7 +696,7 @@ router.put('/advices/:id',  async (req, res) => {
     
     const adviceData = {
       ...bodyData,
-      updatedBy: req.user.id
+      updatedBy: (req.user && req.user.id) || null
     };
 
     const advice = await Advice.findByIdAndUpdate(
@@ -896,7 +899,7 @@ router.post('/cv-templates', async (req, res) => {
 
     const cvTemplateData = {
       ...req.body,
-      createdBy: req.user._id,
+      createdBy: (req.user && req.user.id) || null,
       downloads: 0,
       rating: 5.0
     };
@@ -1936,7 +1939,7 @@ router.post('/courses', async (req, res) => {
     
     const courseData = {
       ...req.body,
-      createdBy: req.user._id,
+      createdBy: (req.user && req.user.id) || null,
       sections: req.body.sections || [],
       requirements: req.body.requirements || [],
       learningOutcomes: req.body.learningOutcomes || []
@@ -1968,7 +1971,7 @@ router.put('/courses/:id',  async (req, res) => {
     
     const courseData = {
       ...req.body,
-      updatedBy: req.user._id,
+      updatedBy: (req.user && req.user.id) || null,
       sections: req.body.sections || [],
       requirements: req.body.requirements || [],
       learningOutcomes: req.body.learningOutcomes || []

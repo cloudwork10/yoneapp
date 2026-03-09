@@ -47,7 +47,8 @@ const subscriptionSchema = new mongoose.Schema({
   },
   paymobTransactionId: {
     type: String,
-    required: true
+    required: false,
+    default: null
   },
   isSubscriptionActive: {
     type: Boolean,

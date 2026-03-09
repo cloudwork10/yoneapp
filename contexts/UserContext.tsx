@@ -147,10 +147,17 @@ export function UserProvider({ children }: UserProviderProps) {
   );
 }
 
-export function useUser() {
+const defaultContextValue: UserContextType = {
+  user: null,
+  isLoading: true,
+  isAdmin: false,
+  isSuperAdmin: false,
+  login: async () => {},
+  logout: async () => {},
+  updateUser: () => {},
+};
+
+export function useUser(): UserContextType {
   const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
-  }
-  return context;
+  return context ?? defaultContextValue;
 }

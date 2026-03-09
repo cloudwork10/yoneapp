@@ -875,7 +875,7 @@ export default function ContentManagementScreen() {
   ];
 
   const renderOverviewCard = (contentType: any) => {
-    if (!stats) {
+    if (!stats || typeof stats.total !== 'object' || typeof stats.active !== 'object') {
       return (
         <View key={contentType.id} style={[styles.overviewCard, { borderColor: contentType.color }]}>
           <View style={styles.cardHeader}>
@@ -889,8 +889,8 @@ export default function ContentManagementScreen() {
       );
     }
 
-    const total = stats.total[contentType.id as keyof typeof stats.total] || 0;
-    const active = stats.active[contentType.id as keyof typeof stats.active] || 0;
+    const total = (stats.total && (stats.total as Record<string, number>)[contentType.id]) ?? 0;
+    const active = (stats.active && (stats.active as Record<string, number>)[contentType.id]) ?? 0;
     const inactive = total - active;
     
     // Log stats for thoughts specifically

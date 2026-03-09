@@ -1,3 +1,4 @@
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { UserProvider } from '@/contexts/UserContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -85,33 +86,35 @@ export default function RootLayout() {
   }
 
   return (
-    <UserProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="app-loading" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-          <Stack.Screen name="content-management" options={{ headerShown: false }} />
-          <Stack.Screen name="notification-settings" options={{ headerShown: false }} />
-          <Stack.Screen name="help-support" options={{ headerShown: false }} />
-          <Stack.Screen name="terms-conditions" options={{ headerShown: false }} />
-          <Stack.Screen name="refund-policy" options={{ headerShown: false }} />
-          <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
-          <Stack.Screen name="contact" options={{ headerShown: false }} />
-          <Stack.Screen name="about-us" options={{ headerShown: false }} />
-          <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
-          <Stack.Screen name="article-details" options={{ headerShown: false }} />
-          <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
-          <Stack.Screen name="podcast-details" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="register" options={{ headerShown: false }} />
-          <Stack.Screen name="profile" options={{ headerShown: false }} />
-          <Stack.Screen name="subscription" options={{ headerShown: false }} />
-          <Stack.Screen name="payment" options={{ headerShown: false }} />
-          <Stack.Screen name="top-cv" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </ThemeProvider>
-    </UserProvider>
+    <ErrorBoundary>
+      <UserProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="app-loading" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+            <Stack.Screen name="content-management" options={{ headerShown: false }} />
+            <Stack.Screen name="notification-settings" options={{ headerShown: false }} />
+            <Stack.Screen name="help-support" options={{ headerShown: false }} />
+            <Stack.Screen name="terms-conditions" options={{ headerShown: false }} />
+            <Stack.Screen name="refund-policy" options={{ headerShown: false }} />
+            <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+            <Stack.Screen name="contact" options={{ headerShown: false }} />
+            <Stack.Screen name="about-us" options={{ headerShown: false }} />
+            <Stack.Screen name="programmer-thoughts" options={{ headerShown: false }} />
+            <Stack.Screen name="article-details" options={{ headerShown: false }} />
+            <Stack.Screen name="roadmap-details" options={{ headerShown: false }} />
+            <Stack.Screen name="podcast-details" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="register" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="subscription" options={{ headerShown: false }} />
+            <Stack.Screen name="payment" options={{ headerShown: false }} />
+            <Stack.Screen name="top-cv" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </ThemeProvider>
+      </UserProvider>
+    </ErrorBoundary>
   );
 }

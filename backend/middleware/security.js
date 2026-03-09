@@ -59,38 +59,32 @@ const createRateLimit = (windowMs, max, message) => {
   });
 };
 
-// General Rate Limiting - RELAXED FOR DEVELOPMENT
+// Rate limits: use env in production (e.g. RATE_LIMIT_GENERAL_MAX=200), else defaults
+const window15 = 15 * 60 * 1000;
+const window1h = 60 * 60 * 1000;
 const generalLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  1000, // 1000 requests per 15 minutes (very high but not unlimited)
+  window15,
+  parseInt(process.env.RATE_LIMIT_GENERAL_MAX, 10) || (process.env.NODE_ENV === 'production' ? 300 : 1000),
   'Too many requests from this IP, please try again later.'
 );
-
-// Public Rate Limiting - DISABLED FOR TESTING
 const publicLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  999999, // Very high limit to effectively disable
+  window15,
+  parseInt(process.env.RATE_LIMIT_PUBLIC_MAX, 10) || (process.env.NODE_ENV === 'production' ? 500 : 999999),
   'Too many requests from this IP, please try again later.'
 );
-
-// Auth Rate Limiting - RELAXED FOR DEVELOPMENT
 const authLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  50, // 50 login attempts per 15 minutes (high but reasonable)
+  window15,
+  parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10) || (process.env.NODE_ENV === 'production' ? 20 : 50),
   'Too many login attempts, please try again later.'
 );
-
-// Upload Rate Limiting - DISABLED FOR TESTING
 const uploadLimiter = createRateLimit(
-  60 * 60 * 1000, // 1 hour
-  999999, // Very high limit to effectively disable
+  window1h,
+  parseInt(process.env.RATE_LIMIT_UPLOAD_MAX, 10) || (process.env.NODE_ENV === 'production' ? 30 : 999999),
   'Too many file uploads, please try again later.'
 );
-
-// API Rate Limiting - DISABLED FOR TESTING
 const apiLimiter = createRateLimit(
-  15 * 60 * 1000, // 15 minutes
-  999999, // Very high limit to effectively disable
+  window15,
+  parseInt(process.env.RATE_LIMIT_API_MAX, 10) || (process.env.NODE_ENV === 'production' ? 400 : 999999),
   'API rate limit exceeded, please try again later.'
 );
 
@@ -104,34 +98,30 @@ const speedLimiter = slowDown({
   }
 });
 
-// CORS Configuration - Secure
+// CORS Configuration - use ALLOWED_ORIGINS in production (comma-separated URLs)
+const defaultOrigins = [
+  'http://localhost:3000', 'http://localhost:8081', 'http://localhost:8082',
+  'http://192.168.100.42:8081', 'http://192.168.100.42:8082',
+  'http://192.168.100.43:8081', 'http://192.168.100.43:8082', 'http://192.168.100.43:3000',
+  'http://192.168.100.41:8081', 'http://192.168.100.41:8082', 'http://192.168.100.41:3000'
+];
+const getAllowedOrigins = () => {
+  if (process.env.ALLOWED_ORIGINS) {
+    return process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return defaultOrigins;
+};
+
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:8081',
-      'http://localhost:8082',
-      'http://192.168.100.42:8081',
-      'http://192.168.100.42:8082',
-      'http://192.168.100.43:8081',
-      'http://192.168.100.43:8082',
-      'http://192.168.100.43:3000',
-      'http://192.168.100.41:8081',
-      'http://192.168.100.41:8082',
-      'http://192.168.100.41:3000'
-    ];
-    
+    const allowedOrigins = getAllowedOrigins();
     // Allow requests with no origin (mobile apps, etc.)
     if (!origin) return callback(null, true);
-    
-    // In development, be more permissive with CORS
     if (process.env.NODE_ENV === 'development') {
-      // Allow any local network IP for development
       if (origin.includes('192.168.') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
         return callback(null, true);
       }
     }
-    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {

@@ -135,6 +135,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // Follow system
+  followers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  following: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   // User preferences
   preferences: {
     notifications: {

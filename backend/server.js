@@ -13,13 +13,15 @@ const {
   notFoundHandler,
   logger
 } = require('./middleware/security');
-require('dotenv').config({ path: './config.env' });
+const { requireAuth, requireAdmin } = require('./middleware/auth');
+// Load env: try config.env then .env (so .env works for deployment)
+require('dotenv').config({ path: path.join(__dirname, 'config.env') });
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-// Log environment variables for debugging
-console.log('🔍 Environment variables loaded:');
-console.log('🔍 JWT_SECRET exists:', !!process.env.JWT_SECRET);
-console.log('🔍 JWT_EXPIRES_IN:', process.env.JWT_EXPIRES_IN);
-console.log('🔍 JWT_REFRESH_EXPIRES_IN:', process.env.JWT_REFRESH_EXPIRES_IN);
+// Only log env hints in development (never expose in production)
+if (process.env.NODE_ENV !== 'production') {
+  console.log('🔍 Environment loaded. JWT_SECRET set:', !!process.env.JWT_SECRET);
+}
 
 const app = express();
 
@@ -119,13 +121,17 @@ app.use('/api/public', publicSecurityMiddleware, require('./routes/public'));
 
 // Routes with security middleware - RATE LIMITING COMPLETELY DISABLED
 app.use('/api/auth', securityMiddleware, require('./routes/auth'));
-app.use('/api/users', securityMiddleware, require('./routes/users'));
+// Users routes - some endpoints are public (like /:id/profile)
+app.use('/api/users', publicSecurityMiddleware, require('./routes/users'));
 app.use('/api/courses', securityMiddleware, require('./routes/courses'));
 app.use('/api/payments', publicSecurityMiddleware, require('./routes/payments'));
-app.use('/api/admin/content', require('./routes/content'));
-app.use('/api/public/content', require('./routes/content'));
-app.use('/api/admin', securityMiddleware, require('./routes/admin'));
-app.use('/api/admin', securityMiddleware, require('./routes/notifications'));
+// Admin content: requires auth + admin (was open before - caused 500 when req.user undefined)
+app.use('/api/admin/content', securityMiddleware, requireAuth, requireAdmin, require('./routes/content'));
+// Public content: read-only content for app (no auth required)
+app.use('/api/public/content', publicSecurityMiddleware, require('./routes/content'));
+app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./routes/admin'));
+app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./routes/notifications'));
+app.use('/api/reels', securityMiddleware, require('./routes/reels'));
 
 // 404 handler
 app.use('*', notFoundHandler);
@@ -150,7 +156,13 @@ process.on('SIGINT', () => {
   });
 });
 
-const PORT = process.env.API_PORT || 3000;
+// Catch unhandled promise rejections so server does not exit silently
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', { promise, reason });
+  console.error('Unhandled Rejection:', reason);
+});
+
+const PORT = process.env.API_PORT || process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   logger.info(`🚀 YONE API Server started on port ${PORT}`);

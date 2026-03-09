@@ -1,0 +1,10 @@
+# Railway - عند ربط المستودع حدد Root Directory = backend
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm install"
+
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
