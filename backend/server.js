@@ -68,30 +68,37 @@ app.use('/uploads', express.static('uploads', {
   }
 }));
 
-// Database connection with security options
-mongoose.connect(process.env.DB_CONNECTION_STRING || 'mongodb://localhost:27017/yoneapp', {
+// Database connection - don't exit on failure so Railway sees the app respond
+let dbConnected = false;
+const rawMongoUri = process.env.DB_CONNECTION_STRING || process.env.MONGODB_URI || 'mongodb://localhost:27017/yoneapp';
+const mongoUri = typeof rawMongoUri === 'string' ? rawMongoUri.trim() : rawMongoUri;
+
+mongoose.connect(mongoUri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
   bufferCommands: false
 })
 .then(() => {
+  dbConnected = true;
   logger.info('✅ MongoDB connected successfully');
   console.log('✅ MongoDB connected successfully');
 })
 .catch(err => {
-  logger.error('❌ MongoDB connection error:', err);
-  console.error('❌ MongoDB connection error:', err);
-  process.exit(1);
+  logger.error('❌ MongoDB connection error:', err.message);
+  console.error('❌ MongoDB connection error:', err.message);
+  // Don't exit - let server start so /api/health responds (Railway/platform checks)
 });
 
-// Health check endpoint
+// Health check endpoint - return 503 if DB not connected
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'YONE API is running securely',
+  const status = dbConnected ? 200 : 503;
+  res.status(status).json({
+    status: dbConnected ? 'success' : 'degraded',
+    message: dbConnected ? 'YONE API is running securely' : 'API running; database not connected',
+    database: dbConnected,
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development'
