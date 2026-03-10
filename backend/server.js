@@ -71,7 +71,11 @@ app.use('/uploads', express.static('uploads', {
 // Database connection - don't exit on failure so Railway sees the app respond
 let dbConnected = false;
 const rawMongoUri = process.env.DB_CONNECTION_STRING || process.env.MONGODB_URI || 'mongodb://localhost:27017/yoneapp';
-const mongoUri = typeof rawMongoUri === 'string' ? rawMongoUri.trim() : rawMongoUri;
+let mongoUri = typeof rawMongoUri === 'string' ? rawMongoUri.trim() : rawMongoUri;
+// Handle case where value is pasted with surrounding quotes in env (\"mongodb+srv://...\")
+if (typeof mongoUri === 'string' && mongoUri.startsWith('"') && mongoUri.endsWith('"')) {
+  mongoUri = mongoUri.slice(1, -1).trim();
+}
 
 mongoose.connect(mongoUri, {
   useNewUrlParser: true,
