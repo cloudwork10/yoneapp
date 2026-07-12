@@ -1,0 +1,808 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Dimensions,
+    ImageBackground,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../config/api';
+import resolveMediaUrl from '../utils/mediaUrl';
+
+const { width, height } = Dimensions.get('window');
+
+export default function ArticleDetailsScreen() {
+  const router = useRouter();
+  const { articleId } = useLocalSearchParams();
+  const [article, setArticle] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [relatedArticles, setRelatedArticles] = useState([]);
+
+  // Fetch article data from API
+  useEffect(() => {
+    if (articleId) {
+      fetchArticle();
+      fetchRelatedArticles();
+    }
+  }, [articleId]);
+
+  const fetchArticle = async () => {
+    try {
+      setLoading(true);
+      console.log('📄 Fetching article with ID:', articleId);
+      
+      const response = await fetch(`${API_BASE_URL}/api/public/articles/${articleId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Article data received:', data);
+        const articleData = data.data.article;
+        setArticle({
+          ...articleData,
+          image: resolveMediaUrl(articleData.image || articleData.thumbnail),
+        });
+      } else {
+        console.error('❌ Failed to fetch article:', response.status);
+        setError('Failed to load article');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching article:', error);
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRelatedArticles = async () => {
+    try {
+      console.log('📄 Fetching related articles...');
+      
+      const response = await fetch(`${API_BASE_URL}/api/public/articles`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Related articles received:', data);
+        // Filter out current article and take first 3
+        const filtered = data.data.articles
+          .filter((a: any) => a._id !== articleId)
+          .slice(0, 3)
+          .map((a: any) => ({
+            ...a,
+            image: resolveMediaUrl(a.image || a.thumbnail),
+          }));
+        setRelatedArticles(filtered);
+      } else {
+        console.error('❌ Failed to fetch related articles:', response.status);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching related articles:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#E50914" />
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error || !article) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>
+              {error || 'Article not found'}
+            </Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.retryButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Hero Section */}
+        <View style={styles.heroSection}>
+          <ImageBackground
+            source={{ uri: article.image || 'https://via.placeholder.com/400x300/1a1a1a/4ECDC4?text=Article+Image' }}
+            style={styles.heroBackground}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+              style={styles.heroGradient}
+            >
+              {/* Back Button */}
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.backButtonText}>← Back</Text>
+              </TouchableOpacity>
+
+              {/* Article Info - Better positioned */}
+              <View style={styles.articleInfoFixed}>
+                <View style={styles.articleBadge}>
+                  <Text style={styles.articleBadgeText}>{(article.category || 'GENERAL').toUpperCase()}</Text>
+                </View>
+                <Text style={styles.articleTitleFixed}>{article.title || 'Untitled Article'}</Text>
+                <Text style={styles.articleDescriptionFixed}>{article.description || 'No description available.'}</Text>
+                <View style={styles.articleMetaFixed}>
+                  <View style={styles.metaItemFixed}>
+                    <Text style={styles.metaIconFixed}>👤</Text>
+                    <Text style={styles.metaTextFixed}>{article.author || 'Unknown Author'}</Text>
+                  </View>
+                  <View style={styles.metaItemFixed}>
+                    <Text style={styles.metaIconFixed}>⏱️</Text>
+                    <Text style={styles.metaTextFixed}>{article.readTime || '5 min read'}</Text>
+                  </View>
+                  <View style={styles.metaItemFixed}>
+                    <Text style={styles.metaIconFixed}>👁️</Text>
+                    <Text style={styles.metaTextFixed}>{article.views || 0} views</Text>
+                  </View>
+                </View>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </View>
+
+        {/* Article Content */}
+        <View style={styles.contentSection}>
+          <View style={styles.contentHeader}>
+            <Text style={styles.contentTitle}>📖 Article Content</Text>
+            <View style={styles.contentDivider} />
+          </View>
+          
+          <View style={styles.contentWrapper}>
+            {(article.content || 'No content available.').split('\n\n').map((paragraph, index) => {
+              if (paragraph.trim().startsWith('**') && paragraph.trim().endsWith('**')) {
+                // Bold headings
+                const heading = paragraph.replace(/\*\*/g, '').trim();
+                return (
+                  <View key={index} style={styles.headingContainer}>
+                    <Text style={styles.headingText}>{heading}</Text>
+                    <View style={styles.headingUnderline} />
+                  </View>
+                );
+              } else if (paragraph.trim().startsWith('**') && paragraph.includes('**')) {
+                // Bold text within paragraph
+                const parts = paragraph.split(/(\*\*.*?\*\*)/);
+                return (
+                  <View key={index} style={styles.paragraphContainer}>
+                    <Text style={styles.paragraphText}>
+                      {parts.map((part, partIndex) => {
+                        if (part.startsWith('**') && part.endsWith('**')) {
+                          return (
+                            <Text key={partIndex} style={styles.boldText}>
+                              {part.replace(/\*\*/g, '')}
+                            </Text>
+                          );
+                        }
+                        return part;
+                      })}
+                    </Text>
+                  </View>
+                );
+              } else if (/^\d+\./.test(paragraph.trim())) {
+                // Numbered list items
+                return (
+                  <View key={index} style={styles.listItemContainer}>
+                    <View style={styles.listItemNumber}>
+                      <Text style={styles.listItemNumberText}>
+                        {paragraph.match(/^\d+/)?.[0] || index + 1}
+                      </Text>
+                    </View>
+                    <Text style={styles.listItemText}>
+                      {paragraph.replace(/^\d+\.\s*/, '')}
+                    </Text>
+                  </View>
+                );
+              } else if (paragraph.trim().length > 0) {
+                // Regular paragraphs
+                return (
+                  <View key={index} style={styles.paragraphContainer}>
+                    <Text style={styles.paragraphText}>{paragraph.trim()}</Text>
+                  </View>
+                );
+              }
+              return null;
+            })}
+          </View>
+        </View>
+
+        {/* Tags Section */}
+        <View style={styles.tagsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitleIcon}>🏷️</Text>
+            <Text style={styles.sectionTitle}>Related Tags</Text>
+            <Text style={styles.sectionTitleAccent}>Explore</Text>
+          </View>
+          <View style={styles.tagsContainer}>
+            {(article.tags || []).map((tag, index) => (
+              <TouchableOpacity key={index} style={styles.tag}>
+                <Text style={styles.tagIcon}>#</Text>
+                <Text style={styles.tagText}>{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Author Section */}
+        <View style={styles.authorSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitleIcon}>👤</Text>
+            <Text style={styles.sectionTitle}>Meet the Author</Text>
+            <Text style={styles.sectionTitleAccent}>Expert</Text>
+          </View>
+          <View style={styles.authorCard}>
+            <View style={styles.authorAvatarContainer}>
+              <View style={styles.authorAvatar}>
+                <Text style={styles.avatarText}>{article.author.charAt(0)}</Text>
+              </View>
+              <View style={styles.authorStatus}>
+                <Text style={styles.statusText}>●</Text>
+                <Text style={styles.statusLabel}>Online</Text>
+              </View>
+            </View>
+            <View style={styles.authorInfo}>
+              <View style={styles.authorNameContainer}>
+                <Text style={styles.authorName}>{article.author}</Text>
+                <Text style={styles.authorVerified}>✓</Text>
+              </View>
+              <Text style={styles.authorTitle}>Senior Developer & Technical Writer</Text>
+              <Text style={styles.authorBio}>
+                {article.author} is an experienced developer with over 8 years in the industry. 
+                They specialize in {article.category} and are passionate about sharing knowledge 
+                through technical writing and mentoring.
+              </Text>
+              <View style={styles.authorStats}>
+                <View style={styles.authorStat}>
+                  <Text style={styles.authorStatNumber}>8+</Text>
+                  <Text style={styles.authorStatLabel}>Years Experience</Text>
+                </View>
+                <View style={styles.authorStat}>
+                  <Text style={styles.authorStatNumber}>50+</Text>
+                  <Text style={styles.authorStatLabel}>Articles Written</Text>
+                </View>
+                <View style={styles.authorStat}>
+                  <Text style={styles.authorStatNumber}>10k+</Text>
+                  <Text style={styles.authorStatLabel}>Readers</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Related Articles Section */}
+        <View style={styles.relatedSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitleIcon}>📚</Text>
+            <Text style={styles.sectionTitle}>You Might Also Like</Text>
+            <Text style={styles.sectionTitleAccent}>Discover</Text>
+          </View>
+          <View style={styles.relatedContainer}>
+            {relatedArticles.map((relatedArticle, index) => (
+              <TouchableOpacity 
+                key={relatedArticle._id || relatedArticle.id} 
+                style={styles.relatedCard}
+                onPress={() => router.push(`/article-details?articleId=${relatedArticle._id || relatedArticle.id}`)}
+              >
+                <View style={styles.relatedCardHeader}>
+                  <Text style={styles.relatedCardNumber}>0{index + 1}</Text>
+                  <View style={styles.relatedCardBadge}>
+                    <Text style={styles.relatedCardBadgeText}>{relatedArticle.category || 'GENERAL'}</Text>
+                  </View>
+                </View>
+                <ImageBackground
+                  source={{ uri: relatedArticle.image || 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=Article+Image' }}
+                  style={styles.relatedImage}
+                  resizeMode="cover"
+                >
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.7)']}
+                    style={styles.relatedGradient}
+                  >
+                    <Text style={styles.relatedTitle}>{relatedArticle.title || 'Untitled Article'}</Text>
+                    <View style={styles.relatedMeta}>
+                      <View style={styles.relatedMetaItem}>
+                        <Text style={styles.relatedMetaIcon}>👤</Text>
+                        <Text style={styles.relatedAuthor}>{relatedArticle.author || 'Unknown Author'}</Text>
+                      </View>
+                      <View style={styles.relatedMetaItem}>
+                        <Text style={styles.relatedMetaIcon}>⏱️</Text>
+                        <Text style={styles.relatedReadTime}>{relatedArticle.readTime || '5 min read'}</Text>
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </ImageBackground>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  heroSection: {
+    height: height * 0.6,
+    position: 'relative',
+  },
+  heroBackground: {
+    flex: 1,
+    resizeMode: 'cover',
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 30,
+    left: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Fixed positioning for better layout
+  articleInfoFixed: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    paddingBottom: 20,
+  },
+  articleBadge: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  articleBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  articleTitleFixed: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  articleDescriptionFixed: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    lineHeight: 26,
+    marginBottom: 20,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  articleMetaFixed: {
+    flexDirection: 'row',
+    gap: 25,
+  },
+  metaItemFixed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  metaIconFixed: {
+    fontSize: 18,
+  },
+  metaTextFixed: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Content Section
+  contentSection: {
+    padding: 20,
+  },
+  contentHeader: {
+    marginBottom: 24,
+  },
+  contentTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  contentDivider: {
+    height: 3,
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+    width: 60,
+    alignSelf: 'center',
+  },
+  contentWrapper: {
+    gap: 20,
+  },
+  headingContainer: {
+    marginBottom: 16,
+  },
+  headingText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  headingUnderline: {
+    height: 2,
+    backgroundColor: '#E50914',
+    borderRadius: 1,
+    width: 100,
+    alignSelf: 'center',
+  },
+  paragraphContainer: {
+    marginBottom: 16,
+  },
+  paragraphText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    lineHeight: 28,
+    textAlign: 'left',
+  },
+  boldText: {
+    fontWeight: 'bold',
+    color: '#E50914',
+  },
+  listItemContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'flex-start',
+  },
+  listItemNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E50914',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    marginTop: 4,
+  },
+  listItemNumberText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  listItemText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF',
+    lineHeight: 26,
+  },
+  // Tags Section
+  tagsSection: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  sectionTitleIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginRight: 8,
+  },
+  sectionTitleAccent: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#E50914',
+    fontStyle: 'italic',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: '#E50914',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  tagIcon: {
+    color: '#E50914',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 6,
+  },
+  tagText: {
+    color: '#E50914',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  // Author Section
+  authorSection: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  authorCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 24,
+    flexDirection: 'row',
+    gap: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  authorAvatarContainer: {
+    alignItems: 'center',
+  },
+  authorAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E50914',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: 'bold',
+  },
+  authorStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: '#00FF00',
+    fontSize: 12,
+    marginRight: 4,
+  },
+  statusLabel: {
+    color: '#00FF00',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  authorInfo: {
+    flex: 1,
+  },
+  authorNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  authorName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginRight: 8,
+  },
+  authorVerified: {
+    color: '#00FF00',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  authorTitle: {
+    fontSize: 16,
+    color: '#E50914',
+    marginBottom: 16,
+    fontWeight: '600',
+  },
+  authorBio: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  authorStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  authorStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  authorStatNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#E50914',
+    marginBottom: 4,
+  },
+  authorStatLabel: {
+    fontSize: 10,
+    color: '#CCCCCC',
+    textAlign: 'center',
+  },
+  // Related Articles Section
+  relatedSection: {
+    padding: 20,
+    paddingTop: 0,
+  },
+  relatedContainer: {
+    gap: 20,
+  },
+  relatedCard: {
+    height: 140,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  relatedCardHeader: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  relatedCardNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#E50914',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  relatedCardBadge: {
+    backgroundColor: 'rgba(229, 9, 20, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  relatedCardBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+  },
+  relatedImage: {
+    flex: 1,
+  },
+  relatedGradient: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  relatedTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  relatedMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  relatedMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  relatedMetaIcon: {
+    fontSize: 12,
+  },
+  relatedAuthor: {
+    fontSize: 12,
+    color: '#CCCCCC',
+  },
+  relatedReadTime: {
+    fontSize: 12,
+    color: '#CCCCCC',
+  },
+});

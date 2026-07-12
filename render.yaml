@@ -1,0 +1,21 @@
+# Render.com - رفع الباك اند تلقائياً
+# بعد ربط الريبو من لوحة Render: New > Blueprint > ربط المستودع
+# Render يقرأ هذا الملف ويُنشئ السيرفس تلقائياً
+
+services:
+  - type: web
+    name: yone-api
+    runtime: node
+
+    # تشغيل من مجلد الباك اند
+    rootDir: backend
+
+    buildCommand: npm install
+    startCommand: npm start
+
+    # البورت يُحدد من متغير PORT (Render يعطيه تلقائياً)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # الباقي تضيفه من لوحة Render (Environment):
+      # DB_CONNECTION_STRING, JWT_SECRET, BASE_URL, ALLOWED_ORIGINS, PAYMOB_*
