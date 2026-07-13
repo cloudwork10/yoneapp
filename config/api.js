@@ -1,7 +1,8 @@
 // API Configuration
-// - iOS simulator: localhost works
-// - Android emulator: 10.0.2.2 maps to the host machine
-// - Physical device / Expo Go: use EXPO_PUBLIC_API_URL (your Mac's LAN IP)
+// - Prefer EXPO_PUBLIC_API_URL from .env
+// - Else reuse Expo LAN host (physical device / Expo Go)
+// - Android emulator: 10.0.2.2
+// - iOS simulator fallback: 127.0.0.1
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
@@ -9,14 +10,22 @@ const stripTrailingSlash = (url) => url.replace(/\/$/, '');
 
 const getLanHostFromExpo = () => {
   try {
-    const hostUri =
-      Constants.expoConfig?.hostUri ||
-      Constants.linkingUri ||
-      Constants.experienceUrl ||
-      '';
-    // e.g. "192.168.100.90:8081" or "exp://192.168.100.90:8081"
-    const match = String(hostUri).match(/(\d{1,3}(?:\.\d{1,3}){3})/);
-    return match ? match[1] : null;
+    const candidates = [
+      Constants.expoConfig?.hostUri,
+      Constants.expoGoConfig?.debuggerHost,
+      Constants.manifest2?.extra?.expoClient?.hostUri,
+      Constants.manifest?.debuggerHost,
+      Constants.linkingUri,
+      Constants.experienceUrl,
+    ];
+
+    for (const value of candidates) {
+      const match = String(value || '').match(/(\d{1,3}(?:\.\d{1,3}){3})/);
+      if (match && match[1] !== '127.0.0.1') {
+        return match[1];
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -27,9 +36,8 @@ const getApiBaseUrl = () => {
     return stripTrailingSlash(process.env.EXPO_PUBLIC_API_URL);
   }
 
-  // When Expo serves over LAN (physical device / Expo Go), reuse that host for the API
   const lanHost = getLanHostFromExpo();
-  if (lanHost && lanHost !== '127.0.0.1' && lanHost !== 'localhost') {
+  if (lanHost) {
     return `http://${lanHost}:3000`;
   }
 

@@ -45,6 +45,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="scholarship"
+        options={{
+          title: 'Elnady',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.3.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="reels"
         options={{
           title: 'Reels',
@@ -88,12 +95,6 @@ export default function TabLayout() {
       />
 
       {/* Hidden from tab bar — accessible via More / Quick Links */}
-      <Tabs.Screen
-        name="scholarship"
-        options={{
-          href: null,
-        }}
-      />
       <Tabs.Screen
         name="advices"
         options={{

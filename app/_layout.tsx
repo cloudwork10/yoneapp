@@ -31,6 +31,9 @@ export default function RootLayout() {
         
         // Schedule prayer notifications only once per day
         await NotificationService.schedulePrayerNotifications();
+
+        // Schedule النادي lecture reminders (morning + 30m + 1m)
+        await NotificationService.scheduleClubLectureNotifications();
         
         console.log('✅ Notifications initialized');
       } catch (error) {
@@ -57,6 +60,8 @@ export default function RootLayout() {
         // Navigate based on notification type
         if (data.type === 'prayer') {
           router.push('/prayer-times');
+        } else if (data.type === 'club_lecture') {
+          router.push('/(tabs)/scholarship');
         } else if (data.type === 'course') {
           router.push('/(tabs)/courses');
         } else if (data.type === 'podcast') {
@@ -101,6 +106,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="dashboard" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="content-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="club-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="notification-settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="help-support" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="terms-conditions" options={{ headerShown: false, animation: 'slide_from_right' }} />

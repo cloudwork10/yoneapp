@@ -25,6 +25,7 @@ const MAPPING = {
   'doc.text.fill': 'article',
   'ellipsis.circle.fill': 'more-horiz',
   'star.fill': 'star',
+  'person.3.fill': 'groups',
   'lightbulb.fill': 'lightbulb',
   'book.fill': 'menu-book',
   'doc.fill': 'description',

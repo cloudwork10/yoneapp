@@ -41,7 +41,7 @@ const QUICK_LINKS = [
   { title: 'Podcasts', icon: '🎧', route: '/(tabs)/podcasts' },
   { title: 'Roadmaps', icon: '🗺️', route: '/(tabs)/roadmaps' },
   { title: 'Articles', icon: '📰', route: '/(tabs)/articles' },
-  { title: 'Scholarship', icon: '🎓', route: '/(tabs)/scholarship' },
+  { title: 'Elnady', icon: '🎓', route: '/(tabs)/scholarship' },
   { title: 'Advices', icon: '💡', route: '/(tabs)/advices' },
   { title: 'Terms', icon: '📖', route: '/(tabs)/programming-terms' },
   { title: 'Top CV', icon: '📄', route: '/(tabs)/top-cv' },
@@ -356,8 +356,8 @@ function ScholarshipPromo() {
             <Text style={styles.promoIcon}>🎓</Text>
           </View>
           <View style={styles.promoCenter}>
-            <Text style={styles.promoTitle}>Live Scholarship</Text>
-            <Text style={styles.promoSubtitle}>Only 250 EGP • Limited seats</Text>
+            <Text style={styles.promoTitle}>Elnady</Text>
+            <Text style={styles.promoSubtitle}>دفعة 10-10-2026 · لايف داخل التطبيق</Text>
           </View>
           <TouchableOpacity
             onPress={() => setHidden(true)}

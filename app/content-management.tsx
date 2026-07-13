@@ -4173,6 +4173,8 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
       title: 'New Lesson',
       description: '',
       videoUrl: '',
+      taskPdfUrl: '',
+      readingPdfUrl: '',
       duration: '',
       thumbnail: '',
       isCompleted: false,
@@ -5058,8 +5060,26 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
                     style={styles.formInput}
                     value={lesson.videoUrl}
                     onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'videoUrl', text)}
-                    placeholder="Video URL"
+                    placeholder="Video URL (YouTube / Google Drive / MP4)"
                     placeholderTextColor="#666"
+                  />
+
+                  <TextInput
+                    style={styles.formInput}
+                    value={lesson.taskPdfUrl || ''}
+                    onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'taskPdfUrl', text)}
+                    placeholder="Task PDF URL"
+                    placeholderTextColor="#666"
+                    autoCapitalize="none"
+                  />
+
+                  <TextInput
+                    style={styles.formInput}
+                    value={lesson.readingPdfUrl || ''}
+                    onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'readingPdfUrl', text)}
+                    placeholder="Reading / شرح PDF URL (optional)"
+                    placeholderTextColor="#666"
+                    autoCapitalize="none"
                   />
                   
                   <TextInput

@@ -26,6 +26,8 @@ const storage = multer.diskStorage({
       uploadPath = path.join(__dirname, '../uploads/videos');
     } else if (file.fieldname === 'audio') {
       uploadPath = path.join(__dirname, '../uploads/audios');
+    } else if (file.fieldname === 'pdf') {
+      uploadPath = path.join(__dirname, '../uploads/pdfs');
     } else {
       uploadPath = path.join(__dirname, '../uploads/images');
     }
@@ -53,8 +55,10 @@ const upload = multer({
       cb(null, true);
     } else if (file.mimetype.startsWith('audio/')) {
       cb(null, true);
+    } else if (file.mimetype === 'application/pdf') {
+      cb(null, true);
     } else {
-      cb(new Error('Only image, video, and audio files are allowed!'), false);
+      cb(new Error('Only image, video, audio, and PDF files are allowed!'), false);
     }
   }
 });
@@ -124,6 +128,39 @@ router.post('/upload-video', uploadLimiter, upload.single('video'), async (req, 
     res.status(500).json({
       status: 'error',
       message: 'Failed to upload video'
+    });
+  }
+});
+
+// @route   POST /api/admin/content/upload-pdf
+// @desc    Upload PDF (task / reading materials)
+// @access  Public (for testing) / Admin
+router.post('/upload-pdf', uploadLimiter, upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No PDF file provided'
+      });
+    }
+
+    const host = req.get('host');
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const baseUrl = host ? `${proto}://${host}` : (process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000');
+    const pdfUrl = `${baseUrl.replace(/\/$/, '')}/uploads/pdfs/${req.file.filename}`;
+
+    res.json({
+      status: 'success',
+      data: {
+        pdfUrl,
+        filename: req.file.filename
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading PDF:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to upload PDF'
     });
   }
 });

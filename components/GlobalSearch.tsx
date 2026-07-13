@@ -31,7 +31,7 @@ const SECTION_LINKS: SearchHit[] = [
   { id: 'sec-podcasts', title: 'Podcasts', subtitle: 'Listen & learn', type: 'Section', icon: '🎧', route: '/(tabs)/podcasts' },
   { id: 'sec-roadmaps', title: 'Roadmaps', subtitle: 'Learning paths', type: 'Section', icon: '🗺️', route: '/(tabs)/roadmaps' },
   { id: 'sec-articles', title: 'Articles', subtitle: 'Read articles', type: 'Section', icon: '📰', route: '/(tabs)/articles' },
-  { id: 'sec-scholarship', title: 'Live Scholarship', subtitle: 'Only 250 EGP', type: 'Section', icon: '🎓', route: '/(tabs)/scholarship' },
+  { id: 'sec-scholarship', title: 'النادي', subtitle: 'دفعة 10-10-2026 · Live Cohort', type: 'Section', icon: '🎓', route: '/(tabs)/scholarship' },
   { id: 'sec-advices', title: 'Advices', subtitle: 'Expert tips', type: 'Section', icon: '💡', route: '/(tabs)/advices' },
   { id: 'sec-terms', title: 'Programming Terms', subtitle: 'Dictionary', type: 'Section', icon: '📖', route: '/(tabs)/programming-terms' },
   { id: 'sec-cv', title: 'Top CV', subtitle: 'CV templates', type: 'Section', icon: '📄', route: '/(tabs)/top-cv' },

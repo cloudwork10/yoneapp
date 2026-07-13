@@ -147,6 +147,8 @@ app.use('/api/public/content', publicSecurityMiddleware, require('./routes/conte
 app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./routes/admin'));
 app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./routes/notifications'));
 app.use('/api/reels', securityMiddleware, require('./routes/reels'));
+// النادي — Live Cohort (public + student + admin routes inside)
+app.use('/api/club', publicSecurityMiddleware, require('./routes/club'));
 
 // 404 handler
 app.use('*', notFoundHandler);

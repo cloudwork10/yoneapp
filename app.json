@@ -12,7 +12,11 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload videos for reels.",
-        "NSPhotoLibraryAddUsageDescription": "This app needs access to save videos to your photo library."
+        "NSPhotoLibraryAddUsageDescription": "This app needs access to save videos to your photo library.",
+        "LSApplicationQueriesSchemes": [
+          "googlechrome",
+          "googlechromes"
+        ]
       }
     },
     "android": {

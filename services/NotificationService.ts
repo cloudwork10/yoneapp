@@ -446,6 +446,170 @@ class NotificationService {
       console.error('Error updating notification settings:', error);
     }
   }
+
+  /**
+   * Schedule النادي lecture reminders from track weeklySlots:
+   * - Morning digest (8:00 AM) with today's lectures
+   * - 30 minutes before each lecture
+   * - 1 minute before each lecture
+   */
+  async scheduleClubLectureNotifications(
+    tracks?: Array<{
+      title: string;
+      weeklySlots?: Array<{ dayOfWeek?: number; time?: string; label?: string }>;
+    }>
+  ): Promise<void> {
+    try {
+      const enabled = (await AsyncStorage.getItem('clubLectureNotifications')) !== 'false';
+      if (!enabled) {
+        console.log('⏸️ Club lecture notifications disabled, skipping...');
+        return;
+      }
+
+      let resolvedTracks = tracks;
+      if (!resolvedTracks || resolvedTracks.length === 0) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/club/current`);
+          const data = await res.json();
+          resolvedTracks = data?.data?.cohort?.tracks || [];
+        } catch {
+          resolvedTracks = [];
+        }
+      }
+
+      if (!resolvedTracks.length) {
+        console.log('⏸️ No club tracks available for lecture notifications');
+        return;
+      }
+
+      // Cancel previous club lecture notifications
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      for (const n of scheduled) {
+        if (n.content.data?.type === 'club_lecture') {
+          await Notifications.cancelScheduledNotificationAsync(n.identifier);
+        }
+      }
+
+      const now = new Date();
+      let scheduledCount = 0;
+
+      // Next 7 days
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const day = new Date(now);
+        day.setHours(0, 0, 0, 0);
+        day.setDate(day.getDate() + dayOffset);
+        const dayOfWeek = day.getDay(); // 0=Sun
+
+        const lecturesToday: Array<{ title: string; time: string; label: string; hours: number; minutes: number }> = [];
+
+        for (const track of resolvedTracks) {
+          for (const slot of track.weeklySlots || []) {
+            if (Number(slot.dayOfWeek) !== dayOfWeek) continue;
+            const time = String(slot.time || '19:00');
+            const [hours, minutes] = time.split(':').map(Number);
+            if (Number.isNaN(hours) || hours < 19) continue; // only after 7 PM
+            lecturesToday.push({
+              title: track.title,
+              time,
+              label: slot.label || `${track.title} ${time}`,
+              hours,
+              minutes: minutes || 0,
+            });
+          }
+        }
+
+        if (!lecturesToday.length) continue;
+
+        lecturesToday.sort((a, b) => a.hours * 60 + a.minutes - (b.hours * 60 + b.minutes));
+
+        // Morning digest at 8:00 AM
+        const morning = new Date(day);
+        morning.setHours(8, 0, 0, 0);
+        if (morning > now) {
+          const list = lecturesToday
+            .map((l) => `• ${l.title} — ${this.formatTime12(l.hours, l.minutes)}`)
+            .join('\n');
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'صباح الخير — مواعيد النادي النهاردة',
+              body: list,
+              data: { type: 'club_lecture', kind: 'morning', date: day.toDateString() },
+              sound: 'default',
+              priority: 'high',
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date: morning,
+            },
+          });
+          scheduledCount += 1;
+        }
+
+        for (const lecture of lecturesToday) {
+          const lectureAt = new Date(day);
+          lectureAt.setHours(lecture.hours, lecture.minutes, 0, 0);
+
+          const before30 = new Date(lectureAt.getTime() - 30 * 60 * 1000);
+          const before1 = new Date(lectureAt.getTime() - 1 * 60 * 1000);
+
+          if (before30 > now) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'تذكير خلال 30 دقيقة',
+                body: `محاضرة ${lecture.title} هتبدأ الساعة ${this.formatTime12(lecture.hours, lecture.minutes)}`,
+                data: {
+                  type: 'club_lecture',
+                  kind: 'before_30',
+                  track: lecture.title,
+                  time: lecture.time,
+                },
+                sound: 'default',
+                priority: 'high',
+              },
+              trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: before30,
+              },
+            });
+            scheduledCount += 1;
+          }
+
+          if (before1 > now) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'المحاضرة بعد دقيقة',
+                body: `محاضرة تخصص ${lecture.title} هتبدأ دلوقتي — افتح النادي وادخل Zoom`,
+                data: {
+                  type: 'club_lecture',
+                  kind: 'before_1',
+                  track: lecture.title,
+                  time: lecture.time,
+                },
+                sound: 'default',
+                priority: 'max',
+              },
+              trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: before1,
+              },
+            });
+            scheduledCount += 1;
+          }
+        }
+      }
+
+      await AsyncStorage.setItem('lastClubLectureScheduleDate', now.toDateString());
+      console.log(`✅ Club lecture notifications scheduled (${scheduledCount})`);
+    } catch (error) {
+      console.error('Error scheduling club lecture notifications:', error);
+    }
+  }
+
+  private formatTime12(hours: number, minutes: number): string {
+    const h12 = ((hours + 11) % 12) + 1;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    return `${h12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+  }
 }
 
 export default NotificationService.getInstance();

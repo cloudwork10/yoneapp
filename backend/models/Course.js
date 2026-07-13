@@ -111,6 +111,14 @@ const courseSchema = new mongoose.Schema({
         type: String,
         default: ''
       },
+      taskPdfUrl: {
+        type: String,
+        default: ''
+      },
+      readingPdfUrl: {
+        type: String,
+        default: ''
+      },
       duration: {
         type: String,
         default: ''

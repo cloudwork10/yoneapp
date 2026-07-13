@@ -20,13 +20,6 @@ export default function MoreScreen() {
       route: '/egyptian-baccalaureate'
     },
     {
-      id: 20,
-      title: 'Scholarship',
-      description: 'Live scholarship and limited seats',
-      icon: '🎓',
-      route: '/(tabs)/scholarship'
-    },
-    {
       id: 21,
       title: 'Advices',
       description: 'Career tips and professional guidance',
@@ -122,6 +115,14 @@ export default function MoreScreen() {
       icon: '📝',
       route: '/content-management',
       isAdmin: true
+    },
+    {
+      id: 12,
+      title: 'إدارة النادي',
+      description: 'دفعة · مسارات · لايف · Zoom · واتساب',
+      icon: '🏟️',
+      route: '/club-management',
+      isAdmin: true
     }
   ];
 
@@ -152,6 +153,14 @@ export default function MoreScreen() {
         router.push('/content-management');
       } else {
         Alert.alert('Access Denied', 'You need admin privileges to access content management.');
+      }
+      return;
+    }
+    if (route === '/club-management') {
+      if (isAdmin) {
+        router.push('/club-management');
+      } else {
+        Alert.alert('Access Denied', 'You need admin privileges to manage النادي.');
       }
       return;
     }
