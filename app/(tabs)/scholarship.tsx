@@ -82,6 +82,25 @@ type Cohort = {
   tracks?: Track[];
   sessions?: Session[];
   whatsappLink?: string;
+  communityLive?: {
+    enabled?: boolean;
+    dayOfWeek?: number;
+    dayName?: string;
+    time?: string;
+    title?: string;
+    topic?: string;
+    liveType?: 'talk' | 'guest';
+    guestName?: string;
+    platform?: 'youtube' | 'tiktok' | 'instagram';
+    platformLabel?: string;
+    startsAt?: string;
+    liveState?: 'upcoming' | 'live' | 'done';
+    hasLink?: boolean;
+    link?: string;
+    hasRecording?: boolean;
+    recordingUrl?: string;
+    canJoin?: boolean;
+  };
 };
 
 type RecordedLesson = {
@@ -869,7 +888,7 @@ export default function ClubScreen() {
   };
 
   const openRecordedCourse = async (course: RecordedCourse) => {
-    // Allow browsing recorded content; live Zoom still needs subscription
+    if (!requireAccess()) return;
     setPlayingVideo(null);
     setCourseModalVisible(true);
     setSelectedCourse(course);
@@ -996,9 +1015,104 @@ export default function ClubScreen() {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
+          {cohort?.communityLive?.enabled !== false ? (
+            <View style={styles.communityPanel}>
+              <View style={styles.panelHead}>
+                <Text style={styles.communityEyebrow}>COMMUNITY THURSDAY</Text>
+                {cohort?.communityLive?.liveState === 'live' ? (
+                  <View style={styles.livePill}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.livePillText}>NOW</Text>
+                  </View>
+                ) : (
+                  <View style={styles.platformPill}>
+                    <Text style={styles.platformPillText}>
+                      {cohort?.communityLive?.platformLabel || 'YouTube'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={styles.communityTitle}>
+                {cohort?.communityLive?.title || 'Community Thursday'}
+              </Text>
+              <Text style={styles.communityMeta}>
+                Every {cohort?.communityLive?.dayName || 'Thursday'} ·{' '}
+                {cohort?.communityLive?.time || '21:00'} ·{' '}
+                {cohort?.communityLive?.platformLabel || 'YouTube'}
+              </Text>
+
+              <Text style={styles.communityTopicLabel}>موضوع الأسبوع</Text>
+              <Text style={styles.communityTopic}>
+                {cohort?.communityLive?.topic?.trim()
+                  ? cohort.communityLive.topic
+                  : 'سيتم إعلان الموضوع قريبًا'}
+              </Text>
+
+              {cohort?.communityLive?.liveType === 'guest' &&
+              !!cohort?.communityLive?.guestName ? (
+                <Text style={styles.communityGuest}>
+                  Guest · {cohort.communityLive.guestName}
+                </Text>
+              ) : (
+                <Text style={styles.communityGuest}>Talk · open for all subscribers</Text>
+              )}
+
+              {hasAccess ? (
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => {
+                    const link = cohort?.communityLive?.link;
+                    if (!link) {
+                      Alert.alert(
+                        'Link coming soon',
+                        'Admin will add the YouTube / TikTok / Instagram link in Club Management.'
+                      );
+                      return;
+                    }
+                    openLink(link, 'Add community live link in Club Management');
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      cohort?.communityLive?.platform === 'instagram'
+                        ? 'logo-instagram'
+                        : cohort?.communityLive?.platform === 'tiktok'
+                          ? 'logo-tiktok'
+                          : 'logo-youtube'
+                    }
+                    size={18}
+                    color="#fff"
+                  />
+                  <Text style={styles.primaryBtnText}>
+                    Join on {cohort?.communityLive?.platformLabel || 'YouTube'}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => {
+                    if (!requireAccess()) return;
+                  }}
+                >
+                  <Text style={styles.primaryBtnText}>Unlock with subscription</Text>
+                </TouchableOpacity>
+              )}
+
+              {hasAccess && cohort?.communityLive?.hasRecording ? (
+                <TouchableOpacity
+                  style={[styles.miniGhost, { alignSelf: 'flex-start', marginTop: 10 }]}
+                  onPress={() => openLink(cohort?.communityLive?.recordingUrl)}
+                >
+                  <Text style={styles.miniGhostText}>Watch Replay</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
+
           <View style={styles.panel}>
             <View style={styles.panelHead}>
-              <Text style={styles.panelEyebrow}>LIVE SESSION</Text>
+              <Text style={styles.panelEyebrow}>TODAY · SPECIALIZATION LIVE</Text>
               {nextSession?.liveState === 'live' ? (
                 <View style={styles.livePill}>
                   <View style={styles.liveDot} />
@@ -1012,7 +1126,7 @@ export default function ClubScreen() {
                 <Text style={styles.panelTitle}>{nextSession.title}</Text>
                 <Text style={styles.panelMeta}>
                   {formatDate(nextSession.startsAt)} · {formatTime(nextSession.startsAt)} ·{' '}
-                  {nextSession.durationMinutes || 120} min
+                  {nextSession.durationMinutes || 120} min · Zoom
                 </Text>
 
                 {hasAccess ? (
@@ -1035,7 +1149,7 @@ export default function ClubScreen() {
                 )}
               </>
             ) : (
-              <Text style={styles.muted}>No live session for today.</Text>
+              <Text style={styles.muted}>No specialization Zoom live for today.</Text>
             )}
           </View>
 
@@ -1195,13 +1309,13 @@ export default function ClubScreen() {
 
           <Text style={styles.sectionLabel}>المحتويات المسجلة</Text>
           <Text style={styles.sectionHint}>
-            كل الكورسات المسجّلة — اضغط على كورس لفتح المحاضرات والـ PDF.
+            للكورسات للمشتركين فقط — زي مواعيد اللايفات.
           </Text>
 
           {recordedCourses.length === 0 ? (
             <View style={styles.scheduleCard}>
               <Text style={[styles.muted, { paddingVertical: 14 }]}>
-                No recorded courses yet. Add them from Content Management.
+                No recorded courses yet. Add them from Club Management.
               </Text>
             </View>
           ) : (
@@ -1213,16 +1327,24 @@ export default function ClubScreen() {
                 onPress={() => openRecordedCourse(course)}
               >
                 <View style={styles.recordedCourseIcon}>
-                  <Ionicons name="play-circle" size={22} color="#E50914" />
+                  <Ionicons
+                    name={hasAccess ? 'play-circle' : 'lock-closed'}
+                    size={22}
+                    color={hasAccess ? '#E50914' : '#666'}
+                  />
                 </View>
                 <View style={styles.flex}>
                   <Text style={styles.recordedCourseTitle}>{course.title}</Text>
                   <Text style={styles.recordedCourseMeta} numberOfLines={1}>
                     {[course.instructor, course.level, course.duration].filter(Boolean).join(' · ') ||
-                      'Tap to open lectures'}
+                      (hasAccess ? 'Tap to open lectures' : 'Subscription required')}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#666" />
+                {hasAccess ? (
+                  <Ionicons name="chevron-forward" size={18} color="#666" />
+                ) : (
+                  <Text style={styles.locked}>Locked</Text>
+                )}
               </TouchableOpacity>
             ))
           )}
@@ -1532,6 +1654,51 @@ const styles = StyleSheet.create({
     borderColor: '#242424',
     marginBottom: 22,
   },
+  communityPanel: {
+    backgroundColor: '#14080a',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#E50914',
+    marginBottom: 16,
+  },
+  communityEyebrow: {
+    color: '#E50914',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+  },
+  communityTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  communityMeta: { color: '#999', fontSize: 13, marginBottom: 12 },
+  communityTopicLabel: {
+    color: '#E50914',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  communityTopic: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 22,
+    marginBottom: 8,
+  },
+  communityGuest: { color: '#aaa', fontSize: 13, marginBottom: 14 },
+  platformPill: {
+    backgroundColor: '#2a1215',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E50914',
+  },
+  platformPillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   panelHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',

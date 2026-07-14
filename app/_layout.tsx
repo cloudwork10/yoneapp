@@ -107,6 +107,7 @@ export default function RootLayout() {
             <Stack.Screen name="dashboard" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="content-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="club-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="tech-news" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="notification-settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="help-support" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="terms-conditions" options={{ headerShown: false, animation: 'slide_from_right' }} />

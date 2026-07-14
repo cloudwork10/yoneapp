@@ -20,6 +20,13 @@ export default function MoreScreen() {
       route: '/egyptian-baccalaureate'
     },
     {
+      id: 25,
+      title: 'Tech News',
+      description: 'AI · frameworks · releases — auto-updated',
+      icon: '📰',
+      route: '/tech-news'
+    },
+    {
       id: 21,
       title: 'Advices',
       description: 'Career tips and professional guidance',
@@ -122,6 +129,14 @@ export default function MoreScreen() {
       description: 'دفعة · مسارات · لايف · Zoom · واتساب',
       icon: '🏟️',
       route: '/club-management',
+      isAdmin: true
+    },
+    {
+      id: 13,
+      title: 'Tech News Admin',
+      description: 'Refresh feeds · pin · hide · publish news',
+      icon: '📰',
+      route: '/tech-news',
       isAdmin: true
     }
   ];

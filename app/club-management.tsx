@@ -83,6 +83,16 @@ export default function ClubManagementScreen() {
   const [sessions, setSessions] = useState<SessionForm[]>([]);
   const [recordedCourses, setRecordedCourses] = useState<RecordedCourseForm[]>([]);
   const [savingCourseId, setSavingCourseId] = useState<string | null>(null);
+  const [communityEnabled, setCommunityEnabled] = useState(true);
+  const [communityTime, setCommunityTime] = useState('21:00');
+  const [communityTopic, setCommunityTopic] = useState('');
+  const [communityLiveType, setCommunityLiveType] = useState<'talk' | 'guest'>('talk');
+  const [communityGuest, setCommunityGuest] = useState('');
+  const [communityPlatform, setCommunityPlatform] = useState<'youtube' | 'tiktok' | 'instagram'>(
+    'youtube'
+  );
+  const [communityLink, setCommunityLink] = useState('');
+  const [communityRecording, setCommunityRecording] = useState('');
 
   useEffect(() => {
     if (!isAdmin) {
@@ -109,6 +119,17 @@ export default function ClubManagementScreen() {
       setStartDate(String(cohort.startDate || '').slice(0, 10));
       setEndDate(String(cohort.endDate || '').slice(0, 10));
       setStatus(cohort.status || 'upcoming');
+      const cl = cohort.communityLive || {};
+      setCommunityEnabled(cl.enabled !== false);
+      setCommunityTime(cl.time || '21:00');
+      setCommunityTopic(cl.topic || '');
+      setCommunityLiveType(cl.liveType === 'guest' ? 'guest' : 'talk');
+      setCommunityGuest(cl.guestName || '');
+      setCommunityPlatform(
+        ['youtube', 'tiktok', 'instagram'].includes(cl.platform) ? cl.platform : 'youtube'
+      );
+      setCommunityLink(cl.link || '');
+      setCommunityRecording(cl.recordingUrl || '');
       setTracks(
         (cohort.tracks || []).map((t: any) => ({
           _id: t._id,
@@ -274,6 +295,18 @@ export default function ClubManagementScreen() {
           zoomLink: s.zoomLink,
           recordingUrl: s.recordingUrl,
         })),
+        communityLive: {
+          enabled: communityEnabled,
+          dayOfWeek: 4,
+          time: communityTime || '21:00',
+          title: 'Community Thursday',
+          topic: communityTopic,
+          liveType: communityLiveType,
+          guestName: communityGuest,
+          platform: communityPlatform,
+          link: communityLink,
+          recordingUrl: communityRecording,
+        },
         isPublished: true,
       };
 
@@ -512,6 +545,122 @@ export default function ClubManagementScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          <Text style={styles.sectionTitle}>Community Thursday</Text>
+          <Text style={styles.hint}>
+            لايف خميس عام لكل المشتركين — مش Zoom. اختار المنصة: YouTube / TikTok / Instagram
+            وحدّث موضوع الأسبوع.
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.chip, communityEnabled && styles.chipActive, { alignSelf: 'flex-start' }]}
+            onPress={() => setCommunityEnabled((v) => !v)}
+          >
+            <Text style={[styles.chipText, communityEnabled && styles.chipTextActive]}>
+              {communityEnabled ? 'Enabled ✓' : 'Disabled'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.label}>Time (Egypt, HH:mm)</Text>
+          <TextInput
+            style={styles.input}
+            value={communityTime}
+            onChangeText={setCommunityTime}
+            placeholder="21:00"
+            placeholderTextColor="#666"
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.label}>This week topic</Text>
+          <TextInput
+            style={styles.input}
+            value={communityTopic}
+            onChangeText={setCommunityTopic}
+            placeholder="مثال: إزاي تسعر مشروعك كفريلانسر"
+            placeholderTextColor="#666"
+          />
+
+          <Text style={styles.label}>Type</Text>
+          <View style={styles.chips}>
+            {(
+              [
+                { id: 'talk', label: 'Talk / Topic' },
+                { id: 'guest', label: 'Guest' },
+              ] as const
+            ).map((t) => (
+              <TouchableOpacity
+                key={t.id}
+                style={[styles.chip, communityLiveType === t.id && styles.chipActive]}
+                onPress={() => setCommunityLiveType(t.id)}
+              >
+                <Text style={[styles.chipText, communityLiveType === t.id && styles.chipTextActive]}>
+                  {t.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {communityLiveType === 'guest' ? (
+            <>
+              <Text style={styles.label}>Guest name</Text>
+              <TextInput
+                style={styles.input}
+                value={communityGuest}
+                onChangeText={setCommunityGuest}
+                placeholder="اسم الضيف"
+                placeholderTextColor="#666"
+              />
+            </>
+          ) : null}
+
+          <Text style={styles.label}>Platform</Text>
+          <View style={styles.chips}>
+            {(
+              [
+                { id: 'youtube', label: 'YouTube' },
+                { id: 'tiktok', label: 'TikTok' },
+                { id: 'instagram', label: 'Instagram' },
+              ] as const
+            ).map((p) => (
+              <TouchableOpacity
+                key={p.id}
+                style={[styles.chip, communityPlatform === p.id && styles.chipActive]}
+                onPress={() => setCommunityPlatform(p.id)}
+              >
+                <Text
+                  style={[styles.chipText, communityPlatform === p.id && styles.chipTextActive]}
+                >
+                  {p.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.label}>Live link ({communityPlatform})</Text>
+          <TextInput
+            style={styles.input}
+            value={communityLink}
+            onChangeText={setCommunityLink}
+            autoCapitalize="none"
+            placeholder={
+              communityPlatform === 'youtube'
+                ? 'https://youtube.com/...'
+                : communityPlatform === 'tiktok'
+                  ? 'https://tiktok.com/...'
+                  : 'https://instagram.com/...'
+            }
+            placeholderTextColor="#666"
+          />
+
+          <Text style={styles.label}>Recording / Replay link (optional)</Text>
+          <TextInput
+            style={styles.input}
+            value={communityRecording}
+            onChangeText={setCommunityRecording}
+            autoCapitalize="none"
+            placeholder="After the live ends"
+            placeholderTextColor="#666"
+          />
 
           <Text style={styles.sectionTitle}>Specializations</Text>
           <Text style={styles.hint}>

@@ -149,6 +149,8 @@ app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./
 app.use('/api/reels', securityMiddleware, require('./routes/reels'));
 // النادي — Live Cohort (public + student + admin routes inside)
 app.use('/api/club', publicSecurityMiddleware, require('./routes/club'));
+// Tech News — public feed + admin controls
+app.use('/api/tech-news', publicSecurityMiddleware, require('./routes/techNews'));
 
 // 404 handler
 app.use('*', notFoundHandler);
@@ -194,4 +196,24 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 Logging: Winston Enabled`);
   console.log(`🌐 CORS: Configured`);
   console.log(`🛡️  Helmet: Security Headers Active`);
+
+  // Tech news auto-refresh: shortly after boot, then every hour
+  try {
+    const { refreshTechNews, enrichMissingImages } = require('./services/techNewsFetcher');
+    setTimeout(() => {
+      enrichMissingImages(40)
+        .then((r) => console.log(`🖼️ Boot image enrich: ${r.filled}/${r.checked}`))
+        .catch((e) => console.warn('🖼️ Boot image enrich failed:', e.message));
+      refreshTechNews()
+        .then((r) => console.log(`📰 Tech news refresh: +${r.imported} items`))
+        .catch((e) => console.warn('📰 Tech news refresh failed:', e.message));
+    }, 8000);
+    setInterval(() => {
+      refreshTechNews()
+        .then((r) => console.log(`📰 Tech news hourly refresh: +${r.imported} items`))
+        .catch((e) => console.warn('📰 Tech news hourly refresh failed:', e.message));
+    }, 60 * 60 * 1000);
+  } catch (e) {
+    console.warn('Tech news scheduler not started:', e.message);
+  }
 });

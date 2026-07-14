@@ -32,6 +32,24 @@ const sessionSchema = new mongoose.Schema({
   notes: { type: String, default: '' },
 }, { _id: true });
 
+// Weekly community live (Thursday) — YouTube / TikTok / Instagram (not Zoom)
+const communityLiveSchema = new mongoose.Schema({
+  enabled: { type: Boolean, default: true },
+  dayOfWeek: { type: Number, min: 0, max: 6, default: 4 }, // Thursday
+  time: { type: String, default: '21:00' },
+  title: { type: String, default: 'Community Thursday', trim: true },
+  topic: { type: String, default: '', trim: true },
+  liveType: { type: String, enum: ['talk', 'guest'], default: 'talk' },
+  guestName: { type: String, default: '', trim: true },
+  platform: {
+    type: String,
+    enum: ['youtube', 'tiktok', 'instagram'],
+    default: 'youtube',
+  },
+  link: { type: String, default: '', trim: true },
+  recordingUrl: { type: String, default: '', trim: true },
+}, { _id: false });
+
 const clubCohortSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -56,6 +74,7 @@ const clubCohortSchema = new mongoose.Schema({
   coverImage: { type: String, default: '' },
   tracks: [trackSchema],
   sessions: [sessionSchema],
+  communityLive: { type: communityLiveSchema, default: () => ({}) },
   isPublished: { type: Boolean, default: true },
 }, { timestamps: true });
 

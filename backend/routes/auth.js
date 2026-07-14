@@ -8,6 +8,13 @@ const { logger } = require('../middleware/security');
 
 const router = express.Router();
 
+/** Only accept Gmail addresses at registration. */
+function isGmailAddress(email) {
+  const value = String(email || '').trim().toLowerCase();
+  // Local part: letters/numbers/dots/+/_/- ; domain must be gmail.com or googlemail.com
+  return /^[a-z0-9._%+-]+@(gmail|googlemail)\.com$/i.test(value);
+}
+
 // @route   GET /api/auth/verify
 // @desc    Verify token validity
 // @access  Private
@@ -43,7 +50,13 @@ const registerValidation = [
   body('email')
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email'),
+    .withMessage('Please provide a valid email')
+    .custom((value) => {
+      if (!isGmailAddress(value)) {
+        throw new Error('Please use a real Gmail address (example@gmail.com)');
+      }
+      return true;
+    }),
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long')
@@ -77,6 +90,14 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     const { name, email, password } = req.body;
+
+    if (!isGmailAddress(email)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please use a real Gmail address (example@gmail.com)',
+        code: 'GMAIL_REQUIRED',
+      });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });

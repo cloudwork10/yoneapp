@@ -147,6 +147,79 @@ function sessionKey(trackId, startsAt) {
   return `${String(trackId || '')}|${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
 }
 
+function getEgyptParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    year: Number(get('year')),
+    month: Number(get('month')) - 1,
+    day: Number(get('day')),
+    weekday: weekdayMap[get('weekday')],
+  };
+}
+
+function serializeCommunityLive(raw, { includePrivateLinks = false } = {}) {
+  const cl = raw || {};
+  const enabled = cl.enabled !== false;
+  const dayOfWeek = Number.isInteger(cl.dayOfWeek) ? cl.dayOfWeek : 4;
+  const time = cl.time || '21:00';
+  const [hours, minutes] = String(time).split(':').map(Number);
+  const now = new Date();
+
+  let startsAt = null;
+  for (let i = 0; i < 8; i++) {
+    const p = getEgyptParts(new Date(now.getTime() + i * 24 * 60 * 60 * 1000));
+    if (p.weekday !== dayOfWeek) continue;
+    const candidate = egyptLocalDate(p.year, p.month, p.day, hours || 21, minutes || 0);
+    const endsAt = new Date(candidate.getTime() + 120 * 60 * 1000);
+    if (i === 0 && now > endsAt) continue;
+    startsAt = candidate;
+    break;
+  }
+  if (!startsAt) {
+    const p = getEgyptParts(now);
+    startsAt = egyptLocalDate(p.year, p.month, p.day, hours || 21, minutes || 0);
+  }
+
+  const endsAt = new Date(startsAt.getTime() + 120 * 60 * 1000);
+  let liveState = 'upcoming';
+  if (now >= startsAt && now <= endsAt) liveState = 'live';
+  else if (now > endsAt) liveState = 'done';
+
+  const platform = ['youtube', 'tiktok', 'instagram'].includes(cl.platform)
+    ? cl.platform
+    : 'youtube';
+  const platformLabel =
+    platform === 'youtube' ? 'YouTube' : platform === 'tiktok' ? 'TikTok' : 'Instagram';
+
+  return {
+    enabled,
+    dayOfWeek,
+    dayName: DAY_NAMES[dayOfWeek] || 'Thursday',
+    time,
+    title: cl.title || 'Community Thursday',
+    topic: cl.topic || '',
+    liveType: cl.liveType === 'guest' ? 'guest' : 'talk',
+    guestName: cl.guestName || '',
+    platform,
+    platformLabel,
+    startsAt: startsAt.toISOString(),
+    liveState,
+    hasLink: !!cl.link,
+    link: includePrivateLinks ? cl.link || '' : undefined,
+    hasRecording: !!cl.recordingUrl,
+    recordingUrl: includePrivateLinks ? cl.recordingUrl || '' : undefined,
+    canJoin: includePrivateLinks && !!cl.link && (liveState === 'live' || liveState === 'upcoming'),
+  };
+}
+
 /**
  * Auto-build today's live sessions from each track’s fixed weeklySlots (Egypt time).
  */
@@ -276,6 +349,18 @@ function buildDefaultCohort() {
     whatsappLink: '',
     tracks: DEFAULT_TRACKS,
     sessions,
+    communityLive: {
+      enabled: true,
+      dayOfWeek: 4,
+      time: '21:00',
+      title: 'Community Thursday',
+      topic: 'أول حلقات المجتمع — موضوع الأسبوع',
+      liveType: 'talk',
+      guestName: '',
+      platform: 'youtube',
+      link: '',
+      recordingUrl: '',
+    },
     isPublished: true,
   };
 }
@@ -318,6 +403,22 @@ async function ensureDefaultCohort() {
             : def.weeklySlots,
       };
     });
+    await cohort.save();
+  }
+
+  if (!cohort.communityLive || typeof cohort.communityLive !== 'object') {
+    cohort.communityLive = {
+      enabled: true,
+      dayOfWeek: 4,
+      time: '21:00',
+      title: 'Community Thursday',
+      topic: '',
+      liveType: 'talk',
+      guestName: '',
+      platform: 'youtube',
+      link: '',
+      recordingUrl: '',
+    };
     await cohort.save();
   }
 
@@ -457,6 +558,7 @@ function serializeCohort(cohort, { includePrivateLinks = false, includeAutoSched
     coverImage: obj.coverImage,
     tracks: serializeTracks(obj.tracks, includePrivateLinks),
     sessions,
+    communityLive: serializeCommunityLive(obj.communityLive, { includePrivateLinks }),
     whatsappLink: includePrivateLinks ? obj.whatsappLink || '' : undefined,
     isPublished: obj.isPublished,
     createdAt: obj.createdAt,
@@ -626,6 +728,7 @@ router.put('/admin/cohorts/:id', requireAuth, requireAdmin, async (req, res) => 
       'coverImage',
       'tracks',
       'sessions',
+      'communityLive',
       'isPublished',
     ];
     const updates = {};

@@ -24,6 +24,9 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const isGmailAddress = (value: string) =>
+    /^[a-z0-9._%+-]+@(gmail|googlemail)\.com$/i.test(String(value || '').trim());
+
   const handleRegister = async () => {
     if (!name || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -35,8 +38,12 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (!email.includes('@') || !email.includes('.')) {
-      Alert.alert('Error', 'Please enter a valid email address');
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!isGmailAddress(normalizedEmail)) {
+      Alert.alert(
+        'Gmail required',
+        'لازم تستخدم إيميل Gmail حقيقي ينتهي بـ @gmail.com\nمثال: yourname@gmail.com'
+      );
       return;
     }
 
@@ -140,10 +147,10 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>Gmail</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder="yourname@gmail.com"
                 placeholderTextColor="#666"
                 value={email}
                 onChangeText={setEmail}
@@ -151,6 +158,7 @@ export default function RegisterScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              <Text style={styles.hint}>يجب استخدام إيميل Gmail حقيقي فقط</Text>
             </View>
 
             <View style={styles.inputContainer}>
@@ -288,6 +296,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  hint: {
+    color: '#999',
+    fontSize: 12,
+    marginTop: 8,
+    lineHeight: 18,
   },
   passwordContainer: {
     flexDirection: 'row',

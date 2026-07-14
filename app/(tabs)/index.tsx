@@ -42,6 +42,7 @@ const QUICK_LINKS = [
   { title: 'Roadmaps', icon: '🗺️', route: '/(tabs)/roadmaps' },
   { title: 'Articles', icon: '📰', route: '/(tabs)/articles' },
   { title: 'Elnady', icon: '🎓', route: '/(tabs)/scholarship' },
+  { title: 'Tech News', icon: '🗞️', route: '/tech-news' },
   { title: 'Advices', icon: '💡', route: '/(tabs)/advices' },
   { title: 'Terms', icon: '📖', route: '/(tabs)/programming-terms' },
   { title: 'Top CV', icon: '📄', route: '/(tabs)/top-cv' },
