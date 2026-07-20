@@ -41,6 +41,20 @@ export default function MoreScreen() {
       route: '/(tabs)/articles'
     },
     {
+      id: 29,
+      title: 'Jobs',
+      description: 'وظائف أونلاين · قدّم من جوه التطبيق',
+      icon: '💼',
+      route: '/jobs'
+    },
+    {
+      id: 28,
+      title: 'مباشر',
+      description: 'Community live · مواعيد اللايف الأسبوعي',
+      icon: '🔴',
+      route: '/mubasher'
+    },
+    {
       id: 21,
       title: 'Advices',
       description: 'Career tips and professional guidance',
@@ -143,6 +157,14 @@ export default function MoreScreen() {
       description: 'دفعة · مسارات · لايف · Zoom · واتساب',
       icon: '🏟️',
       route: '/club-management',
+      isAdmin: true
+    },
+    {
+      id: 14,
+      title: 'Jobs Management',
+      description: 'Approve company jobs · publish openings',
+      icon: '💼',
+      route: '/jobs-management',
       isAdmin: true
     },
     {

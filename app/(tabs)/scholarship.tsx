@@ -27,6 +27,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview';
 import API_BASE_URL from '../../config/api';
 import NotificationService from '../../services/NotificationService';
+import CommunityLiveCard from '../../components/CommunityLiveCard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -1015,100 +1016,11 @@ export default function ClubScreen() {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {cohort?.communityLive?.enabled !== false ? (
-            <View style={styles.communityPanel}>
-              <View style={styles.panelHead}>
-                <Text style={styles.communityEyebrow}>COMMUNITY THURSDAY</Text>
-                {cohort?.communityLive?.liveState === 'live' ? (
-                  <View style={styles.livePill}>
-                    <View style={styles.liveDot} />
-                    <Text style={styles.livePillText}>NOW</Text>
-                  </View>
-                ) : (
-                  <View style={styles.platformPill}>
-                    <Text style={styles.platformPillText}>
-                      {cohort?.communityLive?.platformLabel || 'YouTube'}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              <Text style={styles.communityTitle}>
-                {cohort?.communityLive?.title || 'Community Thursday'}
-              </Text>
-              <Text style={styles.communityMeta}>
-                Every {cohort?.communityLive?.dayName || 'Thursday'} ·{' '}
-                {cohort?.communityLive?.time || '21:00'} ·{' '}
-                {cohort?.communityLive?.platformLabel || 'YouTube'}
-              </Text>
-
-              <Text style={styles.communityTopicLabel}>موضوع الأسبوع</Text>
-              <Text style={styles.communityTopic}>
-                {cohort?.communityLive?.topic?.trim()
-                  ? cohort.communityLive.topic
-                  : 'سيتم إعلان الموضوع قريبًا'}
-              </Text>
-
-              {cohort?.communityLive?.liveType === 'guest' &&
-              !!cohort?.communityLive?.guestName ? (
-                <Text style={styles.communityGuest}>
-                  Guest · {cohort.communityLive.guestName}
-                </Text>
-              ) : (
-                <Text style={styles.communityGuest}>Talk · open for all subscribers</Text>
-              )}
-
-              {hasAccess ? (
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={() => {
-                    const link = cohort?.communityLive?.link;
-                    if (!link) {
-                      Alert.alert(
-                        'Link coming soon',
-                        'Admin will add the YouTube / TikTok / Instagram link in Club Management.'
-                      );
-                      return;
-                    }
-                    openLink(link, 'Add community live link in Club Management');
-                  }}
-                >
-                  <Ionicons
-                    name={
-                      cohort?.communityLive?.platform === 'instagram'
-                        ? 'logo-instagram'
-                        : cohort?.communityLive?.platform === 'tiktok'
-                          ? 'logo-tiktok'
-                          : 'logo-youtube'
-                    }
-                    size={18}
-                    color="#fff"
-                  />
-                  <Text style={styles.primaryBtnText}>
-                    Join on {cohort?.communityLive?.platformLabel || 'YouTube'}
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.primaryBtn}
-                  onPress={() => {
-                    if (!requireAccess()) return;
-                  }}
-                >
-                  <Text style={styles.primaryBtnText}>Unlock with subscription</Text>
-                </TouchableOpacity>
-              )}
-
-              {hasAccess && cohort?.communityLive?.hasRecording ? (
-                <TouchableOpacity
-                  style={[styles.miniGhost, { alignSelf: 'flex-start', marginTop: 10 }]}
-                  onPress={() => openLink(cohort?.communityLive?.recordingUrl)}
-                >
-                  <Text style={styles.miniGhostText}>Watch Replay</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          ) : null}
+          <CommunityLiveCard
+            communityLive={cohort?.communityLive}
+            hasAccess={hasAccess}
+            onRequireAccess={requireAccess}
+          />
 
           <View style={styles.panel}>
             <View style={styles.panelHead}>

@@ -358,7 +358,7 @@ function ScholarshipPromo() {
           </View>
           <View style={styles.promoCenter}>
             <Text style={styles.promoTitle}>Elnady</Text>
-            <Text style={styles.promoSubtitle}>دفعة 10-10-2026 · لايف داخل التطبيق</Text>
+            <Text style={styles.promoSubtitle}>دفعة 10-10-2026 · تعلّم · لايف · مجتمع</Text>
           </View>
           <TouchableOpacity
             onPress={() => setHidden(true)}

@@ -108,6 +108,13 @@ export default function RootLayout() {
             <Stack.Screen name="content-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="club-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="tech-news" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="mubasher" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="jobs" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="job-details" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="post-job" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="my-jobs" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="job-applicants" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="jobs-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="notification-settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="help-support" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="terms-conditions" options={{ headerShown: false, animation: 'slide_from_right' }} />

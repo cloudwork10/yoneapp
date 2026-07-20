@@ -151,6 +151,8 @@ app.use('/api/reels', securityMiddleware, require('./routes/reels'));
 app.use('/api/club', publicSecurityMiddleware, require('./routes/club'));
 // Tech News — public feed + admin controls
 app.use('/api/tech-news', publicSecurityMiddleware, require('./routes/techNews'));
+// Jobs board — public list + company submit + admin approve
+app.use('/api/jobs', publicSecurityMiddleware, require('./routes/jobs'));
 
 // 404 handler
 app.use('*', notFoundHandler);
