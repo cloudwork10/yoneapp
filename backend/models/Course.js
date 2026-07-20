@@ -72,6 +72,11 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  accessType: {
+    type: String,
+    enum: ['free', 'premium'],
+    default: 'free'
+  },
   language: {
     type: String,
     default: 'Arabic'

@@ -27,6 +27,20 @@ export default function MoreScreen() {
       route: '/tech-news'
     },
     {
+      id: 26,
+      title: 'Roadmaps',
+      description: 'Clear learning paths step by step',
+      icon: '🗺️',
+      route: '/(tabs)/roadmaps'
+    },
+    {
+      id: 27,
+      title: 'Articles',
+      description: 'Guides and long-form learning articles',
+      icon: '📄',
+      route: '/(tabs)/articles'
+    },
+    {
       id: 21,
       title: 'Advices',
       description: 'Career tips and professional guidance',

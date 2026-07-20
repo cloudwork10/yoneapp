@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenTransition from '../../components/ScreenTransition';
 import { ArticleCardSkeleton } from '../../components/SkeletonLoader';
 import API_BASE_URL from '../../config/api';
+import { getCourseAccessLabel, resolveCourseAccessType } from '../../utils/contentAccess';
 import resolveMediaUrl from '../../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
@@ -31,6 +32,7 @@ interface Course {
   description: string;
   price: number;
   category: string;
+  accessType?: string;
 }
 
 export default function CoursesScreen() {
@@ -81,7 +83,9 @@ export default function CoursesScreen() {
           ),
           description: course.description,
           price: course.price,
-          category: course.category
+          category: course.category,
+          accessType: course.accessType,
+          sections: course.sections,
         }));
         setCourses(fetchedCourses);
       } else {
@@ -226,7 +230,11 @@ export default function CoursesScreen() {
   };
 
 
-  const renderCourse = ({ item }: { item: Course }) => (
+  const renderCourse = ({ item }: { item: Course }) => {
+    const accessLabel = getCourseAccessLabel(item);
+    const accessType = resolveCourseAccessType(item);
+
+    return (
     <TouchableOpacity
       style={styles.courseCard}
       onPress={() => handleCoursePress(item)}
@@ -254,6 +262,16 @@ export default function CoursesScreen() {
         <View style={styles.durationBadge}>
           <Text style={styles.durationText}>{item.duration}</Text>
         </View>
+        {accessType !== 'free' ? (
+          <View style={[
+            styles.accessBadge,
+            accessType === 'premium' ? styles.accessBadgePremium : styles.accessBadgeMixed,
+          ]}>
+            <Text style={styles.accessBadgeText}>
+              {accessType === 'premium' ? '🔒' : '🔀'} {accessLabel}
+            </Text>
+          </View>
+        ) : null}
       </View>
       
       <View style={styles.courseContent}>
@@ -283,7 +301,8 @@ export default function CoursesScreen() {
         </View>
       </View>
     </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <ScreenTransition>
@@ -661,6 +680,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+  },
+  accessBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  accessBadgePremium: {
+    backgroundColor: 'rgba(185, 28, 28, 0.9)',
+    borderColor: '#F87171',
+  },
+  accessBadgeMixed: {
+    backgroundColor: 'rgba(180, 83, 9, 0.9)',
+    borderColor: '#FBBF24',
+  },
+  accessBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   courseContent: {
     padding: 15,

@@ -28,3 +28,32 @@ export function isContentLocked(item, hasActiveSubscription) {
 export function getAccessLabel(item) {
   return requiresSubscription(item) ? 'Premium' : 'Free';
 }
+
+export function resolveCourseAccessType(course) {
+  if (course?.accessType === 'premium' || course?.accessType === 'free') {
+    return course.accessType;
+  }
+
+  const lessons = course?.sections?.flatMap((section) => section.lessons || []) || [];
+  if (lessons.length === 0) {
+    return 'free';
+  }
+
+  const premiumCount = lessons.filter((lesson) => lesson.accessType === 'premium').length;
+  const freeCount = lessons.length - premiumCount;
+
+  if (premiumCount > 0 && freeCount > 0) {
+    return 'mixed';
+  }
+  if (premiumCount > 0) {
+    return 'premium';
+  }
+  return 'free';
+}
+
+export function getCourseAccessLabel(course) {
+  const accessType = resolveCourseAccessType(course);
+  if (accessType === 'premium') return 'اشتراك';
+  if (accessType === 'mixed') return 'مختلط';
+  return 'مجاني';
+}

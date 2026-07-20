@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Dimensions,
     ImageBackground,
@@ -14,10 +15,12 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import resolveMediaUrl from '../utils/mediaUrl';
 import { isContentLocked } from '../utils/contentAccess';
+import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
@@ -69,6 +72,7 @@ export default function CourseDetailsScreen() {
   const { user } = useUser();
   const [selectedVideo, setSelectedVideo] = useState<CourseVideo | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [course, setCourse] = useState<any>(null);
@@ -80,13 +84,15 @@ export default function CourseDetailsScreen() {
   // Generate course videos from course sections and lessons
   const courseVideos: CourseVideo[] = React.useMemo(() => {
     if (!course?.sections || course.sections.length === 0) {
-      // Return default videos if no course sections
+      if (!course?.previewVideo?.trim()) {
+        return [];
+      }
       return [
         {
           id: '1',
           title: 'مقدمة الكورس',
           duration: '15:30',
-          url: course?.previewVideo || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+          url: course.previewVideo.trim(),
           thumbnail: course?.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
           description: course?.description || 'مقدمة عن الكورس',
           isCompleted: false,
@@ -100,13 +106,16 @@ export default function CourseDetailsScreen() {
         id: `${sectionIndex}-${lessonIndex}`,
         title: lesson.title || `درس ${lessonIndex + 1}`,
         duration: lesson.duration || '10:00',
-        url: lesson.videoUrl || course?.previewVideo || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+        url: lesson.videoUrl?.trim() || course?.previewVideo?.trim() || '',
         thumbnail: lesson.thumbnail || course?.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
         description: lesson.description || lesson.title || 'وصف الدرس',
         isCompleted: lesson.isCompleted || false,
         category: section.title || `القسم ${sectionIndex + 1}`,
-        accessType: lesson.accessType || 'free',
-        isLocked: isContentLocked(lesson, hasActiveSubscription),
+        accessType: lesson.accessType || course?.accessType || 'free',
+        isLocked: isContentLocked(
+          { accessType: lesson.accessType || course?.accessType || 'free' },
+          hasActiveSubscription
+        ),
       })) || []
     );
   }, [course, hasActiveSubscription]);
@@ -280,6 +289,7 @@ export default function CourseDetailsScreen() {
         ]
       );
     } else {
+      setIsVideoLoading(true);
       setSelectedVideo(video);
       setShowVideoModal(true);
     }
@@ -776,7 +786,10 @@ export default function CourseDetailsScreen() {
             <View style={styles.videoHeader}>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setShowVideoModal(false)}
+                onPress={() => {
+                  setShowVideoModal(false);
+                  setIsVideoLoading(false);
+                }}
               >
                 <Text style={styles.closeIcon}>✕</Text>
               </TouchableOpacity>
@@ -789,16 +802,68 @@ export default function CourseDetailsScreen() {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.videoContainer}>
-              {selectedVideo && (
-                <Video
-                  source={{ uri: selectedVideo.url }}
-                  style={styles.videoPlayer}
-                  resizeMode={ResizeMode.CONTAIN}
-                  shouldPlay={true}
-                  isLooping={false}
-                  useNativeControls={true}
-                />
+            <View style={styles.videoStage}>
+              {selectedVideo && selectedVideo.url?.trim() ? (
+                <>
+                  {needsWebView(selectedVideo.url) ? (
+                    <WebView
+                      source={getWebViewSource(selectedVideo.url) || { uri: selectedVideo.url }}
+                      style={styles.videoPlayerFlex}
+                      originWhitelist={['*']}
+                      allowsFullscreenVideo
+                      allowsInlineMediaPlayback
+                      mediaPlaybackRequiresUserAction={false}
+                      javaScriptEnabled
+                      domStorageEnabled
+                      setSupportMultipleWindows={false}
+                      startInLoadingState
+                      onError={(error) => {
+                        setIsVideoLoading(false);
+                        Alert.alert(
+                          'خطأ في الفيديو',
+                          `فشل تحميل الفيديو.\n\nالرابط: ${selectedVideo.url}`
+                        );
+                        console.log('Course WebView error:', error);
+                      }}
+                      onHttpError={(event) => {
+                        console.log('Course WebView HTTP error:', event.nativeEvent);
+                      }}
+                      onLoad={() => setIsVideoLoading(false)}
+                      onLoadStart={() => setIsVideoLoading(true)}
+                      onLoadEnd={() => setIsVideoLoading(false)}
+                    />
+                  ) : (
+                    <Video
+                      source={{ uri: selectedVideo.url }}
+                      style={styles.videoPlayerFixed}
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay
+                      isLooping={false}
+                      useNativeControls
+                      onError={(error) => {
+                        setIsVideoLoading(false);
+                        Alert.alert(
+                          'خطأ في الفيديو',
+                          `فشل تحميل الفيديو.\n\nالرابط: ${selectedVideo.url}`
+                        );
+                        console.log('Course video error:', error);
+                      }}
+                      onLoad={() => setIsVideoLoading(false)}
+                      onLoadStart={() => setIsVideoLoading(true)}
+                      onLoadEnd={() => setIsVideoLoading(false)}
+                    />
+                  )}
+                  {isVideoLoading ? (
+                    <View style={styles.videoLoading}>
+                      <ActivityIndicator color="#E50914" size="large" />
+                      <Text style={styles.videoLoadingText}>جاري تحميل الفيديو...</Text>
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <View style={styles.videoLoadingInline}>
+                  <Text style={styles.videoLoadingText}>لا يوجد رابط فيديو لهذا الدرس</Text>
+                </View>
               )}
             </View>
             
@@ -811,21 +876,6 @@ export default function CourseDetailsScreen() {
                 </View>
               </View>
               <Text style={styles.videoModalDescription}>{selectedVideo?.description}</Text>
-              
-              <View style={styles.videoActions}>
-                <TouchableOpacity style={styles.videoActionButton}>
-                  <Text style={styles.videoActionIcon}>👍</Text>
-                  <Text style={styles.videoActionText}>Like</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.videoActionButton}>
-                  <Text style={styles.videoActionIcon}>💬</Text>
-                  <Text style={styles.videoActionText}>Comment</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.videoActionButton}>
-                  <Text style={styles.videoActionIcon}>📤</Text>
-                  <Text style={styles.videoActionText}>Share</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </LinearGradient>
         </View>
@@ -1865,19 +1915,41 @@ const styles = StyleSheet.create({
   shareVideoIcon: {
     fontSize: 18,
   },
-  videoContainer: {
+  videoStage: {
     flex: 1,
+    minHeight: Math.round(height * 0.38),
     backgroundColor: '#000000',
+    position: 'relative',
+  },
+  videoPlayerFlex: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: '#000000',
+  },
+  videoPlayerFixed: {
+    width: width,
+    height: Math.round(width * 9 / 16),
+    alignSelf: 'center',
+    backgroundColor: '#000000',
+  },
+  videoLoading: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    zIndex: 10,
   },
-  videoPlayer: {
-    width: '95%',
-    height: '90%',
-    backgroundColor: '#000000',
-    borderRadius: 12,
+  videoLoadingInline: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoLoadingText: {
+    color: '#FFFFFF',
+    marginTop: 12,
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
   videoInfo: {
     padding: 20,
@@ -1912,29 +1984,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
-  },
-  videoActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 15,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  videoActionButton: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  videoActionIcon: {
-    fontSize: 20,
-    marginBottom: 5,
-  },
-  videoActionText: {
-    color: '#CCCCCC',
-    fontSize: 12,
-    fontWeight: '500',
   },
   overallRating: {
     flexDirection: 'row',

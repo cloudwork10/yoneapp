@@ -73,20 +73,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="roadmaps"
-        options={{
-          title: 'Roadmaps',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="articles"
-        options={{
-          title: 'Articles',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="more"
         options={{
           title: 'More',
@@ -95,6 +81,18 @@ export default function TabLayout() {
       />
 
       {/* Hidden from tab bar — accessible via More / Quick Links */}
+      <Tabs.Screen
+        name="roadmaps"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="articles"
+        options={{
+          href: null,
+        }}
+      />
       <Tabs.Screen
         name="advices"
         options={{

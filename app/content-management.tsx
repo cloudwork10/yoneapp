@@ -10,6 +10,7 @@ import { Alert, Clipboard, Image, Modal, ScrollView, StyleSheet, Text, TextInput
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import NotificationService from '../services/NotificationService';
+import { getCourseAccessLabel, resolveCourseAccessType } from '../utils/contentAccess';
 import { makeAuthenticatedRequest, refreshAuthToken } from '../utils/tokenRefresh';
 
 type AccessType = 'free' | 'premium';
@@ -2055,18 +2056,25 @@ export default function ContentManagementScreen() {
       course.category?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const activeCourses = courses.filter((course) => course.isActive).length;
+    const freeCourses = courses.filter((course) => resolveCourseAccessType(course) === 'free').length;
+    const premiumCourses = courses.filter((course) => {
+      const access = resolveCourseAccessType(course);
+      return access === 'premium' || access === 'mixed';
+    }).length;
+
     console.log('🔍 Filtered courses:', filteredCourses.length);
 
     return (
       <View style={styles.contentSection}>
         <View style={styles.contentHeader}>
-          <Text style={styles.sectionTitle}>Course Management</Text>
+          <Text style={styles.sectionTitle}>إدارة الكورسات</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity 
               style={styles.refreshButton} 
               onPress={() => fetchCourses()}
             >
-              <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
+              <Text style={styles.refreshButtonText}>🔄 تحديث</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.addButton} 
@@ -2075,14 +2083,33 @@ export default function ContentManagementScreen() {
                 setShowCourseModal(true);
               }}
             >
-              <Text style={styles.addButtonText}>+ Add Course</Text>
+              <Text style={styles.addButtonText}>+ إضافة كورس</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.courseDashboardStats}>
+          <View style={styles.courseStatBox}>
+            <Text style={styles.courseStatValue}>{courses.length}</Text>
+            <Text style={styles.courseStatLabel}>إجمالي الكورسات</Text>
+          </View>
+          <View style={styles.courseStatBox}>
+            <Text style={styles.courseStatValue}>{activeCourses}</Text>
+            <Text style={styles.courseStatLabel}>نشطة</Text>
+          </View>
+          <View style={[styles.courseStatBox, styles.courseStatBoxFree]}>
+            <Text style={styles.courseStatValue}>{freeCourses}</Text>
+            <Text style={styles.courseStatLabel}>مجانية</Text>
+          </View>
+          <View style={[styles.courseStatBox, styles.courseStatBoxPremium]}>
+            <Text style={styles.courseStatValue}>{premiumCourses}</Text>
+            <Text style={styles.courseStatLabel}>بالاشتراك</Text>
           </View>
         </View>
 
         <TextInput
           style={styles.searchInput}
-          placeholder="Search courses..."
+          placeholder="ابحث في الكورسات..."
           placeholderTextColor="#666666"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -2092,59 +2119,94 @@ export default function ContentManagementScreen() {
           <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>
               {courses.length === 0 
-                ? 'No courses found. Add your first course!' 
-                : 'No courses match your search.'}
+                ? 'لا توجد كورسات. أضف أول كورس!' 
+                : 'لا توجد نتائج مطابقة للبحث.'}
             </Text>
             <Text style={styles.emptyStateSubtext}>
               {courses.length === 0 
-                ? 'Click "Add Course" to get started.' 
-                : 'Try adjusting your search terms.'}
-            </Text>
-            <Text style={styles.emptyStateDebug}>
-              Debug: {courses.length} total courses, {filteredCourses.length} filtered
+                ? 'اضغط "إضافة كورس" للبدء.' 
+                : 'جرّب تعديل كلمات البحث.'}
             </Text>
           </View>
         ) : (
           <ScrollView style={styles.contentList} showsVerticalScrollIndicator={false}>
-            {filteredCourses.map((course) => (
-              <View key={course._id} style={styles.contentCard}>
-                <View style={styles.contentHeader}>
-                  <Text style={styles.contentTitle}>{course.title || 'Untitled Course'}</Text>
-                  <View style={styles.contentActions}>
-                    <TouchableOpacity 
-                      style={styles.editButton}
-                      onPress={() => {
-                        setEditingCourse(course);
-                        setShowCourseModal(true);
-                      }}
+            {filteredCourses.map((course) => {
+              const lessonCount = course.sections?.reduce(
+                (total: number, section: any) => total + (section.lessons?.length || 0),
+                0
+              ) || 0;
+              const accessType = resolveCourseAccessType(course);
+              const accessLabel = getCourseAccessLabel(course);
+
+              return (
+                <View key={course._id} style={styles.contentCard}>
+                  <View style={styles.contentCardHeader}>
+                    <View style={styles.contentInfo}>
+                      <Text style={styles.contentTitle}>{course.title || 'كورس بدون عنوان'}</Text>
+                      {course.description ? (
+                        <Text style={styles.contentDescription} numberOfLines={2}>
+                          {course.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.contentActions}>
+                      <TouchableOpacity 
+                        style={styles.editButton}
+                        onPress={() => {
+                          setEditingCourse(course);
+                          setShowCourseModal(true);
+                        }}
+                      >
+                        <Text style={styles.editButtonText}>✏️</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.deleteButton}
+                        onPress={() => handleDeleteCourse(course._id)}
+                      >
+                        <Text style={styles.deleteButtonText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.courseAccessBadgeRow}>
+                    <View
+                      style={[
+                        styles.courseAccessBadge,
+                        accessType === 'free' && styles.courseAccessBadgeFree,
+                        accessType === 'premium' && styles.courseAccessBadgePremium,
+                        accessType === 'mixed' && styles.courseAccessBadgeMixed,
+                      ]}
                     >
-                      <Text style={styles.editButtonText}>Edit</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.deleteButton}
-                      onPress={() => handleDeleteCourse(course._id)}
-                    >
-                      <Text style={styles.deleteButtonText}>Delete</Text>
-                    </TouchableOpacity>
+                      <Text style={styles.courseAccessBadgeText}>
+                        {accessType === 'free' ? '🟢' : accessType === 'premium' ? '🔒' : '🔀'} {accessLabel}
+                      </Text>
+                    </View>
+                    <View style={[styles.courseAccessBadge, course.isActive ? styles.courseStatusActive : styles.courseStatusInactive]}>
+                      <Text style={styles.courseAccessBadgeText}>
+                        {course.isActive ? '✅ نشط' : '⏸️ غير نشط'}
+                      </Text>
+                    </View>
+                    {course.isFeatured ? (
+                      <View style={[styles.courseAccessBadge, styles.courseStatusFeatured]}>
+                        <Text style={styles.courseAccessBadgeText}>🌟 مميز</Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.contentMeta}>
+                    <Text style={styles.contentMetaText}>👨‍🏫 {course.instructor || 'غير محدد'}</Text>
+                    <Text style={styles.contentMetaText}>📂 {course.category || 'بدون تصنيف'}</Text>
+                    <Text style={styles.contentMetaText}>📊 {course.level || '—'}</Text>
+                    <Text style={styles.contentMetaText}>⏱️ {course.duration || '—'}</Text>
+                    <Text style={styles.contentMetaText}>👥 {course.students || 0}</Text>
+                    <Text style={styles.contentMetaText}>⭐ {course.rating || 0}/5</Text>
+                    <Text style={styles.contentMetaText}>💰 ${course.price || 0}</Text>
+                    <Text style={styles.contentMetaText}>📚 {course.sections?.length || 0} أقسام</Text>
+                    <Text style={styles.contentMetaText}>🎬 {lessonCount} دروس</Text>
                   </View>
                 </View>
-                <Text style={styles.contentMetaText}>Instructor: {course.instructor || 'Unknown'}</Text>
-                <Text style={styles.contentMetaText}>Category: {course.category || 'Uncategorized'}</Text>
-                <Text style={styles.contentMetaText}>Level: {course.level || 'Unknown'}</Text>
-                <Text style={styles.contentMetaText}>Duration: {course.duration || 'Unknown'}</Text>
-                <Text style={styles.contentMetaText}>Students: {course.students || 0}</Text>
-                <Text style={styles.contentMetaText}>Rating: {course.rating || 0}/5</Text>
-                <Text style={styles.contentMetaText}>Price: ${course.price || 0}</Text>
-                <Text style={styles.contentMetaText}>
-                  Sections: {course.sections?.length || 0} | 
-                  Lessons: {course.sections?.reduce((total, section) => total + (section.lessons?.length || 0), 0) || 0}
-                </Text>
-                <Text style={styles.contentMetaText}>
-                  Status: {course.isActive ? '✅ Active' : '❌ Inactive'} 
-                  {course.isFeatured ? ' | 🌟 Featured' : ''}
-                </Text>
-              </View>
-            ))}
+              );
+            })}
           </ScrollView>
         )}
       </View>
@@ -3839,6 +3901,7 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
     students: course?.students || 0,
     price: course?.price || 0,
     originalPrice: course?.originalPrice || 0,
+    accessType: course?.accessType || 'free',
     language: course?.language || 'Arabic',
     thumbnail: course?.thumbnail || '',
     image: course?.image || '',
@@ -4178,7 +4241,7 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
       duration: '',
       thumbnail: '',
       isCompleted: false,
-      accessType: 'premium',
+      accessType: formData.accessType || 'free',
       order: updatedSections[sectionIndex].lessons.length
     });
     setFormData({ ...formData, sections: updatedSections });
@@ -4276,6 +4339,17 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
             />
           </View>
         </View>
+      </View>
+
+      <View style={styles.formSection}>
+        <AccessTypePicker
+          value={formData.accessType}
+          fallback="free"
+          onChange={(next) => setFormData({ ...formData, accessType: next })}
+        />
+        <Text style={accessStyles.hint}>
+          الافتراضي للدروس الجديدة — يمكنك تخصيص كل درس على حدة داخل الأقسام
+        </Text>
       </View>
 
       {/* Pricing Section */}
@@ -5060,7 +5134,7 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
                     style={styles.formInput}
                     value={lesson.videoUrl}
                     onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'videoUrl', text)}
-                    placeholder="Video URL (YouTube / Google Drive / MP4)"
+                    placeholder="Video URL (YouTube / Vimeo / Drive / MP4)"
                     placeholderTextColor="#666"
                   />
 
@@ -6210,6 +6284,85 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 8,
     marginBottom: 4,
+  },
+  courseDashboardStats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  courseStatBox: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+  },
+  courseStatBoxFree: {
+    borderColor: 'rgba(74, 222, 128, 0.35)',
+    backgroundColor: 'rgba(22, 101, 52, 0.2)',
+  },
+  courseStatBoxPremium: {
+    borderColor: 'rgba(248, 113, 113, 0.35)',
+    backgroundColor: 'rgba(185, 28, 28, 0.2)',
+  },
+  courseStatValue: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  courseStatLabel: {
+    color: '#CCCCCC',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  courseAccessBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+    gap: 8,
+  },
+  courseAccessBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  courseAccessBadgeFree: {
+    backgroundColor: 'rgba(22, 101, 52, 0.35)',
+    borderColor: '#4ADE80',
+  },
+  courseAccessBadgePremium: {
+    backgroundColor: 'rgba(185, 28, 28, 0.35)',
+    borderColor: '#F87171',
+  },
+  courseAccessBadgeMixed: {
+    backgroundColor: 'rgba(180, 83, 9, 0.35)',
+    borderColor: '#FBBF24',
+  },
+  courseAccessBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  courseStatusActive: {
+    backgroundColor: 'rgba(22, 101, 52, 0.25)',
+    borderColor: 'rgba(74, 222, 128, 0.4)',
+  },
+  courseStatusInactive: {
+    backgroundColor: 'rgba(75, 85, 99, 0.35)',
+    borderColor: 'rgba(156, 163, 175, 0.4)',
+  },
+  courseStatusFeatured: {
+    backgroundColor: 'rgba(180, 83, 9, 0.25)',
+    borderColor: 'rgba(251, 191, 36, 0.5)',
   },
   contentActions: {
     flexDirection: 'row',
