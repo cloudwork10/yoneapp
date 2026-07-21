@@ -2,93 +2,100 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
 import {
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CONTACT_EMAIL, REFUND_POLICY_URL } from '../config/legal';
+
+const SECTIONS = [
+  {
+    title: 'Free Content',
+    body:
+      'ELNADY offers free features (courses, news, jobs, and more) at no charge. ' +
+      'Creating an account and using free features does not require payment, so refunds do not apply to unpaid use.',
+  },
+  {
+    title: 'Paid Subscriptions & Courses',
+    body:
+      'When paid plans or courses are enabled:\n\n' +
+      '• Price and duration are shown clearly before payment\n' +
+      '• Access is activated after successful payment\n' +
+      '• You may request a refund within 7 days if you have not substantially used the paid content (less than ~20% of lessons/features)\n' +
+      '• After 7 days or heavy use, refunds are only considered for proven technical errors (e.g. double charge, access not granted)',
+  },
+  {
+    title: 'How to Request a Refund',
+    body:
+      `1. Email ${CONTACT_EMAIL}\n` +
+      '2. Include: account name, email, payment date, and reason\n' +
+      '3. Attach payment receipt if available\n' +
+      '4. We respond within 3–5 business days\n\n' +
+      'Approved refunds are returned to the original payment method within 7–14 days, depending on the bank or payment provider.',
+  },
+  {
+    title: 'Payment Processing',
+    body:
+      'In-app payments are processed through secure payment gateways (e.g. Paymob or app stores). ' +
+      'ELNADY does not store your full card details — they are handled by the payment provider.',
+  },
+  {
+    title: 'App Store / Google Play',
+    body:
+      'Purchases through Apple or Google follow their refund policies:\n\n' +
+      '• Apple: reportaproblem.apple.com\n' +
+      '• Google Play: play.google.com/store/account\n\n' +
+      'ELNADY cannot override store refund decisions, but we can help with your request.',
+  },
+  {
+    title: 'Non-Refundable Cases',
+    body:
+      '• Terms of service violations or account abuse\n' +
+      '• Substantial use of paid content\n' +
+      '• Requests after 7 days (except proven technical errors)\n' +
+      '• Temporary free-service downtime (we fix issues without monetary compensation for free tiers)',
+  },
+  {
+    title: 'Policy Updates',
+    body:
+      'We may update this policy when new paid plans launch. The latest version is always on our public URL below. Last updated: July 2026.',
+  },
+  {
+    title: 'Contact',
+    body: `Refund & billing: ${CONTACT_EMAIL}\nPublic policy: ${REFUND_POLICY_URL}`,
+  },
+];
 
 export default function RefundPolicyScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Refund Policy</Text>
-            <Text style={styles.subtitle}>Last updated: January 2025</Text>
+            <Text style={styles.subtitle}>Last updated: July 2026</Text>
+            <TouchableOpacity
+              style={styles.publicLink}
+              onPress={() => Linking.openURL(REFUND_POLICY_URL)}
+            >
+              <Text style={styles.publicLinkText}>🌐 Open public page (for app stores)</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Content */}
           <View style={styles.content}>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>💰 Free Service Policy</Text>
-              <Text style={styles.sectionText}>
-                ELNADY is a completely free learning platform. We do not charge any fees for using our services, accessing content, or creating accounts. Since our service is free, there are no payments to refund.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🎯 Future Premium Features</Text>
-              <Text style={styles.sectionText}>
-                In the future, we may introduce premium features or subscriptions. If and when we do, this refund policy will be updated to include specific terms for paid services. We will notify users of any changes to our pricing structure.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📱 App Store Purchases</Text>
-              <Text style={styles.sectionText}>
-                If you make any in-app purchases through the App Store or Google Play Store, refunds are subject to the respective platform's refund policies:
-                {'\n\n'}• Apple App Store: Contact Apple Support
-                {'\n'}• Google Play Store: Contact Google Play Support
-                {'\n\n'}ELNADY does not control these third-party refund processes.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🔄 Service Availability</Text>
-              <Text style={styles.sectionText}>
-                While we strive to maintain 100% uptime, we cannot guarantee uninterrupted service. Temporary service interruptions do not qualify for refunds since our service is free. We work diligently to resolve any technical issues promptly.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📧 Contact for Issues</Text>
-              <Text style={styles.sectionText}>
-                If you experience any issues with the app or have concerns about our service, please contact us at:
-                {'\n\n'}Email: support@elnadyapp.com
-                {'\n'}We will work to resolve any problems and improve your experience.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>⚖️ Policy Changes</Text>
-              <Text style={styles.sectionText}>
-                We reserve the right to modify this refund policy at any time. Changes will be posted on this page with an updated revision date. Continued use of the service after changes constitutes acceptance of the new policy.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🤝 User Satisfaction</Text>
-              <Text style={styles.sectionText}>
-                Our goal is to provide the best possible learning experience. If you're not satisfied with our service, please let us know so we can improve. We value your feedback and are committed to making ELNADY better for all users.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📞 Support Contact</Text>
-              <Text style={styles.sectionText}>
-                For any questions about this refund policy or our services, please contact us:
-                {'\n\n'}Email: support@elnadyapp.com
-                {'\n'}Website: www.elnadyapp.com
-                {'\n'}Response Time: Within 24-48 hours
-              </Text>
-            </View>
+            {SECTIONS.map((section) => (
+              <View key={section.title} style={styles.section}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <Text style={styles.sectionText}>{section.body}</Text>
+              </View>
+            ))}
           </View>
         </ScrollView>
       </LinearGradient>
@@ -129,7 +136,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#CCCCCC',
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  publicLink: {
+    backgroundColor: 'rgba(229, 9, 20, 0.15)',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.4)',
+  },
+  publicLinkText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   content: {
     paddingHorizontal: 20,

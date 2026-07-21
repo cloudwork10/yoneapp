@@ -13,6 +13,8 @@
 
 **https://cloudwork10.github.io/yoneapp/terms.html**
 
+**https://cloudwork10.github.io/yoneapp/refund.html**
+
 ---
 
 ## استخدامه في المتاجر
