@@ -39,20 +39,25 @@ if [[ -z "${ADMIN_TOKEN:-}" ]]; then
   fi
 
   echo "⏳ تسجيل الدخول..."
-  LOGIN_RESPONSE="$(curl -sf -X POST "$API_URL/api/auth/login" \
+  LOGIN_RESPONSE="$(curl -s -X POST "$API_URL/api/auth/login" \
     -H "Content-Type: application/json" \
-    -d "{\"email\":\"$EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}")" || {
-    echo "❌ فشل تسجيل الدخول — تأكد من الإيميل وكلمة السر"
-    exit 1
-  }
+    -d "{\"email\":\"$EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}")"
 
   ADMIN_TOKEN="$(node -e "
     const r = JSON.parse(process.argv[1]);
-    const t = r.token || r.data?.token;
-    if (!t) process.exit(1);
+    const t =
+      r.data?.tokens?.accessToken ||
+      r.tokens?.accessToken ||
+      r.token ||
+      r.data?.token;
+    if (!t) {
+      console.error(r.message || 'Login failed');
+      process.exit(1);
+    }
     console.log(t);
   " "$LOGIN_RESPONSE")" || {
-    echo "❌ مفيش token في رد تسجيل الدخول"
+    echo "❌ فشل تسجيل الدخول — تأكد من الإيميل وكلمة السر"
+    echo "   الافتراضي: admin@yoneapp.com / SuperAdmin123!"
     exit 1
   }
 fi
