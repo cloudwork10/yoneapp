@@ -11,6 +11,8 @@
 
 **https://cloudwork10.github.io/yoneapp/privacy.html**
 
+**https://cloudwork10.github.io/yoneapp/terms.html**
+
 ---
 
 ## استخدامه في المتاجر

@@ -2,124 +2,140 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
 import {
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CONTACT_EMAIL, PRIVACY_POLICY_URL, TERMS_URL } from '../config/legal';
+
+const SECTIONS = [
+  {
+    title: '1. Acceptance of Terms',
+    body:
+      'By using the ELNADY mobile application, you agree to these Terms & Conditions. ' +
+      'If you do not agree, please do not use the app.',
+  },
+  {
+    title: '2. The Service',
+    body:
+      'ELNADY provides:\n\n' +
+      '• Educational courses and learning content\n' +
+      '• Tech news and reels\n' +
+      '• Job board with in-app applications\n' +
+      '• Community / club features\n' +
+      '• User accounts and admin tools',
+  },
+  {
+    title: '3. Your Account',
+    body:
+      '• You must provide accurate registration information\n' +
+      '• You are responsible for your password and account activity\n' +
+      '• Do not share your account with others\n' +
+      '• We may suspend or delete accounts that violate these terms',
+  },
+  {
+    title: '4. Content & Intellectual Property',
+    body:
+      'ELNADY content (text, video, images, logos, software) is owned by ELNADY or licensed to us. ' +
+      'You may not copy, resell, or redistribute it without written permission. ' +
+      'Some videos may be hosted on third-party platforms (YouTube, Vimeo) subject to their terms.',
+  },
+  {
+    title: '5. User-Generated Content',
+    body:
+      'When you upload content (images, videos, CVs, job posts):\n\n' +
+      '• You confirm you have the right to publish it\n' +
+      '• You must not upload illegal, abusive, or infringing content\n' +
+      '• You grant ELNADY a license to store and display it to operate the service\n' +
+      '• We may remove content that violates these terms',
+  },
+  {
+    title: '6. Jobs & Applications',
+    body:
+      '• Job applications are processed in-app\n' +
+      '• Job posters see applicants and CVs for their own listings only\n' +
+      '• ELNADY is a technical platform and does not guarantee hiring outcomes\n' +
+      '• You are responsible for the accuracy of your CV and application data',
+  },
+  {
+    title: '7. Prohibited Uses',
+    body:
+      'You may not use ELNADY for:\n\n' +
+      '• Illegal activity or fraud\n' +
+      '• Harassment, hate speech, or abuse\n' +
+      '• Unauthorized access or hacking attempts\n' +
+      '• Misinformation or impersonation\n' +
+      '• Commercial exploitation of content without permission',
+  },
+  {
+    title: '8. Subscriptions & Payments',
+    body:
+      'Some features or courses may require payment. Pricing and subscription terms shown in the app apply when payments are enabled.',
+  },
+  {
+    title: '9. Privacy Policy',
+    body: `Your use is also governed by our Privacy Policy:\n${PRIVACY_POLICY_URL}`,
+  },
+  {
+    title: '10. Termination',
+    body:
+      'We may modify or discontinue parts of the service for maintenance or improvement. ' +
+      'We may terminate your account immediately for violations of these terms.',
+  },
+  {
+    title: '11. Disclaimer',
+    body:
+      'The app is provided "as is". We do not guarantee error-free or uninterrupted service. ' +
+      'Educational content is for general learning and is not professional or legal advice.',
+  },
+  {
+    title: '12. Limitation of Liability',
+    body:
+      'ELNADY is not liable for indirect damages arising from use of the app, including loss of data, ' +
+      'job opportunities, or profits, to the extent permitted by applicable law.',
+  },
+  {
+    title: '13. Changes to Terms',
+    body:
+      'We may update these terms. The latest version is always available at our public URL below. ' +
+      'Continued use after updates means you accept the revised terms. Last updated: July 2026.',
+  },
+  {
+    title: '14. Contact',
+    body: `Email: ${CONTACT_EMAIL}\nPublic terms: ${TERMS_URL}`,
+  },
+];
 
 export default function TermsConditionsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Terms & Conditions</Text>
-            <Text style={styles.subtitle}>Last updated: January 2025</Text>
+            <Text style={styles.subtitle}>Last updated: July 2026</Text>
+            <TouchableOpacity
+              style={styles.publicLink}
+              onPress={() => Linking.openURL(TERMS_URL)}
+            >
+              <Text style={styles.publicLinkText}>🌐 Open public page (for app stores)</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Content */}
           <View style={styles.content}>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
-              <Text style={styles.sectionText}>
-                By accessing and using the ELNADY mobile application, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>2. Use License</Text>
-              <Text style={styles.sectionText}>
-                Permission is granted to temporarily download one copy of ELNADY for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
-                {'\n\n'}• Modify or copy the materials
-                {'\n'}• Use the materials for any commercial purpose or for any public display
-                {'\n'}• Attempt to reverse engineer any software contained in the application
-                {'\n'}• Remove any copyright or other proprietary notations from the materials
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>3. User Accounts</Text>
-              <Text style={styles.sectionText}>
-                When you create an account with us, you must provide information that is accurate, complete, and current at all times. You are responsible for safeguarding the password and for all activities that occur under your account.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>4. Content and Intellectual Property</Text>
-              <Text style={styles.sectionText}>
-                All content, including but not limited to text, graphics, logos, images, audio clips, video, and software, is the property of ELNADY or its content suppliers and is protected by copyright laws. You may not reproduce, distribute, or create derivative works from any content without express written permission.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>5. Prohibited Uses</Text>
-              <Text style={styles.sectionText}>
-                You may not use our service:
-                {'\n\n'}• For any unlawful purpose or to solicit others to perform unlawful acts
-                {'\n'}• To violate any international, federal, provincial, or state regulations, rules, laws, or local ordinances
-                {'\n'}• To infringe upon or violate our intellectual property rights or the intellectual property rights of others
-                {'\n'}• To harass, abuse, insult, harm, defame, slander, disparage, intimidate, or discriminate
-                {'\n'}• To submit false or misleading information
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>6. Privacy Policy</Text>
-              <Text style={styles.sectionText}>
-                Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the service, to understand our practices.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>7. Termination</Text>
-              <Text style={styles.sectionText}>
-                We may terminate or suspend your account and bar access to the service immediately, without prior notice or liability, under our sole discretion, for any reason whatsoever and without limitation, including but not limited to a breach of the Terms.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>8. Disclaimer</Text>
-              <Text style={styles.sectionText}>
-                The information on this application is provided on an "as is" basis. To the fullest extent permitted by law, ELNADY excludes all representations, warranties, conditions and terms relating to our application and the use of this application.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>9. Limitation of Liability</Text>
-              <Text style={styles.sectionText}>
-                In no event shall ELNADY, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your use of the service.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>10. Governing Law</Text>
-              <Text style={styles.sectionText}>
-                These Terms shall be interpreted and governed by the laws of the jurisdiction in which ELNADY operates, without regard to its conflict of law provisions.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>11. Changes to Terms</Text>
-              <Text style={styles.sectionText}>
-                We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days notice prior to any new terms taking effect.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>12. Contact Information</Text>
-              <Text style={styles.sectionText}>
-                If you have any questions about these Terms & Conditions, please contact us at:
-                {'\n\n'}Email: legal@elnadyapp.com
-                {'\n'}Website: www.elnadyapp.com
-              </Text>
-            </View>
+            {SECTIONS.map((section) => (
+              <View key={section.title} style={styles.section}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <Text style={styles.sectionText}>{section.body}</Text>
+              </View>
+            ))}
           </View>
         </ScrollView>
       </LinearGradient>
@@ -160,7 +176,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#CCCCCC',
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  publicLink: {
+    backgroundColor: 'rgba(229, 9, 20, 0.15)',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.4)',
+  },
+  publicLinkText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   content: {
     paddingHorizontal: 20,
