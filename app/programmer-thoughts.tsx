@@ -17,6 +17,7 @@ import {
     View
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import FixedBackBar from '../components/FixedBackBar';
 import API_BASE_URL from '../config/api';
 import { isContentLocked } from '../utils/contentAccess';
 import { useUser } from '../contexts/UserContext';
@@ -474,6 +475,7 @@ export default function ProgrammerThoughts() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
       <View style={styles.gradient}>
+        <FixedBackBar />
         {/* Header */}
         <Animated.View
           style={[
@@ -487,13 +489,6 @@ export default function ProgrammerThoughts() {
             },
           ]}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>←</Text>
-          </TouchableOpacity>
-          
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>برنامج خواطر مبرمج</Text>
             <Text style={styles.headerSubtitle}>10 حلقات من الخبرات والتجارب</Text>

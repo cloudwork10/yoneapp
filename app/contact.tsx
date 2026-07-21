@@ -1,34 +1,21 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Alert,
   Linking,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../components/FixedBackBar';
 import { CONTACT_EMAIL } from '../config/legal';
 
 export default function ContactScreen() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-
-  const handleSendMessage = () => {
-    if (!name.trim() || !email.trim() || !message.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
-    const body = `Name: ${name}\nEmail: ${email}\nSubject: ${subject || 'General Inquiry'}\n\nMessage:\n${message}`;
-    const mailtoUrl = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject || 'Contact from ELNADY App')}&body=${encodeURIComponent(body)}`;
-
+  const openEmail = () => {
+    const mailtoUrl = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Contact from ELNADY App')}`;
     Linking.openURL(mailtoUrl).catch(() => {
       Alert.alert('Error', 'Could not open email application');
     });
@@ -38,7 +25,7 @@ export default function ContactScreen() {
     const phoneNumber = '+201234567890';
     const message = 'Hello, I need help with ELNADY app';
     const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
-    
+
     Linking.openURL(whatsappUrl).catch(() => {
       Alert.alert('Error', 'Could not open WhatsApp');
     });
@@ -61,20 +48,27 @@ export default function ContactScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
+        <FixedBackBar />
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
             <Text style={styles.title}>Contact Us</Text>
             <Text style={styles.subtitle}>We're here to help you</Text>
           </View>
 
-          {/* Contact Methods */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📞 Quick Contact</Text>
-            
+
+            <TouchableOpacity style={styles.contactItem} onPress={openEmail}>
+              <View style={styles.contactIcon}>
+                <Text style={styles.contactEmoji}>📧</Text>
+              </View>
+              <View style={styles.contactInfo}>
+                <Text style={styles.contactTitle}>Email</Text>
+                <Text style={styles.contactDescription}>{CONTACT_EMAIL}</Text>
+              </View>
+              <Text style={styles.contactArrow}>→</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.contactItem} onPress={openWhatsApp}>
               <View style={styles.contactIcon}>
                 <Text style={styles.contactEmoji}>💬</Text>
@@ -109,71 +103,16 @@ export default function ContactScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Contact Form */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>✉️ Send us a Message</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Your Name *"
-              placeholderTextColor="#666"
-              value={name}
-              onChangeText={setName}
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Your Email *"
-              placeholderTextColor="#666"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Subject (optional)"
-              placeholderTextColor="#666"
-              value={subject}
-              onChangeText={setSubject}
-            />
-            
-            <TextInput
-              style={styles.messageInput}
-              placeholder="Your Message *"
-              placeholderTextColor="#666"
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
-            />
-            
-            <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
-              <Text style={styles.sendButtonText}>📤 Send Message</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Contact Information */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>ℹ️ Contact Information</Text>
-            
-            <View style={styles.infoItem}>
+
+            <TouchableOpacity style={styles.infoItem} onPress={openEmail}>
               <Text style={styles.infoIcon}>📧</Text>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email</Text>
                 <Text style={styles.infoValue}>{CONTACT_EMAIL}</Text>
               </View>
-            </View>
-
-            <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>🌐</Text>
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Website</Text>
-                <Text style={styles.infoValue}>www.elnadyapp.com</Text>
-              </View>
-            </View>
+            </TouchableOpacity>
 
             <View style={styles.infoItem}>
               <Text style={styles.infoIcon}>⏰</Text>
@@ -187,15 +126,14 @@ export default function ContactScreen() {
               <Text style={styles.infoIcon}>🕒</Text>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Business Hours</Text>
-                <Text style={styles.infoValue}>Monday - Friday, 9 AM - 6 PM</Text>
+                <Text style={styles.infoValue}>Sat–Thu, 12 PM – 12 AM (closed Friday)</Text>
               </View>
             </View>
           </View>
 
-          {/* FAQ */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>❓ Frequently Asked Questions</Text>
-            
+
             <View style={styles.faqItem}>
               <Text style={styles.faqQuestion}>How quickly do you respond?</Text>
               <Text style={styles.faqAnswer}>
@@ -218,14 +156,9 @@ export default function ContactScreen() {
             </View>
           </View>
 
-          {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              Thank you for using ELNADY! 🚀
-            </Text>
-            <Text style={styles.footerSubtext}>
-              We appreciate your feedback and suggestions
-            </Text>
+            <Text style={styles.footerText}>Thank you for using ELNADY! 🚀</Text>
+            <Text style={styles.footerSubtext}>We appreciate your feedback and suggestions</Text>
           </View>
         </ScrollView>
       </LinearGradient>
@@ -247,15 +180,6 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     paddingTop: 10,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-  },
-  backButtonText: {
-    color: '#E50914',
-    fontSize: 16,
-    fontWeight: '600',
   },
   title: {
     fontSize: 28,
@@ -322,44 +246,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#E50914',
     fontWeight: 'bold',
-  },
-  input: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    padding: 16,
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  messageInput: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    padding: 16,
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#444',
-    minHeight: 120,
-  },
-  sendButton: {
-    backgroundColor: '#E50914',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  sendButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
   },
   infoItem: {
     flexDirection: 'row',

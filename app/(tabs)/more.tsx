@@ -170,15 +170,8 @@ const SETTINGS_SECTION: MenuSection = {
       route: '/notification-settings',
     },
     {
-      id: 6,
-      title: 'Help & Support',
-      description: 'Get help from our team',
-      icon: '❓',
-      route: '/help',
-    },
-    {
       id: 8,
-      title: 'Contact',
+      title: 'Contact · Support',
       description: CONTACT_EMAIL,
       icon: '📞',
       route: '/contact',
@@ -410,11 +403,6 @@ export default function MoreScreen() {
   const handleItemPress = (route: string, adminOnly?: boolean) => {
     if (adminOnly && !isAdmin) {
       Alert.alert('Access Denied', 'You need admin privileges.');
-      return;
-    }
-
-    if (route === '/help') {
-      router.push('/help-support');
       return;
     }
 

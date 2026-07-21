@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ImageBackground, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../components/FixedBackBar';
 
 export default function MoviesScreen() {
   const [selectedMovie, setSelectedMovie] = useState(null);
@@ -187,15 +187,10 @@ export default function MoviesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+        <FixedBackBar />
         <ScrollView style={styles.scrollView}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.backButtonText}>←</Text>
-            </TouchableOpacity>
             <View style={styles.headerContent}>
               <Text style={styles.title}>Programming Movies</Text>
               <Text style={styles.subtitle}>Best movies for programmers and developers</Text>

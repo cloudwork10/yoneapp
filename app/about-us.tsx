@@ -1,26 +1,23 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import React from 'react';
 import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../components/FixedBackBar';
 import { CONTACT_EMAIL } from '../config/legal';
 
 export default function AboutUsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
+        <FixedBackBar />
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
             <Text style={styles.title}>About Us</Text>
             <Text style={styles.subtitle}>Meet the ELNADY team</Text>
           </View>
@@ -225,15 +222,6 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     paddingTop: 10,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-  },
-  backButtonText: {
-    color: '#E50914',
-    fontSize: 16,
-    fontWeight: '600',
   },
   title: {
     fontSize: 28,

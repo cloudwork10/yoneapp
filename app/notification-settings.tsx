@@ -1,6 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
-import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -12,6 +11,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../components/FixedBackBar';
 import NotificationService from '../services/NotificationService';
 
 export default function NotificationSettingsScreen() {
@@ -130,12 +130,10 @@ export default function NotificationSettingsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
+        <FixedBackBar label="← رجوع" />
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <Text style={styles.backButtonText}>← رجوع</Text>
-            </TouchableOpacity>
             <Text style={styles.title}>إعدادات الإشعارات</Text>
             <Text style={styles.subtitle}>تحكم في الإشعارات التي تريد استلامها</Text>
           </View>

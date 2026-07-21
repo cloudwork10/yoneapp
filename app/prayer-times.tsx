@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
-import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../components/FixedBackBar';
 
 // Configure notifications
 Notifications.setNotificationHandler({
@@ -253,15 +253,10 @@ export default function PrayerTimesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+        <FixedBackBar />
         <ScrollView style={styles.scrollView}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Text style={styles.backButtonText}>←</Text>
-            </TouchableOpacity>
             <View style={styles.headerContent}>
               <Text style={styles.title}>مواعيد الصلاة</Text>
               <Text style={styles.subtitle}>Prayer Times & Notifications</Text>

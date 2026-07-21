@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { Alert, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../../components/FixedBackBar';
 import API_BASE_URL from '../../config/api';
 
 export default function TopCVScreen() {
@@ -166,6 +167,7 @@ export default function TopCVScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+        <FixedBackBar />
         <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.title}>Top CV Templates</Text>

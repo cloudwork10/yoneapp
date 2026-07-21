@@ -15,6 +15,7 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../../components/FixedBackBar';
 import API_BASE_URL from '../../config/api';
 import { isContentLocked } from '../../utils/contentAccess';
 import { useUser } from '../../contexts/UserContext';
@@ -526,6 +527,7 @@ export default function AdvicesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
+        <FixedBackBar />
         <ScrollView 
           style={styles.scrollView} 
           showsVerticalScrollIndicator={false}

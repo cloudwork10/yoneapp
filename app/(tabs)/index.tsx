@@ -51,7 +51,6 @@ const QUICK_LINKS = [
   { title: 'Thoughts', icon: '💭', route: '/programmer-thoughts' },
   { title: 'Profile', icon: '👤', route: '/profile' },
   { title: 'Subscribe', icon: '💎', route: '/subscription' },
-  { title: 'Help', icon: '❓', route: '/help-support' },
   { title: 'Alerts', icon: '🔔', route: '/notification-settings' },
   { title: 'Contact', icon: '📞', route: '/contact' },
   { title: 'About', icon: 'ℹ️', route: '/about-us' },
@@ -358,7 +357,7 @@ function ScholarshipPromo() {
           </View>
           <View style={styles.promoCenter}>
             <Text style={styles.promoTitle}>Elnady</Text>
-            <Text style={styles.promoSubtitle}>دفعة 10-10-2026 · تعلّم · لايف · مجتمع</Text>
+            <Text style={styles.promoSubtitle}>Cohort 10-10-2026 · Learn · Live · Community</Text>
           </View>
           <TouchableOpacity
             onPress={() => setHidden(true)}

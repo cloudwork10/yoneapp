@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FixedBackBar from '../../components/FixedBackBar';
 import API_BASE_URL from '../../config/api';
 
 interface Term {
@@ -732,6 +733,7 @@ export default function ProgrammingTermsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
+        <FixedBackBar />
         <ScrollView style={styles.scrollView}>
           <View style={styles.header}>
             <Text style={styles.title}>Programming Terms</Text>
