@@ -2,161 +2,133 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React from 'react';
 import {
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PRIVACY_POLICY_URL } from '../config/legal';
+
+const SECTIONS = [
+  {
+    title: 'Information We Collect',
+    body:
+      'We collect information you provide when you use ELNADY:\n\n' +
+      '• Account data (name, email, password — stored hashed)\n' +
+      '• Profile information and preferences\n' +
+      '• Learning progress and course activity\n' +
+      '• Job applications and CV files you upload\n' +
+      '• Media you upload (images, videos, audio, PDFs)\n' +
+      '• Basic device and security logs (IP, login attempts)\n' +
+      '• Push notification token if you enable notifications',
+  },
+  {
+    title: 'How We Use Your Information',
+    body:
+      'We use your data to:\n\n' +
+      '• Create and secure your account\n' +
+      '• Deliver courses, content, tech news, and reels\n' +
+      '• Process in-app job applications\n' +
+      '• Send optional push notifications\n' +
+      '• Protect the platform from abuse\n\n' +
+      'We do not sell your personal data to third parties.',
+  },
+  {
+    title: 'Who Can See Your Data',
+    body:
+      '• You — your account and activity\n' +
+      '• ELNADY admins — to operate and support the app\n' +
+      '• Job posters — applicants and CVs for their own jobs only',
+  },
+  {
+    title: 'Where Data Is Stored',
+    body:
+      '• Database: MongoDB Atlas (cloud)\n' +
+      '• Uploaded files: ELNADY servers on Railway\n\n' +
+      'Data may be processed on servers outside your country with appropriate safeguards.',
+  },
+  {
+    title: 'Third-Party Infrastructure',
+    body:
+      'We use hosting providers to run the app:\n\n' +
+      '• MongoDB Atlas (database)\n' +
+      '• Railway (API and file storage)\n' +
+      '• Expo (app delivery and notifications)\n\n' +
+      'These providers process data on our behalf to operate the service.',
+  },
+  {
+    title: 'Data Security',
+    body:
+      '• Passwords are hashed with bcrypt\n' +
+      '• HTTPS for app-to-server communication\n' +
+      '• JWT authentication on protected APIs\n' +
+      '• Rate limiting and account lockout on failed logins',
+  },
+  {
+    title: 'Push Notifications',
+    body:
+      'We may send notifications about new content, courses, or important announcements. ' +
+      'You can disable them in your device settings or inside the app.',
+  },
+  {
+    title: 'Your Rights',
+    body:
+      'You may request to:\n\n' +
+      '• Access or correct your personal data\n' +
+      '• Delete your account and related data\n' +
+      '• Opt out of push notifications\n\n' +
+      'Contact us at admin@yoneapp.com',
+  },
+  {
+    title: "Children's Privacy",
+    body:
+      'ELNADY is not intended for children under 13. We do not knowingly collect data from children under 13. ' +
+      'If we learn that we have, we will delete it promptly.',
+  },
+  {
+    title: 'Policy Updates',
+    body:
+      'We may update this Privacy Policy. The latest version is always available at our public URL below. ' +
+      'Last updated: July 2026.',
+  },
+  {
+    title: 'Contact Us',
+    body:
+      'Email: admin@yoneapp.com\n' +
+      'Public policy: ' +
+      PRIVACY_POLICY_URL,
+  },
+];
 
 export default function PrivacyPolicyScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Privacy Policy</Text>
-            <Text style={styles.subtitle}>Last updated: January 2025</Text>
+            <Text style={styles.subtitle}>Last updated: July 2026</Text>
+            <TouchableOpacity
+              style={styles.publicLink}
+              onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            >
+              <Text style={styles.publicLinkText}>🌐 Open public page (for app stores)</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Content */}
           <View style={styles.content}>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🔒 Information We Collect</Text>
-              <Text style={styles.sectionText}>
-                We collect information you provide directly to us, such as when you create an account, use our services, or contact us for support:
-                {'\n\n'}• Account information (name, email, password)
-                {'\n'}• Profile information and preferences
-                {'\n'}• Learning progress and course completion data
-                {'\n'}• Device information and usage analytics
-                {'\n'}• Communication data when you contact us
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📱 How We Use Your Information</Text>
-              <Text style={styles.sectionText}>
-                We use the information we collect to:
-                {'\n\n'}• Provide, maintain, and improve our services
-                {'\n'}• Personalize your learning experience
-                {'\n'}• Track your progress and achievements
-                {'\n'}• Send you notifications and updates
-                {'\n'}• Respond to your comments and questions
-                {'\n'}• Monitor and analyze usage patterns
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🔐 Data Security</Text>
-              <Text style={styles.sectionText}>
-                We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. This includes:
-                {'\n\n'}• Encryption of data in transit and at rest
-                {'\n'}• Secure authentication and authorization
-                {'\n'}• Regular security audits and updates
-                {'\n'}• Limited access to personal information
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🍪 Cookies and Tracking</Text>
-              <Text style={styles.sectionText}>
-                We use cookies and similar tracking technologies to:
-                {'\n\n'}• Remember your preferences and settings
-                {'\n'}• Analyze how you use our app
-                {'\n'}• Improve app performance and user experience
-                {'\n'}• Provide personalized content and recommendations
-                {'\n\n'}You can control cookie settings through your device preferences.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📊 Analytics and Performance</Text>
-              <Text style={styles.sectionText}>
-                We use analytics tools to understand how our app is used and to improve performance:
-                {'\n\n'}• App usage statistics and crash reports
-                {'\n'}• Performance monitoring and optimization
-                {'\n'}• User engagement metrics
-                {'\n'}• Feature usage analytics
-                {'\n\n'}This data is anonymized and used solely for improvement purposes.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🔔 Push Notifications</Text>
-              <Text style={styles.sectionText}>
-                We may send you push notifications for:
-                {'\n\n'}• New content and course updates
-                {'\n'}• Prayer time reminders (if enabled)
-                {'\n'}• Learning progress updates
-                {'\n'}• Important app announcements
-                {'\n\n'}You can manage notification preferences in your device settings or within the app.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>👥 Third-Party Services</Text>
-              <Text style={styles.sectionText}>
-                We may use third-party services that collect information:
-                {'\n\n'}• Analytics providers (Google Analytics, Firebase)
-                {'\n'}• Cloud storage and database services
-                {'\n'}• Authentication services
-                {'\n'}• Content delivery networks
-                {'\n\n'}These services have their own privacy policies and data practices.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🌍 Data Location and Transfer</Text>
-              <Text style={styles.sectionText}>
-                Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place to protect your data during such transfers, including:
-                {'\n\n'}• Standard contractual clauses
-                {'\n'}• Adequacy decisions by relevant authorities
-                {'\n'}• Other appropriate legal mechanisms
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>👤 Your Rights</Text>
-              <Text style={styles.sectionText}>
-                You have the right to:
-                {'\n\n'}• Access your personal information
-                {'\n'}• Correct inaccurate or incomplete data
-                {'\n'}• Delete your account and associated data
-                {'\n'}• Object to processing of your data
-                {'\n'}• Data portability
-                {'\n'}• Withdraw consent at any time
-                {'\n\n'}Contact us to exercise these rights.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>👶 Children's Privacy</Text>
-              <Text style={styles.sectionText}>
-                Our service is not intended for children under 13. We do not knowingly collect personal information from children under 13. If we become aware that we have collected personal information from a child under 13, we will take steps to delete such information.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📝 Policy Updates</Text>
-              <Text style={styles.sectionText}>
-                We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. We encourage you to review this Privacy Policy periodically.
-              </Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📞 Contact Us</Text>
-              <Text style={styles.sectionText}>
-                If you have any questions about this Privacy Policy, please contact us:
-                {'\n\n'}Email: privacy@elnadyapp.com
-                {'\n'}Website: www.elnadyapp.com
-                {'\n'}Response Time: Within 24-48 hours
-              </Text>
-            </View>
+            {SECTIONS.map((section) => (
+              <View key={section.title} style={styles.section}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <Text style={styles.sectionText}>{section.body}</Text>
+              </View>
+            ))}
           </View>
         </ScrollView>
       </LinearGradient>
@@ -197,7 +169,20 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#CCCCCC',
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  publicLink: {
+    backgroundColor: 'rgba(229, 9, 20, 0.15)',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.4)',
+  },
+  publicLinkText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   content: {
     paddingHorizontal: 20,
