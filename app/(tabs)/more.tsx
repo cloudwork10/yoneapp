@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CONTACT_EMAIL } from '@/config/legal';
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
@@ -510,7 +511,7 @@ export default function MoreScreen() {
                   <Text style={styles.sectionTitle}>📞 Contact & Support</Text>
                   <Text style={styles.sectionText}>
                     Need help or have suggestions? We're here for you!{'\n\n'}
-                    <Text style={styles.boldText}>Email:</Text> support@elnadyapp.com{'\n'}
+                    <Text style={styles.boldText}>Email:</Text> {CONTACT_EMAIL}{'\n'}
                     <Text style={styles.boldText}>Website:</Text> www.elnadyapp.com{'\n'}
                     <Text style={styles.boldText}>Community:</Text> Join our Discord server{'\n'}
                     <Text style={styles.boldText}>Feedback:</Text> Rate us on the App Store{'\n\n'}

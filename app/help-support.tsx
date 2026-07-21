@@ -12,6 +12,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CONTACT_EMAIL } from '../config/legal';
 
 export default function HelpSupportScreen() {
   const [message, setMessage] = useState('');
@@ -25,7 +26,7 @@ export default function HelpSupportScreen() {
 
     const subject = 'ELNADY App Support Request';
     const body = `Message: ${message}\n\nEmail: ${email || 'Not provided'}`;
-    const mailtoUrl = `mailto:support@elnadyapp.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoUrl = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     Linking.openURL(mailtoUrl).catch(() => {
       Alert.alert('خطأ', 'لا يمكن فتح تطبيق البريد الإلكتروني');
@@ -187,7 +188,7 @@ export default function HelpSupportScreen() {
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>البريد الإلكتروني:</Text>
-              <Text style={styles.infoValue}>support@elnadyapp.com</Text>
+              <Text style={styles.infoValue}>{CONTACT_EMAIL}</Text>
             </View>
           </View>
 

@@ -9,6 +9,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CONTACT_EMAIL } from '../config/legal';
 
 export default function AboutUsScreen() {
   return (
@@ -189,7 +190,7 @@ export default function AboutUsScreen() {
               We'd love to hear from you! Whether you have feedback, suggestions, or just want 
               to say hello, we're here to listen.
               {'\n\n'}
-              Email: team@elnadyapp.com
+              Email: {CONTACT_EMAIL}
               {'\n'}Website: www.elnadyapp.com
               {'\n'}Social Media: @elnady
             </Text>

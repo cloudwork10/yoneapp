@@ -12,6 +12,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CONTACT_EMAIL } from '../config/legal';
 
 export default function ContactScreen() {
   const [name, setName] = useState('');
@@ -26,7 +27,7 @@ export default function ContactScreen() {
     }
 
     const body = `Name: ${name}\nEmail: ${email}\nSubject: ${subject || 'General Inquiry'}\n\nMessage:\n${message}`;
-    const mailtoUrl = `mailto:contact@elnadyapp.com?subject=${encodeURIComponent(subject || 'Contact from ELNADY App')}&body=${encodeURIComponent(body)}`;
+    const mailtoUrl = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject || 'Contact from ELNADY App')}&body=${encodeURIComponent(body)}`;
 
     Linking.openURL(mailtoUrl).catch(() => {
       Alert.alert('Error', 'Could not open email application');
@@ -162,7 +163,7 @@ export default function ContactScreen() {
               <Text style={styles.infoIcon}>📧</Text>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>contact@elnadyapp.com</Text>
+                <Text style={styles.infoValue}>{CONTACT_EMAIL}</Text>
               </View>
             </View>
 
