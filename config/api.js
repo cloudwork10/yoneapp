@@ -1,10 +1,10 @@
 // API Configuration
-// - Prefer EXPO_PUBLIC_API_URL from .env
-// - Else reuse Expo LAN host (physical device / Expo Go)
-// - Android emulator: 10.0.2.2
-// - iOS simulator fallback: 127.0.0.1
+// Default: production API (MongoDB Atlas + Railway uploads).
+// Local backend only when EXPO_PUBLIC_USE_LOCAL_API=true in .env (dev only).
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+
+const PRODUCTION_API_URL = 'https://yone-api-production-20e7.up.railway.app';
 
 const stripTrailingSlash = (url) => url.replace(/\/$/, '');
 
@@ -36,16 +36,23 @@ const getApiBaseUrl = () => {
     return stripTrailingSlash(process.env.EXPO_PUBLIC_API_URL);
   }
 
-  const lanHost = getLanHostFromExpo();
-  if (lanHost) {
-    return `http://${lanHost}:3000`;
+  const useLocal =
+    __DEV__ &&
+    typeof process !== 'undefined' &&
+    process.env.EXPO_PUBLIC_USE_LOCAL_API === 'true';
+
+  if (useLocal) {
+    const lanHost = getLanHostFromExpo();
+    if (lanHost) {
+      return `http://${lanHost}:3000`;
+    }
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:3000';
+    }
+    return 'http://127.0.0.1:3000';
   }
 
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000';
-  }
-
-  return 'http://127.0.0.1:3000';
+  return PRODUCTION_API_URL;
 };
 
 const API_BASE_URL = getApiBaseUrl();

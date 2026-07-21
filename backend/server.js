@@ -14,6 +14,7 @@ const {
   logger
 } = require('./middleware/security');
 const { requireAuth, requireAdmin } = require('./middleware/auth');
+const { ensureUploadDirs, countUploadFiles, isUploadsWritable } = require('./utils/uploadDirs');
 // Load env: try config.env then .env (so .env works for deployment)
 require('dotenv').config({ path: path.join(__dirname, 'config.env') });
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -30,6 +31,9 @@ const logsDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
+
+// Persistent uploads (Railway Volume → mount at /app/uploads)
+const uploadsRoot = ensureUploadDirs();
 
 // Apply security middleware to specific routes only
 // (Public routes will use publicSecurityMiddleware)
@@ -60,10 +64,10 @@ app.use(express.urlencoded({
 }));
 
 // Static file serving for uploads with security headers
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+app.use('/uploads', express.static(uploadsRoot, {
   setHeaders: (res, filePath) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    const isMedia = /\.(mp4|mov|m4v|webm|mp3|m4a|wav|jpg|jpeg|png|gif|webp)$/i.test(filePath);
+    const isMedia = /\.(mp4|mov|m4v|webm|mp3|m4a|wav|jpg|jpeg|png|gif|webp|pdf)$/i.test(filePath);
     // Media must be inline so video/audio players can stream it
     res.setHeader('Content-Disposition', isMedia ? 'inline' : 'attachment');
     if (/\.mp4$/i.test(filePath)) {
@@ -102,11 +106,18 @@ mongoose.connect(mongoUri, {
 
 // Health check endpoint - return 503 if DB not connected
 app.get('/api/health', (req, res) => {
+  const uploadStats = countUploadFiles();
   const status = dbConnected ? 200 : 503;
   res.status(status).json({
     status: dbConnected ? 'success' : 'degraded',
     message: dbConnected ? 'ELNADY API is running securely' : 'API running; database not connected',
     database: dbConnected,
+    uploads: {
+      root: uploadsRoot,
+      writable: isUploadsWritable(),
+      totalFiles: uploadStats.total,
+      byFolder: uploadStats.byFolder,
+    },
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development'
@@ -145,6 +156,7 @@ app.use('/api/admin/content', securityMiddleware, requireAuth, requireAdmin, req
 // Public content: read-only content for app (no auth required)
 app.use('/api/public/content', publicSecurityMiddleware, require('./routes/content'));
 app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./routes/admin'));
+app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./routes/storage'));
 app.use('/api/admin', securityMiddleware, requireAuth, requireAdmin, require('./routes/notifications'));
 app.use('/api/reels', securityMiddleware, require('./routes/reels'));
 // النادي — Live Cohort (public + student + admin routes inside)

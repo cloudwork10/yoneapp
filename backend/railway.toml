@@ -1,4 +1,9 @@
 # Railway - عند ربط المستودع حدد Root Directory = backend
+#
+# تخزين دائم للملفات (صور / فيديو / CV):
+# 1) من لوحة Railway → Service → Volumes → Add Volume
+# 2) Mount Path = /app/uploads
+# 3) أعد النشر — الملفات تفضل بعد كل deploy
 
 [build]
 builder = "nixpacks"
