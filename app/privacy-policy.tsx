@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PRIVACY_POLICY_URL } from '../config/legal';
+import { PRIVACY_POLICY_URL, CONTACT_EMAIL } from '../config/legal';
 
 const SECTIONS = [
   {
@@ -80,7 +80,7 @@ const SECTIONS = [
       '• Access or correct your personal data\n' +
       '• Delete your account and related data\n' +
       '• Opt out of push notifications\n\n' +
-      'Contact us at admin@yoneapp.com',
+      `Contact us at ${CONTACT_EMAIL}`,
   },
   {
     title: "Children's Privacy",
@@ -97,7 +97,7 @@ const SECTIONS = [
   {
     title: 'Contact Us',
     body:
-      'Email: admin@yoneapp.com\n' +
+      `Email: ${CONTACT_EMAIL}\n` +
       'Public policy: ' +
       PRIVACY_POLICY_URL,
   },
