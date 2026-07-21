@@ -15,7 +15,7 @@ if [[ ! -d "$ROOT/uploads" ]]; then
   exit 1
 fi
 
-ZIP="$(mktemp /tmp/yone-uploads-XXXXXX.zip)"
+ZIP="/tmp/yone-uploads-$(date +%s)-$$.zip"
 trap 'rm -f "$ZIP"' EXIT
 
 echo "Zipping local uploads..."

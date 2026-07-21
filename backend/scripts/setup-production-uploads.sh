@@ -62,11 +62,14 @@ if [[ -z "${ADMIN_TOKEN:-}" ]]; then
   }
 fi
 
-ZIP="$(mktemp /tmp/yone-uploads-XXXXXX.zip)"
+ZIP="/tmp/yone-uploads-$(date +%s)-$$.zip"
 trap 'rm -f "$ZIP"' EXIT
 
 echo "⏳ ضغط الملفات..."
-(cd "$ROOT" && zip -rq "$ZIP" uploads)
+(cd "$ROOT" && zip -rq "$ZIP" uploads) || {
+  echo "❌ فشل ضغط الملفات"
+  exit 1
+}
 
 SIZE="$(du -h "$ZIP" | cut -f1)"
 echo "⏳ رفع $SIZE على البرودكشن..."
