@@ -2,24 +2,30 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 import {
     Animated,
     Dimensions,
+    Image,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 
 const { width, height } = Dimensions.get('window');
 
 export default function AppLoadingScreen() {
+  const params = useLocalSearchParams<{ preview?: string }>();
+  const isPreview = params.preview === '1' || params.preview === 'true';
+  const insets = useSafeAreaInsets();
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
-  const logoRotateAnim = useRef(new Animated.Value(0)).current;
   const dotsAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -29,14 +35,17 @@ export default function AppLoadingScreen() {
   useEffect(() => {
     startLoadingAnimation();
     playWelcomeSound();
-    
+
+    // Preview mode: stay on screen so admin can review the splash
+    if (isPreview) return;
+
     // Delay the auth check to ensure Root Layout is ready
     const timer = setTimeout(() => {
       checkAuthAndRedirect();
     }, 1000);
-    
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [isPreview]);
 
   const startLoadingAnimation = () => {
     // Main entrance animation
@@ -52,15 +61,6 @@ export default function AppLoadingScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Logo rotation animation
-    Animated.loop(
-      Animated.timing(logoRotateAnim, {
-        toValue: 1,
-        duration: 3000,
-        useNativeDriver: true,
-      })
-    ).start();
 
     // Loading dots animation
     Animated.loop(
@@ -89,7 +89,7 @@ export default function AppLoadingScreen() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
+          toValue: 1.06,
           duration: 1000,
           useNativeDriver: true,
         }),
@@ -243,11 +243,6 @@ export default function AppLoadingScreen() {
     }
   };
 
-  const logoRotate = logoRotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
@@ -263,6 +258,16 @@ export default function AppLoadingScreen() {
       colors={['#000000', '#1a1a1a', '#2d2d2d']}
       style={styles.container}
     >
+      {isPreview ? (
+        <TouchableOpacity
+          style={[styles.closePreviewButton, { top: insets.top + 8 }]}
+          onPress={() => router.back()}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.closePreviewText}>‹ Close preview</Text>
+        </TouchableOpacity>
+      ) : null}
+
       <Animated.View
         style={[
           styles.content,
@@ -275,21 +280,18 @@ export default function AppLoadingScreen() {
           },
         ]}
       >
-        {/* App Logo */}
+        {/* App Logo — ELNADY E monogram (legacy Y backup in assets/images/legacy-y-logo) */}
         <Animated.View
           style={[
             styles.logoContainer,
-            {
-              transform: [
-                { rotate: logoRotate },
-                { scale: pulseAnim }
-              ],
-            },
+            { transform: [{ scale: pulseAnim }] },
           ]}
         >
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>Y</Text>
-          </View>
+          <Image
+            source={require('../assets/images/elnady-logo-e.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </Animated.View>
 
         {/* Sound Waves */}
@@ -380,7 +382,9 @@ export default function AppLoadingScreen() {
         </View>
 
         {/* Version Info */}
-        <Text style={styles.versionText}>Version 1.0.0</Text>
+        <Text style={styles.versionText}>
+          {isPreview ? 'Preview mode · Version 1.0.0' : 'Version 1.0.0'}
+        </Text>
       </Animated.View>
     </LinearGradient>
   );
@@ -392,6 +396,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  closePreviewButton: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  closePreviewText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -399,30 +419,16 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     marginBottom: 30,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E50914',
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: '#E50914',
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 15,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.55,
+    shadowRadius: 24,
+    elevation: 12,
   },
-  logoText: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+  logoImage: {
+    width: 128,
+    height: 128,
+    borderRadius: 28,
   },
   soundWavesContainer: {
     flexDirection: 'row',

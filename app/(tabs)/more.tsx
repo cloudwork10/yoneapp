@@ -261,6 +261,14 @@ const ADMIN_SECTION: MenuSection = {
       route: '/tech-news',
       adminOnly: true,
     },
+    {
+      id: 15,
+      title: 'Splash Preview',
+      description: 'Preview app loading screen',
+      icon: '🎬',
+      route: '/app-loading?preview=1',
+      adminOnly: true,
+    },
   ],
 };
 
@@ -413,6 +421,18 @@ export default function MoreScreen() {
         Alert.alert('Access Denied', 'You need admin privileges.');
         return;
       }
+    }
+
+    if (route.includes('?')) {
+      const [pathname, query = ''] = route.split('?');
+      const params = Object.fromEntries(
+        query.split('&').filter(Boolean).map((pair) => {
+          const [key, value = ''] = pair.split('=');
+          return [key, decodeURIComponent(value)];
+        })
+      );
+      router.push({ pathname: pathname as any, params });
+      return;
     }
 
     router.push(route as any);
