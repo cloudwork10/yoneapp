@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import resolveMediaUrl from '../../utils/mediaUrl';
 
 type MenuItem = {
   id: number;
@@ -446,9 +448,16 @@ export default function MoreScreen() {
             onPress={() => router.push('/profile')}
             activeOpacity={0.85}
           >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initial}</Text>
-            </View>
+            {user?.avatar ? (
+              <Image
+                source={{ uri: resolveMediaUrl(user.avatar) }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initial}</Text>
+              </View>
+            )}
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user?.name || 'Guest'}</Text>
               <Text style={styles.profileMeta}>
@@ -536,6 +545,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#E50914',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#222222',
   },
   avatarText: {
     color: '#FFFFFF',

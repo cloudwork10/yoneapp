@@ -66,6 +66,7 @@ export default function LoginScreen() {
           isAdmin: userData.isAdmin || false,
           adminLevel: userData.adminLevel,
           role: userData.isAdmin ? 'admin' : 'user',
+          avatar: userData.avatar || '',
           createdAt: userData.createdAt
         };
         

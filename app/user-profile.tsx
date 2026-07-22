@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import { useUser } from '../contexts/UserContext';
+import resolveMediaUrl from '../utils/mediaUrl';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 const { width } = Dimensions.get('window');
@@ -297,7 +298,7 @@ export default function UserProfileScreen() {
           <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
               {profile.avatar ? (
-                <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+                <Image source={{ uri: resolveMediaUrl(profile.avatar) }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>

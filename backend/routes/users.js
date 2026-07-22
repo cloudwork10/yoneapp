@@ -1,10 +1,107 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
 const Reel = require('../models/Reel');
 const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth');
+const { uploadLimiter } = require('../middleware/security');
+const { getUploadRoot } = require('../utils/uploadDirs');
 
 const router = express.Router();
+
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(getUploadRoot(), 'images');
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname || '') || '.jpg';
+    cb(null, `avatar-${uniqueSuffix}${ext}`);
+  },
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  },
+});
+
+function buildUploadUrl(req, folder, filename) {
+  const host = req.get('host');
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+  const baseUrl = host
+    ? `${proto}://${host}`
+    : (process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000');
+  return `${baseUrl.replace(/\/$/, '')}/uploads/${folder}/${filename}`;
+}
+
+function tryDeleteLocalUpload(url) {
+  if (!url || typeof url !== 'string' || !url.includes('/uploads/images/')) return;
+  try {
+    const filename = url.split('/uploads/images/').pop()?.split('?')[0];
+    if (!filename || filename.includes('..')) return;
+    const filePath = path.join(getUploadRoot(), 'images', filename);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch {
+    // ignore cleanup errors
+  }
+}
+
+// @route   POST /api/users/avatar
+// @desc    Upload / update current user profile photo
+// @access  Private
+router.post('/avatar', requireAuth, uploadLimiter, uploadAvatar.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'No image file provided',
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found',
+      });
+    }
+
+    const previousAvatar = user.avatar;
+    const avatarUrl = buildUploadUrl(req, 'images', req.file.filename);
+    user.avatar = avatarUrl;
+    await user.save();
+
+    if (previousAvatar && previousAvatar !== avatarUrl) {
+      tryDeleteLocalUpload(previousAvatar);
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Profile photo updated successfully',
+      data: {
+        avatar: avatarUrl,
+        user: user.getProfile(),
+      },
+    });
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message || 'Failed to upload profile photo',
+    });
+  }
+});
 
 // @route   GET /api/users/:id/profile
 // @desc    Get user profile with their reels (public or admin)
@@ -146,7 +243,7 @@ router.get('/:id/profile', optionalAuth, async (req, res) => {
 // @access  Private
 router.get('/profile', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
+    const user = await User.findById(req.user.id)
       .populate('coursesEnrolled', 'title category duration')
       .populate('coursesCompleted', 'title category duration')
       .populate('certificates', 'title course date');
@@ -201,7 +298,7 @@ router.put('/profile', [
       // Check if email is already taken by another user
       const existingUser = await User.findOne({ 
         email, 
-        _id: { $ne: req.user._id } 
+        _id: { $ne: req.user.id } 
       });
       
       if (existingUser) {
@@ -216,7 +313,7 @@ router.put('/profile', [
     if (preferences) updateData.preferences = { ...req.user.preferences, ...preferences };
 
     const user = await User.findByIdAndUpdate(
-      req.user._id,
+      req.user.id,
       updateData,
       { new: true, runValidators: true }
     );
@@ -263,7 +360,7 @@ router.put('/change-password', [
     const { currentPassword, newPassword } = req.body;
 
     // Get user with password
-    const user = await User.findById(req.user._id).select('+password');
+    const user = await User.findById(req.user.id).select('+password');
 
     // Check current password
     const isCurrentPasswordValid = await user.comparePassword(currentPassword);
@@ -296,7 +393,7 @@ router.put('/change-password', [
 // @access  Private
 router.get('/dashboard', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
+    const user = await User.findById(req.user.id)
       .populate('coursesEnrolled', 'title category duration rating')
       .populate('coursesCompleted', 'title category duration')
       .populate('certificates', 'title course date');

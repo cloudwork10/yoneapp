@@ -1,11 +1,15 @@
 import { useUser } from '@/contexts/UserContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Linking,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,10 +19,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
+import resolveMediaUrl from '../utils/mediaUrl';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 export default function ProfileScreen() {
-  const { user, logout, isAdmin, isLoading } = useUser();
+  const { user, logout, isAdmin, isLoading, updateUser } = useUser();
   const [userStats, setUserStats] = useState({
     coursesCompleted: 0,
     totalHours: 0,
@@ -33,20 +38,126 @@ export default function ProfileScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
-    // In a real app, you would fetch user stats from the API
-    // For now, we'll use placeholder data
     setUserStats({
       coursesCompleted: 12,
       totalHours: 45,
       currentStreak: 7,
     });
-    
-    // Debug: Log user data
-    console.log('Profile Screen - User:', user);
-    console.log('Profile Screen - IsLoading:', isLoading);
-  }, [user, isLoading]);
+  }, []);
+
+  useEffect(() => {
+    const syncProfile = async () => {
+      if (!user) return;
+      try {
+        const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/users/profile`);
+        if (!response.ok) return;
+        const data = await response.json();
+        const remote = data?.data?.user;
+        if (!remote) return;
+        updateUser({
+          name: remote.name || user.name,
+          email: remote.email || user.email,
+          avatar: remote.avatar || '',
+          isAdmin: remote.isAdmin ?? user.isAdmin,
+          adminLevel: remote.adminLevel || user.adminLevel,
+          createdAt: remote.createdAt || user.createdAt,
+        });
+      } catch {
+        // keep local session if sync fails
+      }
+    };
+    syncProfile();
+  }, [user?.id]);
+
+  const pickAndUploadAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.uri) {
+        // User cancelled, or picker closed due to missing permission
+        if (Platform.OS !== 'web') {
+          const permission = await ImagePicker.getMediaLibraryPermissionsAsync();
+          const blocked =
+            !permission.granted &&
+            permission.status !== 'granted' &&
+            (permission as { accessPrivileges?: string }).accessPrivileges !== 'limited' &&
+            permission.canAskAgain === false;
+
+          if (blocked) {
+            Alert.alert(
+              'Permission needed',
+              'Photo access is blocked. Enable it in Settings to set your profile picture.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Open Settings', onPress: () => Linking.openSettings() },
+              ]
+            );
+          }
+        }
+        return;
+      }
+
+      setUploadingAvatar(true);
+      const asset = result.assets[0];
+      const imageUri = asset.uri;
+      const mimeType = asset.mimeType || 'image/jpeg';
+      const extension = mimeType.includes('png')
+        ? 'png'
+        : mimeType.includes('webp')
+          ? 'webp'
+          : 'jpg';
+
+      const uploadBody = new FormData();
+      uploadBody.append('avatar', {
+        uri: imageUri,
+        type: mimeType,
+        name: `avatar.${extension}`,
+      } as any);
+
+      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/users/avatar`, {
+        method: 'POST',
+        body: uploadBody,
+      });
+
+      let data: any = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = { message: `Upload failed (${response.status})` };
+      }
+
+      if (!response.ok) {
+        Alert.alert('Error', data?.message || 'Failed to upload profile photo');
+        return;
+      }
+
+      const avatarUrl = data?.data?.avatar || data?.data?.user?.avatar || '';
+      updateUser({ avatar: avatarUrl });
+      Alert.alert('Done', 'Profile photo updated successfully');
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      Alert.alert(
+        'Permission needed',
+        'Please allow photo library access to set your profile picture.',
+        Platform.OS === 'web'
+          ? [{ text: 'OK' }]
+          : [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open Settings', onPress: () => Linking.openSettings() },
+            ]
+      );
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -230,18 +341,38 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-              </Text>
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={pickAndUploadAvatar}
+            disabled={uploadingAvatar}
+            activeOpacity={0.85}
+          >
+            {user.avatar ? (
+              <Image
+                source={{ uri: resolveMediaUrl(user.avatar) }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.avatarEditText}>📷</Text>
+              )}
             </View>
             {isAdmin && (
               <View style={styles.adminBadge}>
                 <Text style={styles.adminBadgeText}>👑</Text>
               </View>
             )}
-          </View>
+          </TouchableOpacity>
+          <Text style={styles.avatarHint}>Tap photo to change</Text>
           
           <Text style={styles.userName}>{user.name}</Text>
           <Text style={styles.userEmail}>{user.email}</Text>
@@ -500,10 +631,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#222222',
+  },
   avatarText: {
     color: '#FFFFFF',
     fontSize: 32,
     fontWeight: 'bold',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E50914',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  avatarEditText: {
+    fontSize: 14,
+  },
+  avatarHint: {
+    color: '#888888',
+    fontSize: 13,
+    marginBottom: 12,
   },
   adminBadge: {
     position: 'absolute',

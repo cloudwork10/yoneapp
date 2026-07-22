@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload videos for reels.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload a profile photo and videos for reels.",
         "NSPhotoLibraryAddUsageDescription": "This app needs access to save videos to your photo library.",
         "LSApplicationQueriesSchemes": [
           "googlechrome",
@@ -28,6 +28,7 @@
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
         "READ_MEDIA_VIDEO"
       ]
     },
@@ -56,7 +57,13 @@
           "sounds": ["./assets/sounds/notification.wav"]
         }
       ],
-      "react-native-video"
+      "react-native-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ELNADY to access your photos to set a profile picture."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

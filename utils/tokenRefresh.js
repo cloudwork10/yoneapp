@@ -119,12 +119,29 @@ export const makeAuthenticatedRequest = async (url, options = {}, retryCount = 0
       };
     }
 
-    const isFormData = options.body instanceof FormData;
+    // RN FormData is not always `instanceof FormData` — wrong Content-Type causes "Network request failed"
+    const body = options.body;
+    const isFormData =
+      (typeof FormData !== 'undefined' && body instanceof FormData) ||
+      (body &&
+        typeof body === 'object' &&
+        typeof body.append === 'function' &&
+        (body.constructor?.name === 'FormData' || Array.isArray(body._parts)));
+
     const requestHeaders = {
       Authorization: `Bearer ${currentToken}`,
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      ...options.headers,
+      ...(options.headers || {}),
     };
+
+    if (!isFormData && !requestHeaders['Content-Type'] && !requestHeaders['content-type']) {
+      requestHeaders['Content-Type'] = 'application/json';
+    }
+
+    // Let fetch set multipart boundary for FormData
+    if (isFormData) {
+      delete requestHeaders['Content-Type'];
+      delete requestHeaders['content-type'];
+    }
 
     const response = await fetch(url, {
       ...options,
@@ -154,13 +171,13 @@ export const makeAuthenticatedRequest = async (url, options = {}, retryCount = 0
     }
 
     return response;
-  } catch {
+  } catch (error) {
     return {
       ok: false,
       status: 500,
       json: async () => ({
         status: 'error',
-        message: 'Network error',
+        message: error?.message || 'Network error',
         code: 'NETWORK_ERROR',
       }),
     };

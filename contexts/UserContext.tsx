@@ -9,6 +9,7 @@ interface User {
   isAdmin: boolean;
   adminLevel?: 'super' | 'admin' | 'moderator';
   role: string;
+  avatar?: string;
   createdAt?: string;
 }
 
