@@ -200,6 +200,7 @@ router.put('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
       'image',
       'source',
       'category',
+      'region',
       'isPinned',
       'isHidden',
       'isActive',
