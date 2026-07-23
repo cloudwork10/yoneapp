@@ -109,6 +109,37 @@ const FEEDS = [
     category: 'general',
     source: 'GitHub Blog',
   },
+  // Egypt & Arab world tech — kept in `arab` category for the Reader chip
+  {
+    url: 'https://news.google.com/rss/search?q=%D8%AA%D9%83%D9%86%D9%88%D9%84%D9%88%D8%AC%D9%8A%D8%A7+OR+%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+OR+%D8%B4%D8%B1%D9%83%D8%A7%D8%AA+%D9%86%D8%A7%D8%B4%D8%A6%D8%A9+when:7d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'arab',
+    source: 'Google News · مصر تكنولوجيا',
+    lockCategory: true,
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=Egypt+(tech+OR+startup+OR+%22artificial+intelligence%22+OR+fintech+OR+%22silicon+valley+of+the+middle+east%22)+when:7d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'arab',
+    source: 'Google News · Egypt Tech',
+    lockCategory: true,
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=%D8%AA%D9%83%D9%86%D9%88%D9%84%D9%88%D8%AC%D9%8A%D8%A7+OR+%D8%B1%D9%82%D9%85%D9%86%D8%A9+OR+%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+(%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA+OR+%D8%A7%D9%84%D8%A3%D8%B1%D8%AF%D9%86+OR+%D8%A7%D9%84%D9%83%D9%88%D9%8A%D8%AA)+when:7d&hl=ar&gl=SA&ceid=SA:ar',
+    category: 'arab',
+    source: 'Google News · عرب تكنولوجيا',
+    lockCategory: true,
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+%22Middle+East%22+OR+GCC)+(startup+OR+tech+OR+fintech+OR+%22artificial+intelligence%22)+when:7d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'arab',
+    source: 'Google News · MENA Tech',
+    lockCategory: true,
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=Wamda+OR+Flat6Labs+OR+%22Cairo+tech%22+OR+%22Egyptian+startup%22+OR+Careem+OR+Fawry+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'arab',
+    source: 'Google News · Egypt Startups',
+    lockCategory: true,
+  },
 ];
 
 function stripHtml(html = '') {
@@ -287,6 +318,9 @@ async function fetchOgImage(pageUrl) {
 }
 
 function categorize(title, fallback) {
+  // Regional Arab/Egypt feeds stay under the arab chip
+  if (fallback === 'arab') return 'arab';
+
   const t = String(title || '').toLowerCase();
   if (/cyber|security|breach|ransomware|malware|phishing|hacker|vulnerability|cve/.test(t)) {
     return 'cybersecurity';
@@ -311,6 +345,15 @@ function categorize(title, fallback) {
   if (/react|next\.?js|vue|angular|typescript|css|frontend|tailwind/.test(t)) return 'frontend';
   if (/node\.?js|python|django|golang|\bgo\b|rust|java|backend|api|database/.test(t)) return 'backend';
   if (/release|version|launches|announces|update/.test(t)) return 'releases';
+  // Arabic regional keywords → arab chip even from mixed feeds
+  if (
+    /مصر|السعودية|الإمارات|الكويت|قطر|الأردن|تونس|المغرب|البحرين|عمان|فلسطين|لبنان|العراق|سوريا|الوطن العربي|الشرق الأوسط|شركات ناشئة|ريادة أعمال|التكنولوجيا|الذكاء الاصطناعي/.test(
+      String(title || '')
+    ) ||
+    /\b(egypt|egyptian|mena|saudi|uae|dubai|cairo|riyadh|flat6labs|wamda|fawry|careem)\b/i.test(t)
+  ) {
+    return 'arab';
+  }
   return fallback || 'general';
 }
 
@@ -395,7 +438,9 @@ async function fetchFeed(feed) {
         url,
         image,
         source: feed.source || result.title || 'Tech',
-        category: categorize(title, feed.category),
+        category: feed.lockCategory
+          ? feed.category
+          : categorize(title, feed.category),
         publishedAt: Number.isNaN(publishedAt.getTime()) ? new Date() : publishedAt,
         externalId,
         isAuto: true,

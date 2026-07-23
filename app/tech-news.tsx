@@ -44,6 +44,7 @@ type NewsItem = {
 
 const CATEGORIES = [
   { id: 'all', label: 'All' },
+  { id: 'arab', label: 'مصر / عرب' },
   { id: 'ai', label: 'AI' },
   { id: 'frontend', label: 'Frontend' },
   { id: 'backend', label: 'Backend' },

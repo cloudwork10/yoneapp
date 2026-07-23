@@ -22,6 +22,7 @@ const techNewsSchema = new mongoose.Schema({
       'automation',
       'marketing',
       'freelancing',
+      'arab',
       'general',
     ],
     default: 'general',

@@ -73,7 +73,7 @@ const DISCOVER_SECTION: MenuSection = {
     {
       id: 25,
       title: 'Tech News',
-      description: 'AI · frameworks · releases',
+      description: 'Global · مصر · عرب · AI',
       icon: '📰',
       route: '/tech-news',
     },
