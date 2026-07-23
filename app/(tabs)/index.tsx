@@ -46,7 +46,6 @@ const QUICK_LINKS = [
   { title: 'Advices', icon: '💡', route: '/(tabs)/advices' },
   { title: 'Terms', icon: '📖', route: '/(tabs)/programming-terms' },
   { title: 'Top CV', icon: '📄', route: '/(tabs)/top-cv' },
-  { title: 'Movies', icon: '🎥', route: '/movies' },
   { title: 'Prayer', icon: '🕌', route: '/prayer-times' },
   { title: 'Thoughts', icon: '💭', route: '/programmer-thoughts' },
   { title: 'Profile', icon: '👤', route: '/profile' },

@@ -35,7 +35,6 @@ const SECTION_LINKS: SearchHit[] = [
   { id: 'sec-advices', title: 'Advices', subtitle: 'Expert tips', type: 'Section', icon: '💡', route: '/(tabs)/advices' },
   { id: 'sec-terms', title: 'Programming Terms', subtitle: 'Dictionary', type: 'Section', icon: '📖', route: '/(tabs)/programming-terms' },
   { id: 'sec-cv', title: 'Top CV', subtitle: 'CV templates', type: 'Section', icon: '📄', route: '/(tabs)/top-cv' },
-  { id: 'sec-movies', title: 'Movies', subtitle: 'Programming movies', type: 'Section', icon: '🎥', route: '/movies' },
   { id: 'sec-prayer', title: 'Prayer Times', subtitle: 'Daily prayers', type: 'Section', icon: '🕌', route: '/prayer-times' },
   { id: 'sec-thoughts', title: 'Programmer Thoughts', subtitle: 'Inspiration', type: 'Section', icon: '💭', route: '/programmer-thoughts' },
   { id: 'sec-profile', title: 'Profile', subtitle: 'Your account', type: 'Section', icon: '👤', route: '/profile' },

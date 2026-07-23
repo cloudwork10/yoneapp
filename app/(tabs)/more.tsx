@@ -155,13 +155,6 @@ const LIBRARY_SECTION: MenuSection = {
       icon: '🕌',
       route: '/prayer-times',
     },
-    {
-      id: 5,
-      title: 'Movies',
-      description: 'Programming & coding films',
-      icon: '🎬',
-      route: '/movies',
-    },
   ],
 };
 
