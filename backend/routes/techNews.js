@@ -9,8 +9,9 @@ let imageEnrichRunning = false;
 
 function serialize(doc) {
   const o = doc.toObject ? doc.toObject() : doc;
-  const region =
-    o.region === 'arab' || o.category === 'arab' ? 'arab' : o.region || 'world';
+  let region = o.region || 'world';
+  if (o.category === 'arab' && region === 'world') region = 'arab';
+  if (!['world', 'egypt', 'arab'].includes(region)) region = 'world';
   const category = o.category === 'arab' ? 'general' : o.category || 'general';
   return {
     _id: o._id,
@@ -49,20 +50,23 @@ function kickImageEnrich(limit = 30) {
 router.get('/', async (req, res) => {
   try {
     const category = String(req.query.category || '').toLowerCase();
-    const region = String(req.query.region || 'world').toLowerCase();
+    const regionRaw = String(req.query.region || 'world').toLowerCase();
+    const region = ['world', 'egypt', 'arab'].includes(regionRaw) ? regionRaw : 'world';
     const limit = Math.min(Number(req.query.limit) || 40, 100);
     const filter = { isActive: true, isHidden: false };
 
-    if (region === 'arab') {
+    if (region === 'egypt') {
+      filter.region = 'egypt';
+    } else if (region === 'arab') {
       filter.$or = [{ region: 'arab' }, { category: 'arab' }];
     } else {
-      // world = global (and legacy rows without region, excluding old arab-only category)
       filter.$and = [
         {
           $or: [
             { region: 'world' },
             { region: { $exists: false } },
             { region: null },
+            { region: '' },
           ],
         },
         { category: { $ne: 'arab' } },
@@ -81,7 +85,6 @@ router.get('/', async (req, res) => {
     const newest = items[0]?.publishedAt ? new Date(items[0].publishedAt).getTime() : 0;
     const stale = Date.now() - newest > 6 * 60 * 60 * 1000;
     if (items.length === 0) {
-      // First load: wait so the app gets stories immediately
       try {
         await refreshTechNews();
         items = await TechNews.find(filter)
@@ -106,6 +109,16 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Tech news list error:', error);
     res.status(500).json({ status: 'error', message: 'Failed to load tech news' });
+  }
+});
+
+// Stack Overflow Developer Survey rankings
+router.get('/stackoverflow-rankings', async (req, res) => {
+  try {
+    const { STACK_OVERFLOW_REPORT } = require('../data/stackOverflowReport');
+    res.json({ status: 'success', data: STACK_OVERFLOW_REPORT });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Failed to load Stack Overflow report' });
   }
 });
 
@@ -175,7 +188,7 @@ router.post('/admin', requireAuth, requireAdmin, async (req, res) => {
       image: String(image || '').trim(),
       source: String(source || 'ELNADY').trim(),
       category: category || 'general',
-      region: req.body.region === 'arab' ? 'arab' : 'world',
+      region: ['egypt', 'arab'].includes(req.body.region) ? req.body.region : 'world',
       publishedAt: new Date(),
       isAuto: false,
       isPinned: !!req.body.isPinned,

@@ -73,7 +73,7 @@ const DISCOVER_SECTION: MenuSection = {
     {
       id: 25,
       title: 'Tech News',
-      description: 'Global · مصر · عرب · AI',
+      description: 'World · Egypt · Arab · Stack Overflow',
       icon: '📰',
       route: '/tech-news',
     },

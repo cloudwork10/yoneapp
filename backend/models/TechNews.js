@@ -8,10 +8,10 @@ const techNewsSchema = new mongoose.Schema({
   url: { type: String, required: true, trim: true },
   image: { type: String, default: '' },
   source: { type: String, default: 'Tech', trim: true },
-  /** world = global tech · arab = Egypt & Arab world */
+  /** world | egypt | arab */
   region: {
     type: String,
-    enum: ['world', 'arab'],
+    enum: ['world', 'egypt', 'arab'],
     default: 'world',
     index: true,
   },

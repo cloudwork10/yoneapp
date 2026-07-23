@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   Image,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -44,8 +45,9 @@ type NewsItem = {
 };
 
 const REGIONS = [
-  { id: 'world', label: 'العالم' },
-  { id: 'arab', label: 'مصر / عرب' },
+  { id: 'world', label: 'World' },
+  { id: 'egypt', label: 'Egypt' },
+  { id: 'arab', label: 'Arab' },
 ];
 
 const CATEGORIES = [
@@ -189,12 +191,15 @@ export default function TechNewsScreen() {
   const { isAdmin } = useUser();
   const insets = useSafeAreaInsets();
   const [news, setNews] = useState<NewsItem[]>([]);
-  const [region, setRegion] = useState<'world' | 'arab'>('world');
+  const [region, setRegion] = useState<'world' | 'egypt' | 'arab'>('world');
+  const [viewMode, setViewMode] = useState<'news' | 'stackoverflow' | 'admin'>('news');
+  const [soReport, setSoReport] = useState<any>(null);
+  const [soLoading, setSoLoading] = useState(false);
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [adminMode, setAdminMode] = useState(false);
+  const adminMode = viewMode === 'admin';
   const [adminNews, setAdminNews] = useState<NewsItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
@@ -229,6 +234,28 @@ export default function TechNewsScreen() {
     }
   }, [category, region]);
 
+  const loadStackOverflow = useCallback(async () => {
+    try {
+      setSoLoading(true);
+      setLoadError('');
+      const res = await fetch(`${API_BASE_URL}/api/tech-news/stackoverflow-rankings`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLoadError(data?.message || 'Could not load Stack Overflow report');
+        setSoReport(null);
+        return;
+      }
+      setSoReport(data?.data || null);
+    } catch {
+      setLoadError('Network error — Stack Overflow report');
+      setSoReport(null);
+    } finally {
+      setSoLoading(false);
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
   const loadAdmin = useCallback(async () => {
     try {
       const res = await makeAuthenticatedRequest(`${API_BASE_URL}/api/tech-news/admin`);
@@ -242,9 +269,15 @@ export default function TechNewsScreen() {
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
-      loadPublic();
-      if (isAdmin && adminMode) loadAdmin();
-    }, [loadPublic, isAdmin, adminMode, loadAdmin])
+      if (viewMode === 'stackoverflow') {
+        loadStackOverflow();
+      } else if (viewMode === 'admin') {
+        loadAdmin();
+        setLoading(false);
+      } else {
+        loadPublic();
+      }
+    }, [loadPublic, loadStackOverflow, loadAdmin, viewMode])
   );
 
   const openStory = (item: NewsItem) => {
@@ -354,8 +387,11 @@ export default function TechNewsScreen() {
               refreshing={refreshing}
               onRefresh={() => {
                 setRefreshing(true);
-                loadPublic();
-                if (adminMode) loadAdmin();
+                if (viewMode === 'stackoverflow') loadStackOverflow();
+                else if (viewMode === 'admin') {
+                  loadAdmin();
+                  setRefreshing(false);
+                } else loadPublic();
               }}
               tintColor="#E50914"
             />
@@ -385,7 +421,7 @@ export default function TechNewsScreen() {
           <Text style={styles.brand}>ELNADY</Text>
           <Text style={styles.title}>Tech News</Text>
           <Text style={styles.subtitle}>
-            العالم أو مصر/عرب · اختَر المجال · تتجدد تلقائيًا
+            World · Egypt · Arab news by field — plus Stack Overflow rankings
           </Text>
 
           <View style={styles.adminBar}>
@@ -394,11 +430,11 @@ export default function TechNewsScreen() {
                 key={r.id}
                 style={[
                   styles.adminChip,
-                  !adminMode && region === r.id && styles.adminChipOn,
+                  viewMode === 'news' && region === r.id && styles.adminChipOn,
                 ]}
                 onPress={() => {
-                  setAdminMode(false);
-                  setRegion(r.id as 'world' | 'arab');
+                  setViewMode('news');
+                  setRegion(r.id as 'world' | 'egypt' | 'arab');
                   setCategory('all');
                   setLoading(true);
                 }}
@@ -406,18 +442,30 @@ export default function TechNewsScreen() {
                 <Text style={styles.adminChipText}>{r.label}</Text>
               </TouchableOpacity>
             ))}
+            <TouchableOpacity
+              style={[
+                styles.adminChip,
+                viewMode === 'stackoverflow' && styles.adminChipOn,
+              ]}
+              onPress={() => {
+                setViewMode('stackoverflow');
+                setLoading(true);
+              }}
+            >
+              <Text style={styles.adminChipText}>Stack Overflow</Text>
+            </TouchableOpacity>
             {isAdmin ? (
               <>
                 <TouchableOpacity
-                  style={[styles.adminChip, adminMode && styles.adminChipOn]}
+                  style={[styles.adminChip, viewMode === 'admin' && styles.adminChipOn]}
                   onPress={() => {
-                    setAdminMode(true);
+                    setViewMode('admin');
                     loadAdmin();
                   }}
                 >
                   <Text style={styles.adminChipText}>Admin</Text>
                 </TouchableOpacity>
-                {adminMode ? (
+                {viewMode === 'admin' ? (
                   <TouchableOpacity
                     style={[styles.adminChip, styles.refreshChip]}
                     onPress={refreshFeeds}
@@ -430,7 +478,7 @@ export default function TechNewsScreen() {
             ) : null}
           </View>
 
-          {!adminMode ? (
+          {viewMode === 'news' ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cats}>
               {CATEGORIES.map((c) => (
                 <TouchableOpacity
@@ -445,7 +493,7 @@ export default function TechNewsScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          ) : (
+          ) : viewMode === 'admin' ? (
             <View style={styles.manualBox}>
               <Text style={styles.manualTitle}>Add / Pin news</Text>
               <TextInput
@@ -475,9 +523,16 @@ export default function TechNewsScreen() {
                 <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Publish'}</Text>
               </TouchableOpacity>
             </View>
+          ) : (
+            <View style={styles.soIntro}>
+              <Text style={styles.soIntroTitle}>Stack Overflow · {soReport?.year || 2025}</Text>
+              <Text style={styles.soIntroSub}>
+                Best fields & leading technologies — ranked from the Developer Survey
+              </Text>
+            </View>
           )}
 
-          {loading ? (
+          {loading || soLoading ? (
             <ActivityIndicator color="#E50914" style={{ marginTop: 30 }} />
           ) : loadError ? (
             <View style={styles.emptyBox}>
@@ -486,11 +541,43 @@ export default function TechNewsScreen() {
                 style={styles.retryBtn}
                 onPress={() => {
                   setLoading(true);
-                  loadPublic();
+                  if (viewMode === 'stackoverflow') loadStackOverflow();
+                  else loadPublic();
                 }}
               >
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
+            </View>
+          ) : viewMode === 'stackoverflow' ? (
+            <View>
+              {soReport?.sourceUrl ? (
+                <TouchableOpacity
+                  style={styles.soLinkBtn}
+                  onPress={() => Linking.openURL(soReport.sourceUrl)}
+                >
+                  <Text style={styles.soLinkText}>Full survey on Stack Overflow ↗</Text>
+                </TouchableOpacity>
+              ) : null}
+              {(soReport?.sections || []).map((section: any) => (
+                <View key={section.id} style={styles.soSection}>
+                  <Text style={styles.soSectionTitle}>{section.title}</Text>
+                  <Text style={styles.soSectionSub}>{section.subtitle}</Text>
+                  {(section.items || []).map((row: any) => (
+                    <View key={`${section.id}-${row.rank}`} style={styles.soRow}>
+                      <View style={styles.soRankBadge}>
+                        <Text style={styles.soRankText}>#{row.rank}</Text>
+                      </View>
+                      <Text style={styles.soName} numberOfLines={1}>
+                        {row.name}
+                      </Text>
+                      <Text style={styles.soPercent}>{row.percent}%</Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+              {!soReport?.sections?.length ? (
+                <Text style={styles.empty}>No Stack Overflow data yet</Text>
+              ) : null}
             </View>
           ) : list.length === 0 ? (
             <Text style={styles.empty}>
@@ -761,6 +848,49 @@ const styles = StyleSheet.create({
   title: { color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: -0.5 },
   subtitle: { color: '#888', fontSize: 14, lineHeight: 21, marginTop: 8, marginBottom: 16 },
   adminBar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  soIntro: { marginBottom: 14 },
+  soIntroTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  soIntroSub: { color: '#999', fontSize: 12, marginTop: 4, lineHeight: 17 },
+  soLinkBtn: {
+    alignSelf: 'flex-start',
+    marginBottom: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(244, 128, 36, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(244, 128, 36, 0.4)',
+  },
+  soLinkText: { color: '#F48024', fontWeight: '700', fontSize: 12 },
+  soSection: {
+    marginBottom: 18,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  soSectionTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  soSectionSub: { color: '#888', fontSize: 11, marginTop: 2, marginBottom: 10 },
+  soRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  soRankBadge: {
+    width: 36,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: 'rgba(229,9,20,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  soRankText: { color: '#FF8A8A', fontWeight: '800', fontSize: 11 },
+  soName: { flex: 1, color: '#fff', fontSize: 14, fontWeight: '600' },
+  soPercent: { color: '#4ECDC4', fontWeight: '800', fontSize: 13 },
   adminChip: {
     borderWidth: 1,
     borderColor: '#333',

@@ -132,8 +132,8 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+OR+ChatGPT+OR+OpenAI)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'ai',
-    region: 'arab',
-    source: 'عرب · AI',
+    region: 'egypt',
+    source: 'Egypt · AI',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA+OR+Saudi+OR+UAE)+(AI+OR+%22artificial+intelligence%22+OR+OpenAI)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
@@ -144,8 +144,8 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%A8%D8%B1%D9%85%D8%AC%D8%A9+OR+%D9%85%D8%B7%D9%88%D8%B1+%D9%88%D9%8A%D8%A8+OR+React+OR+Frontend)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'frontend',
-    region: 'arab',
-    source: 'عرب · Frontend',
+    region: 'egypt',
+    source: 'Egypt · Frontend',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(React+OR+Frontend+OR+%22web+development%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
@@ -156,8 +156,8 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AE%D9%88%D8%A7%D8%AF%D9%85+OR+backend+OR+API+OR+Python)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'backend',
-    region: 'arab',
-    source: 'عرب · Backend',
+    region: 'egypt',
+    source: 'Egypt · Backend',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(backend+OR+%22Node.js%22+OR+Python+OR+API)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
@@ -168,8 +168,8 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%D8%A7%D8%AA+%D8%AC%D9%88%D8%A7%D9%84+OR+Flutter+OR+%22React+Native%22)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'mobile',
-    region: 'arab',
-    source: 'عرب · Mobile',
+    region: 'egypt',
+    source: 'Egypt · Mobile',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(Flutter+OR+%22React+Native%22+OR+mobile+app)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
@@ -180,14 +180,14 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B5%D9%85%D9%8A%D9%85+OR+UI+OR+UX+OR+Figma)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'uiux',
-    region: 'arab',
-    source: 'عرب · UI/UX',
+    region: 'egypt',
+    source: 'Egypt · UI/UX',
   },
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%A3%D9%85%D9%86+%D8%B3%D9%8A%D8%A8%D8%B1%D8%A7%D9%86%D9%8A+OR+%D8%A7%D8%AE%D8%AA%D8%B1%D8%A7%D9%82+%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+cybersecurity)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'cybersecurity',
-    region: 'arab',
-    source: 'عرب · Cybersecurity',
+    region: 'egypt',
+    source: 'Egypt · Cybersecurity',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA+OR+Saudi)+(cybersecurity+OR+%22data+breach%22+OR+hacking)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
@@ -198,8 +198,8 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%AD%D9%84%D9%8A%D9%84+%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+%D8%B9%D9%84%D9%85+%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+SQL)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'data',
-    region: 'arab',
-    source: 'عرب · Data',
+    region: 'egypt',
+    source: 'Egypt · Data',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(%22data+science%22+OR+analytics+OR+%22Power+BI%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
@@ -210,20 +210,20 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%A3%D8%AA%D9%85%D8%AA%D8%A9+OR+automation+OR+RPA)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'automation',
-    region: 'arab',
-    source: 'عرب · Automation',
+    region: 'egypt',
+    source: 'Egypt · Automation',
   },
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B3%D9%88%D9%8A%D9%82+%D8%B1%D9%82%D9%85%D9%8A+OR+SEO+OR+%D8%A5%D8%B9%D9%84%D8%A7%D9%86%D8%A7%D8%AA)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'marketing',
-    region: 'arab',
-    source: 'عرب · Marketing',
+    region: 'egypt',
+    source: 'Egypt · Marketing',
   },
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%B9%D9%85%D9%84+%D8%AD%D8%B1+OR+freelance+OR+Upwork)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'freelancing',
-    region: 'arab',
-    source: 'عرب · Freelance',
+    region: 'egypt',
+    source: 'Egypt · Freelance',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(freelance+OR+Upwork+OR+Fiverr+OR+%22remote+work%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
@@ -234,14 +234,14 @@ const FEEDS = [
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1+OR+%D8%AA%D8%AD%D8%AF%D9%8A%D8%AB+%D8%A8%D8%B1%D9%85%D8%AC%D9%8A+OR+release)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'releases',
-    region: 'arab',
-    source: 'عرب · Releases',
+    region: 'egypt',
+    source: 'Egypt · Releases',
   },
   {
     url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D9%88%D8%B7%D9%86+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A)+(%D8%AA%D9%83%D9%86%D9%88%D9%84%D9%88%D8%AC%D9%8A%D8%A7+OR+%D8%B4%D8%B1%D9%83%D8%A7%D8%AA+%D9%86%D8%A7%D8%B4%D8%A6%D8%A9+OR+%D8%B1%D9%82%D9%85%D9%86%D8%A9)+when:7d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'general',
-    region: 'arab',
-    source: 'مصر / عرب · عام',
+    region: 'egypt',
+    source: 'Egypt · General',
   },
   {
     url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(startup+OR+tech+OR+fintech+OR+Wamda+OR+Flat6Labs)+when:7d&hl=en-US&gl=EG&ceid=EG:en',
