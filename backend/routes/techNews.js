@@ -1,6 +1,6 @@
 const express = require('express');
 const TechNews = require('../models/TechNews');
-const { refreshTechNews, enrichMissingImages } = require('../services/techNewsFetcher');
+const { refreshTechNews, enrichMissingImages, seededFallback } = require('../services/techNewsFetcher');
 const { getOrCreateExplain } = require('../services/techNewsExplainer');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 
@@ -13,13 +13,17 @@ function serialize(doc) {
   if (o.category === 'arab' && region === 'world') region = 'arab';
   if (!['world', 'egypt', 'arab'].includes(region)) region = 'world';
   const category = o.category === 'arab' ? 'general' : o.category || 'general';
+  const image =
+    o.image && String(o.image).trim()
+      ? o.image
+      : seededFallback(category, o.title || o.url || String(o._id));
   return {
     _id: o._id,
     title: o.title,
     summary: o.summary || '',
     summaryAr: o.summaryAr || '',
     url: o.url,
-    image: o.image || '',
+    image,
     source: o.source || 'Tech',
     region,
     category,
@@ -33,7 +37,7 @@ function serialize(doc) {
   };
 }
 
-function kickImageEnrich(limit = 30) {
+function kickImageEnrich(limit = 60) {
   if (imageEnrichRunning) return;
   imageEnrichRunning = true;
   enrichMissingImages(limit)
@@ -99,7 +103,7 @@ router.get('/', async (req, res) => {
 
     const missingImages = items.filter((i) => !i.image).length;
     if (missingImages > 0) {
-      kickImageEnrich(Math.min(40, missingImages + 10));
+      kickImageEnrich(Math.min(120, missingImages + 20));
     }
 
     res.json({

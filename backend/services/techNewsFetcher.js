@@ -296,6 +296,46 @@ function isBadImageUrl(url = '') {
   return false;
 }
 
+/** Curated tech cover images so every card always has a real photo */
+const CATEGORY_FALLBACK_IMAGES = {
+  ai: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=900&q=80',
+  frontend: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=900&q=80',
+  backend: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=900&q=80',
+  mobile: 'https://images.unsplash.com/photo-1512941937669-90a1b58b7fe9?auto=format&fit=crop&w=900&q=80',
+  uiux: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=900&q=80',
+  cybersecurity:
+    'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=900&q=80',
+  data: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=80',
+  automation: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=900&q=80',
+  marketing: 'https://images.unsplash.com/photo-1432888498266-38ffec4e0cd2?auto=format&fit=crop&w=900&q=80',
+  freelancing: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80',
+  releases: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&w=900&q=80',
+  general: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80',
+};
+
+function fallbackImageFor(category = 'general') {
+  const key = String(category || 'general').toLowerCase();
+  return CATEGORY_FALLBACK_IMAGES[key] || CATEGORY_FALLBACK_IMAGES.general;
+}
+
+function hashSeed(text = '') {
+  let h = 0;
+  const s = String(text);
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return String(h || 1);
+}
+
+/** Stable unique-looking cover when OG image is missing */
+function seededFallback(category, seedText = '') {
+  const base = fallbackImageFor(category);
+  const seed = hashSeed(seedText || category);
+  // Keep Unsplash URL stable per article so list doesn't reshuffle images
+  if (base.includes('images.unsplash.com')) {
+    return `${base}${base.includes('?') ? '&' : '?'}sig=${seed}`;
+  }
+  return base;
+}
+
 function extractImageFromHtml(html, baseUrl = '') {
   if (!html) return '';
   const patterns = [
@@ -373,6 +413,28 @@ async function fetchPage(pageUrl) {
   return { html, finalUrl: res.url || pageUrl };
 }
 
+function extractGoogleNewsArticleUrls(html = '') {
+  const urls = [];
+  const patterns = [
+    /["'](https?:\/\/(?:www\.)?(?!google\.|gstatic\.|googleapis\.)[^"']+)["']/gi,
+    /href=["'](https?:\/\/(?!news\.google\.com|www\.google\.com|accounts\.google)[^"']+)["']/gi,
+    /data-(?:n-au|url|share-url)=["'](https?:\/\/[^"']+)["']/gi,
+  ];
+  for (const re of patterns) {
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      let u = m[1].replace(/\\\u0026/g, '&').replace(/&amp;/g, '&').replace(/\\\//g, '/');
+      if (!/^https?:\/\//i.test(u)) continue;
+      if (/google\.|gstatic\.|schema\.org|w3\.org|youtube\.com\/embed/i.test(u)) continue;
+      if (isBadImageUrl(u)) continue;
+      if (/\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(u)) continue;
+      urls.push(u.split('#')[0]);
+      if (urls.length >= 8) return urls;
+    }
+  }
+  return [...new Set(urls)];
+}
+
 async function fetchOgImage(pageUrl) {
   if (!pageUrl || !/^https?:\/\//i.test(pageUrl)) return '';
   try {
@@ -382,22 +444,43 @@ async function fetchOgImage(pageUrl) {
     let image = extractImageFromHtml(page.html, page.finalUrl);
     if (image) return image;
 
-    // Google News often needs a hop to the publisher article
-    if (/news\.google\.com/i.test(pageUrl) || /news\.google\.com/i.test(page.finalUrl)) {
+    const onGoogle =
+      /news\.google\.com/i.test(pageUrl) || /news\.google\.com/i.test(page.finalUrl || '');
+
+    if (onGoogle) {
       const publisher = extractPublisherUrlFromGoogleHtml(page.html);
-      if (publisher && publisher !== page.finalUrl) {
-        page = await fetchPage(publisher);
-        if (page) {
-          image = extractImageFromHtml(page.html, page.finalUrl);
-          if (image) return image;
-        }
+      const candidates = [
+        publisher,
+        ...extractGoogleNewsArticleUrls(page.html),
+      ].filter(Boolean);
+
+      for (const candidate of candidates.slice(0, 4)) {
+        if (candidate === page.finalUrl) continue;
+        const next = await fetchPage(candidate);
+        if (!next) continue;
+        image = extractImageFromHtml(next.html, next.finalUrl);
+        if (image) return image;
       }
 
-      // Fallback: Google-hosted article art / logo from og:image near end of page
-      const lateOg = page.html.match(
-        /property=["']og:image["']\s+content=["'](https?:\/\/[^"']+)["']/i
+      // Google-hosted article art near end of page
+      const lateMatches = [
+        ...page.html.matchAll(
+          /(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]*content=["'](https?:\/\/[^"']+)["']/gi
+        ),
+        ...page.html.matchAll(
+          /content=["'](https?:\/\/[^"']+)["'][^>]*(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["']/gi
+        ),
+      ];
+      for (const m of lateMatches) {
+        const abs = absolutize(m[1], page.finalUrl);
+        if (abs && !isBadImageUrl(abs)) return abs;
+      }
+
+      // Google user-content thumbs sometimes appear in the page
+      const gThumb = page.html.match(
+        /(https?:\/\/lh3\.googleusercontent\.com\/[^"'>\s]+)/i
       );
-      if (lateOg?.[1] && !isBadImageUrl(lateOg[1])) return lateOg[1];
+      if (gThumb?.[1] && !isBadImageUrl(gThumb[1])) return gThumb[1];
     }
   } catch {
     // ignore timeouts / blocks
@@ -453,15 +536,16 @@ function isElnadyRelevant(title, summary = '') {
   return allow.test(text) || /برمجة|مطور|تصميم|تسويق|عمل حر|ذكاء اصطناعي|تحليل بيانات|أتمتة|أمن سيبراني|اختراق/.test(raw);
 }
 
-async function resolveImage(item, url) {
+async function resolveImage(item, url, category = 'general', title = '') {
   let image = pickImage(item);
   if (image && !isBadImageUrl(image)) return image;
   image = await fetchOgImage(url);
-  return image || '';
+  if (image && !isBadImageUrl(image)) return image;
+  return seededFallback(category, title || url);
 }
 
-/** Backfill article images for news rows missing a thumbnail */
-async function enrichMissingImages(limit = 40) {
+/** Backfill article images for news rows missing a thumbnail — always ends with a cover */
+async function enrichMissingImages(limit = 80) {
   const missing = await TechNews.find({
     $or: [{ image: '' }, { image: { $exists: false } }, { image: null }],
     isActive: true,
@@ -473,8 +557,11 @@ async function enrichMissingImages(limit = 40) {
   let filled = 0;
   for (const doc of missing) {
     try {
-      const image = await fetchOgImage(doc.url);
-      if (!image) continue;
+      let image = '';
+      if (doc.url) image = await fetchOgImage(doc.url);
+      if (!image || isBadImageUrl(image)) {
+        image = seededFallback(doc.category || 'general', doc.title || doc.url || String(doc._id));
+      }
       doc.image = image;
       await doc.save();
       filled += 1;
@@ -522,8 +609,13 @@ async function fetchFeed(feed) {
           }
           existing.isHidden = false;
           existing.isActive = true;
-          if (!existing.image) {
-            existing.image = await resolveImage(item, url);
+          if (!existing.image || isBadImageUrl(existing.image)) {
+            existing.image = await resolveImage(
+              item,
+              url,
+              existing.category || feed.category,
+              title
+            );
           } else {
             const fromFeed = pickImage(item);
             if (fromFeed && !isBadImageUrl(fromFeed)) existing.image = fromFeed;
@@ -536,9 +628,10 @@ async function fetchFeed(feed) {
         continue;
       }
 
-      const image = await resolveImage(item, url);
       let category = categorize(title, feed.category);
       if (category === 'arab') category = feed.category === 'arab' ? 'general' : feed.category;
+
+      const image = await resolveImage(item, url, category, title);
 
       await TechNews.create({
         title,
@@ -617,7 +710,7 @@ async function refreshTechNews() {
 
   let images = { checked: 0, filled: 0 };
   try {
-    images = await enrichMissingImages(50);
+    images = await enrichMissingImages(120);
     console.log(`🖼️ Tech news images filled: ${images.filled}/${images.checked}`);
   } catch (e) {
     console.warn('Tech news image enrich failed:', e.message);
@@ -626,4 +719,12 @@ async function refreshTechNews() {
   return { imported: total, errors, images, hiddenOffTopic };
 }
 
-module.exports = { refreshTechNews, FEEDS, fetchOgImage, enrichMissingImages };
+module.exports = {
+  refreshTechNews,
+  FEEDS,
+  fetchOgImage,
+  enrichMissingImages,
+  fallbackImageFor,
+  seededFallback,
+  CATEGORY_FALLBACK_IMAGES,
+};

@@ -78,26 +78,49 @@ function formatWhen(value?: string) {
   }
 }
 
-function NewsThumb({ uri }: { uri?: string }) {
-  const [failed, setFailed] = useState(!uri);
+const CATEGORY_COVERS: Record<string, string> = {
+  ai: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=900&q=80',
+  frontend: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=900&q=80',
+  backend: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=900&q=80',
+  mobile: 'https://images.unsplash.com/photo-1512941937669-90a1b58b7fe9?auto=format&fit=crop&w=900&q=80',
+  uiux: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=900&q=80',
+  cybersecurity:
+    'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=900&q=80',
+  data: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=80',
+  automation: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=900&q=80',
+  marketing: 'https://images.unsplash.com/photo-1432888498266-38ffec4e0cd2?auto=format&fit=crop&w=900&q=80',
+  freelancing: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80',
+  releases: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?auto=format&fit=crop&w=900&q=80',
+  general: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80',
+};
+
+const LOCAL_COVER = require('../assets/images/tech-news-cover.png');
+
+function coverFor(category?: string) {
+  const key = String(category || 'general').toLowerCase();
+  return CATEGORY_COVERS[key] || CATEGORY_COVERS.general;
+}
+
+function NewsThumb({ uri, category }: { uri?: string; category?: string }) {
+  const [mode, setMode] = useState<'remote' | 'category' | 'local'>(
+    uri ? 'remote' : 'category'
+  );
 
   useEffect(() => {
-    setFailed(!uri);
-  }, [uri]);
+    setMode(uri ? 'remote' : 'category');
+  }, [uri, category]);
 
-  if (!uri || failed) {
-    return (
-      <View style={[styles.thumb, styles.thumbFallback]}>
-        <Ionicons name="newspaper-outline" size={28} color="#E50914" />
-      </View>
-    );
+  if (mode === 'local') {
+    return <Image source={LOCAL_COVER} style={styles.thumb} />;
   }
+
+  const remote = mode === 'remote' && uri ? uri : coverFor(category);
 
   return (
     <Image
-      source={{ uri }}
+      source={{ uri: remote }}
       style={styles.thumb}
-      onError={() => setFailed(true)}
+      onError={() => setMode((m) => (m === 'remote' ? 'category' : 'local'))}
     />
   );
 }
@@ -595,7 +618,7 @@ export default function TechNewsScreen() {
                   activeOpacity={0.85}
                   onPress={() => openStory(item)}
                 >
-                  <NewsThumb uri={item.image} />
+                  <NewsThumb uri={item.image} category={item.category} />
                   <View style={styles.cardBody}>
                     <View style={styles.metaRow}>
                       {item.isPinned ? <Text style={styles.pin}>PINNED</Text> : null}
@@ -681,17 +704,16 @@ export default function TechNewsScreen() {
             <ScrollView contentContainerStyle={styles.explainContent}>
               <Text style={styles.explainBrand}>ELNADY</Text>
 
-              {!!explainItem?.image ? (
-                <Image
-                  source={{ uri: explainItem.image }}
-                  style={styles.explainCover}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={[styles.explainCover, styles.explainCoverFallback]}>
-                  <Ionicons name="newspaper-outline" size={36} color="#E50914" />
-                </View>
-              )}
+              <Image
+                source={
+                  explainItem?.image
+                    ? { uri: explainItem.image }
+                    : { uri: coverFor(explainItem?.category) }
+                }
+                defaultSource={LOCAL_COVER}
+                style={styles.explainCover}
+                resizeMode="cover"
+              />
 
               <Text style={styles.explainHeadline} numberOfLines={4}>
                 {explainItem?.title}

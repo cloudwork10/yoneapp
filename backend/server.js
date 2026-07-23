@@ -216,7 +216,7 @@ app.listen(PORT, '0.0.0.0', () => {
   try {
     const { refreshTechNews, enrichMissingImages } = require('./services/techNewsFetcher');
     setTimeout(() => {
-      enrichMissingImages(40)
+      enrichMissingImages(120)
         .then((r) => console.log(`🖼️ Boot image enrich: ${r.filled}/${r.checked}`))
         .catch((e) => console.warn('🖼️ Boot image enrich failed:', e.message));
       refreshTechNews()
