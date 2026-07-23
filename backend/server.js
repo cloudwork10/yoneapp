@@ -214,8 +214,11 @@ app.listen(PORT, '0.0.0.0', () => {
 
   // Tech news auto-refresh: shortly after boot, then every hour
   try {
-    const { refreshTechNews, enrichMissingImages } = require('./services/techNewsFetcher');
+    const { refreshTechNews, enrichMissingImages, replaceGoogleLogoImages } = require('./services/techNewsFetcher');
     setTimeout(() => {
+      replaceGoogleLogoImages(500)
+        .then((n) => console.log(`🖼️ Boot logo cleanup: ${n}`))
+        .catch((e) => console.warn('🖼️ Boot logo cleanup failed:', e.message));
       enrichMissingImages(120)
         .then((r) => console.log(`🖼️ Boot image enrich: ${r.filled}/${r.checked}`))
         .catch((e) => console.warn('🖼️ Boot image enrich failed:', e.message));

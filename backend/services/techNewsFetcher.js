@@ -289,11 +289,30 @@ function absolutize(url, base) {
 }
 
 function isBadImageUrl(url = '') {
-  const u = String(url).toLowerCase();
-  if (!u || u.startsWith('data:')) return true;
-  if (/1x1|pixel|spacer|blank\.|sprite|favicon|logo\.svg|icon-|\.svg($|\?)/i.test(u)) return true;
-  if (/doubleclick|googlesyndication|adservice|analytics/i.test(u)) return true;
+  const u = String(url || '').trim();
+  const lower = u.toLowerCase();
+  if (!u || lower.startsWith('data:')) return true;
+  if (/1x1|pixel|spacer|blank\.|sprite|favicon|logo\.svg|icon-|\.svg($|\?)/i.test(lower)) return true;
+  if (/doubleclick|googlesyndication|adservice|analytics/i.test(lower)) return true;
+
+  // Google News default newspaper/G icon (same URL reused for almost every story)
+  if (/j6_cofobogxhri9im864nl_ligxvsqp2aupskei7z0cnnfdvgumwuy20nuuhkreqyrpy4beeibuc/i.test(lower)) {
+    return true;
+  }
+  if (/news\.google\.com\/.*(?:logo|icon|brand)/i.test(lower)) return true;
+  if (/gstatic\.com\/.*(?:googlelogo|news_pub|icons)/i.test(lower)) return true;
+
+  // Bare Google News brand asset on lh3 (article art usually uses /proxy/)
+  if (/lh3\.googleusercontent\.com\/j6_co/i.test(lower)) return true;
+  if (/lh3\.googleusercontent\.com\//i.test(lower) && !/\/proxy\//i.test(lower) && /=s0-w\d+/i.test(lower)) {
+    return true;
+  }
+
   return false;
+}
+
+function isUsableImageUrl(url = '') {
+  return !!url && !isBadImageUrl(url);
 }
 
 /** Curated tech cover images so every card always has a real photo */
@@ -438,31 +457,28 @@ function extractGoogleNewsArticleUrls(html = '') {
 async function fetchOgImage(pageUrl) {
   if (!pageUrl || !/^https?:\/\//i.test(pageUrl)) return '';
   try {
+    const startsOnGoogle = /news\.google\.com/i.test(pageUrl);
     let page = await fetchPage(pageUrl);
     if (!page) return '';
 
-    let image = extractImageFromHtml(page.html, page.finalUrl);
-    if (image) return image;
-
     const onGoogle =
-      /news\.google\.com/i.test(pageUrl) || /news\.google\.com/i.test(page.finalUrl || '');
+      startsOnGoogle || /news\.google\.com/i.test(page.finalUrl || '');
 
+    // Google News pages almost always expose the brand icon as og:image —
+    // hop to the publisher article first and only then accept Google-hosted art.
     if (onGoogle) {
       const publisher = extractPublisherUrlFromGoogleHtml(page.html);
-      const candidates = [
-        publisher,
-        ...extractGoogleNewsArticleUrls(page.html),
-      ].filter(Boolean);
+      const candidates = [publisher, ...extractGoogleNewsArticleUrls(page.html)].filter(Boolean);
 
-      for (const candidate of candidates.slice(0, 4)) {
-        if (candidate === page.finalUrl) continue;
+      for (const candidate of candidates.slice(0, 5)) {
+        if (!candidate || candidate === page.finalUrl) continue;
         const next = await fetchPage(candidate);
         if (!next) continue;
-        image = extractImageFromHtml(next.html, next.finalUrl);
-        if (image) return image;
+        const image = extractImageFromHtml(next.html, next.finalUrl);
+        if (isUsableImageUrl(image)) return image;
       }
 
-      // Google-hosted article art near end of page
+      // Accept only usable Google-hosted article thumbs (e.g. /proxy/), never the brand icon
       const lateMatches = [
         ...page.html.matchAll(
           /(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]*content=["'](https?:\/\/[^"']+)["']/gi
@@ -470,18 +486,17 @@ async function fetchOgImage(pageUrl) {
         ...page.html.matchAll(
           /content=["'](https?:\/\/[^"']+)["'][^>]*(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["']/gi
         ),
+        ...page.html.matchAll(/(https?:\/\/lh3\.googleusercontent\.com\/proxy\/[^"'>\s]+)/gi),
       ];
       for (const m of lateMatches) {
         const abs = absolutize(m[1], page.finalUrl);
-        if (abs && !isBadImageUrl(abs)) return abs;
+        if (isUsableImageUrl(abs)) return abs;
       }
-
-      // Google user-content thumbs sometimes appear in the page
-      const gThumb = page.html.match(
-        /(https?:\/\/lh3\.googleusercontent\.com\/[^"'>\s]+)/i
-      );
-      if (gThumb?.[1] && !isBadImageUrl(gThumb[1])) return gThumb[1];
+      return '';
     }
+
+    const image = extractImageFromHtml(page.html, page.finalUrl);
+    if (isUsableImageUrl(image)) return image;
   } catch {
     // ignore timeouts / blocks
   }
@@ -538,18 +553,25 @@ function isElnadyRelevant(title, summary = '') {
 
 async function resolveImage(item, url, category = 'general', title = '') {
   let image = pickImage(item);
-  if (image && !isBadImageUrl(image)) return image;
+  if (isUsableImageUrl(image)) return image;
   image = await fetchOgImage(url);
-  if (image && !isBadImageUrl(image)) return image;
+  if (isUsableImageUrl(image)) return image;
   return seededFallback(category, title || url);
 }
 
-/** Backfill article images for news rows missing a thumbnail — always ends with a cover */
-async function enrichMissingImages(limit = 80) {
+/** Replace empty OR Google-logo placeholders with real/fallback covers */
+async function enrichMissingImages(limit = 120) {
   const missing = await TechNews.find({
-    $or: [{ image: '' }, { image: { $exists: false } }, { image: null }],
     isActive: true,
     isHidden: false,
+    $or: [
+      { image: '' },
+      { image: { $exists: false } },
+      { image: null },
+      { image: /j6_cofobogxh/i },
+      { image: /lh3\.googleusercontent\.com\/j6_co/i },
+      { image: /=s0-w300-rw/i },
+    ],
   })
     .sort({ publishedAt: -1 })
     .limit(limit);
@@ -559,9 +581,10 @@ async function enrichMissingImages(limit = 80) {
     try {
       let image = '';
       if (doc.url) image = await fetchOgImage(doc.url);
-      if (!image || isBadImageUrl(image)) {
+      if (!isUsableImageUrl(image)) {
         image = seededFallback(doc.category || 'general', doc.title || doc.url || String(doc._id));
       }
+      if (doc.image === image) continue;
       doc.image = image;
       await doc.save();
       filled += 1;
@@ -570,6 +593,29 @@ async function enrichMissingImages(limit = 80) {
     }
   }
   return { checked: missing.length, filled };
+}
+
+/** Instantly swap known Google logos in DB to category covers (no network) */
+async function replaceGoogleLogoImages(limit = 400) {
+  const rows = await TechNews.find({
+    isActive: true,
+    $or: [
+      { image: /j6_cofobogxh/i },
+      { image: /lh3\.googleusercontent\.com\/j6_co/i },
+      { image: /=s0-w300-rw/i },
+    ],
+  })
+    .select('_id title url category image')
+    .limit(limit);
+
+  let replaced = 0;
+  for (const doc of rows) {
+    if (!isBadImageUrl(doc.image)) continue;
+    doc.image = seededFallback(doc.category || 'general', doc.title || doc.url || String(doc._id));
+    await doc.save();
+    replaced += 1;
+  }
+  return replaced;
 }
 
 async function fetchFeed(feed) {
@@ -618,7 +664,7 @@ async function fetchFeed(feed) {
             );
           } else {
             const fromFeed = pickImage(item);
-            if (fromFeed && !isBadImageUrl(fromFeed)) existing.image = fromFeed;
+            if (fromFeed && isUsableImageUrl(fromFeed)) existing.image = fromFeed;
           }
           existing.publishedAt = Number.isNaN(publishedAt.getTime())
             ? existing.publishedAt
@@ -708,6 +754,14 @@ async function refreshTechNews() {
     console.warn('Tech news off-topic cleanup failed:', e.message);
   }
 
+  let logoReplaced = 0;
+  try {
+    logoReplaced = await replaceGoogleLogoImages(500);
+    if (logoReplaced) console.log(`🖼️ Replaced Google logo placeholders: ${logoReplaced}`);
+  } catch (e) {
+    console.warn('Tech news logo cleanup failed:', e.message);
+  }
+
   let images = { checked: 0, filled: 0 };
   try {
     images = await enrichMissingImages(120);
@@ -716,7 +770,7 @@ async function refreshTechNews() {
     console.warn('Tech news image enrich failed:', e.message);
   }
 
-  return { imported: total, errors, images, hiddenOffTopic };
+  return { imported: total, errors, images, hiddenOffTopic, logoReplaced };
 }
 
 module.exports = {
@@ -724,6 +778,8 @@ module.exports = {
   FEEDS,
   fetchOgImage,
   enrichMissingImages,
+  replaceGoogleLogoImages,
+  isBadImageUrl,
   fallbackImageFor,
   seededFallback,
   CATEGORY_FALLBACK_IMAGES,

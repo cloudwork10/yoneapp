@@ -101,20 +101,30 @@ function coverFor(category?: string) {
   return CATEGORY_COVERS[key] || CATEGORY_COVERS.general;
 }
 
+function isGoogleLogoUri(uri?: string) {
+  const u = String(uri || '').toLowerCase();
+  if (!u) return true;
+  if (u.includes('j6_cofobogxh')) return true;
+  if (u.includes('lh3.googleusercontent.com/j6_co')) return true;
+  if (u.includes('=s0-w300-rw') && u.includes('googleusercontent.com')) return true;
+  return false;
+}
+
 function NewsThumb({ uri, category }: { uri?: string; category?: string }) {
+  const usable = uri && !isGoogleLogoUri(uri) ? uri : '';
   const [mode, setMode] = useState<'remote' | 'category' | 'local'>(
-    uri ? 'remote' : 'category'
+    usable ? 'remote' : 'category'
   );
 
   useEffect(() => {
-    setMode(uri ? 'remote' : 'category');
-  }, [uri, category]);
+    setMode(usable ? 'remote' : 'category');
+  }, [usable, category]);
 
   if (mode === 'local') {
     return <Image source={LOCAL_COVER} style={styles.thumb} />;
   }
 
-  const remote = mode === 'remote' && uri ? uri : coverFor(category);
+  const remote = mode === 'remote' && usable ? usable : coverFor(category);
 
   return (
     <Image
@@ -705,11 +715,12 @@ export default function TechNewsScreen() {
               <Text style={styles.explainBrand}>ELNADY</Text>
 
               <Image
-                source={
-                  explainItem?.image
-                    ? { uri: explainItem.image }
-                    : { uri: coverFor(explainItem?.category) }
-                }
+                source={{
+                  uri:
+                    explainItem?.image && !isGoogleLogoUri(explainItem.image)
+                      ? explainItem.image
+                      : coverFor(explainItem?.category),
+                }}
                 defaultSource={LOCAL_COVER}
                 style={styles.explainCover}
                 resizeMode="cover"

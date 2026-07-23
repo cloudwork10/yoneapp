@@ -1,6 +1,12 @@
 const express = require('express');
 const TechNews = require('../models/TechNews');
-const { refreshTechNews, enrichMissingImages, seededFallback } = require('../services/techNewsFetcher');
+const {
+  refreshTechNews,
+  enrichMissingImages,
+  replaceGoogleLogoImages,
+  seededFallback,
+  isBadImageUrl,
+} = require('../services/techNewsFetcher');
 const { getOrCreateExplain } = require('../services/techNewsExplainer');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 
@@ -13,10 +19,10 @@ function serialize(doc) {
   if (o.category === 'arab' && region === 'world') region = 'arab';
   if (!['world', 'egypt', 'arab'].includes(region)) region = 'world';
   const category = o.category === 'arab' ? 'general' : o.category || 'general';
-  const image =
-    o.image && String(o.image).trim()
-      ? o.image
-      : seededFallback(category, o.title || o.url || String(o._id));
+  const rawImage = String(o.image || '').trim();
+  const image = isBadImageUrl(rawImage)
+    ? seededFallback(category, o.title || o.url || String(o._id))
+    : rawImage;
   return {
     _id: o._id,
     title: o.title,
@@ -40,9 +46,13 @@ function serialize(doc) {
 function kickImageEnrich(limit = 60) {
   if (imageEnrichRunning) return;
   imageEnrichRunning = true;
-  enrichMissingImages(limit)
+  replaceGoogleLogoImages(400)
+    .then((n) => {
+      if (n) console.log(`🖼️ Replaced Google logos: ${n}`);
+      return enrichMissingImages(limit);
+    })
     .then((r) => {
-      if (r.filled) console.log(`🖼️ Background images filled: ${r.filled}/${r.checked}`);
+      if (r?.filled) console.log(`🖼️ Background images filled: ${r.filled}/${r.checked}`);
     })
     .catch((e) => console.warn('Background image enrich failed:', e.message))
     .finally(() => {
@@ -101,7 +111,7 @@ router.get('/', async (req, res) => {
       refreshTechNews().catch((e) => console.warn('Background tech news refresh failed:', e.message));
     }
 
-    const missingImages = items.filter((i) => !i.image).length;
+    const missingImages = items.filter((i) => !i.image || isBadImageUrl(i.image)).length;
     if (missingImages > 0) {
       kickImageEnrich(Math.min(120, missingImages + 20));
     }
