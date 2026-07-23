@@ -104,6 +104,19 @@ export function UserProvider({ children }: UserProviderProps) {
       if (refreshToken) {
         await AsyncStorage.setItem('refreshToken', refreshToken);
       }
+      // After login, register/sync push token so activation alerts reach this device
+      try {
+        const NotificationService = require('../services/NotificationService').default;
+        const pushToken = await NotificationService.registerForPushNotifications();
+        if (pushToken) {
+          await NotificationService.syncPushTokenToServer(pushToken);
+        } else {
+          await NotificationService.syncPushTokenToServer();
+        }
+        await NotificationService.sendHeartbeat();
+      } catch {
+        // push optional on web/simulator
+      }
     } catch (error) {
       console.log('UserContext: failed to save session');
     }

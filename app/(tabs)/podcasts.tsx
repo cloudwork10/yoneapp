@@ -17,6 +17,10 @@ import ScreenTransition from '../../components/ScreenTransition';
 import API_BASE_URL from '../../config/api';
 import resolveMediaUrl from '../../utils/mediaUrl';
 import { isContentLocked } from '../../utils/contentAccess';
+import {
+  fetchSubscriptionAccess,
+  showPremiumGateAlert,
+} from '../../utils/subscriptionAccess';
 import { useUser } from '../../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
@@ -42,6 +46,7 @@ export default function PodcastsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [subscriptionAccess, setSubscriptionAccess] = useState<any>(null);
 
   const categories = ['All', 'Technology', 'Programming', 'Business', 'Design', 'Career'];
 
@@ -83,16 +88,9 @@ export default function PodcastsScreen() {
     if (!user) return;
 
     try {
-      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/subscription`);
-      if (response.ok) {
-        const data = await response.json();
-        const subscription = data.data?.subscription;
-        const isActive =
-          !!subscription &&
-          subscription.status === 'active' &&
-          new Date(subscription.endDate) > new Date();
-        setHasActiveSubscription(isActive);
-      }
+      const access = await fetchSubscriptionAccess();
+      setSubscriptionAccess(access);
+      setHasActiveSubscription(access.hasActiveSubscription);
     } catch (error) {
       console.error('Error checking subscription:', error);
     }
@@ -123,14 +121,7 @@ export default function PodcastsScreen() {
 
   const handlePodcastPress = (podcast: Podcast) => {
     if (isContentLocked(podcast, hasActiveSubscription)) {
-      Alert.alert(
-        'Premium Content',
-        'This podcast is available for premium subscribers only. Upgrade to access all content.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade', onPress: () => router.push('/subscription') }
-        ]
-      );
+      showPremiumGateAlert(subscriptionAccess, router, 'podcasts');
       return;
     }
 

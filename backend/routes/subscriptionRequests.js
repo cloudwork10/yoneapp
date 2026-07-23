@@ -284,20 +284,28 @@ router.post('/admin/:id/approve', requireAuth, requireAdmin, async (req, res) =>
     await doc.save();
 
     const pushUser = await User.findById(userId).select('pushToken name email');
-    await sendPushToUser(pushUser, {
+    const pushResult = await sendPushToUser(pushUser, {
       title: 'تم تفعيل الاشتراك ✅',
-      body: `اشتراك ${planDetails.name} أصبح نشطًا. استمتع بالمحتوى.`,
+      body: `اشتراك ${planDetails.name} أصبح نشطًا. افتح التطبيق واستمتع بالمحتوى.\nYour ${planDetails.name} is now active.`,
       data: {
         type: 'subscription_approved',
         requestId: String(doc._id),
         referenceCode: doc.referenceCode,
+        plan: doc.plan,
       },
     });
+    if (!pushResult?.ok) {
+      console.warn('Subscription approve push not delivered:', pushResult?.reason || pushResult);
+    }
 
     res.json({
       status: 'success',
       message: 'Subscription activated',
-      data: { request: doc, subscription },
+      data: {
+        request: doc,
+        subscription,
+        pushSent: !!pushResult?.ok,
+      },
     });
   } catch (error) {
     console.error('Approve subscription request error:', error);

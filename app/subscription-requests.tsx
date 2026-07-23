@@ -4,8 +4,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,12 +16,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import API_BASE_URL from '../config/api';
 import { useUser } from '../contexts/UserContext';
 import resolveMediaUrl from '../utils/mediaUrl';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 type RequestItem = {
   _id: string;
@@ -36,6 +40,7 @@ type RequestItem = {
 
 export default function SubscriptionRequestsScreen() {
   const { isAdmin } = useUser();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'pending' | 'all' | 'approved' | 'rejected'>('pending');
@@ -100,7 +105,14 @@ export default function SubscriptionRequestsScreen() {
         Alert.alert('Failed', data?.message || `Could not ${action}`);
         return;
       }
-      Alert.alert('Done', action === 'approve' ? 'Subscription activated' : 'Request rejected');
+      Alert.alert(
+        'Done',
+        action === 'approve'
+          ? data?.data?.pushSent
+            ? 'Subscription activated · notification sent ✅'
+            : 'Subscription activated (push may need device token — user should open the app once)'
+          : 'Request rejected'
+      );
       setSelected(null);
       setAdminNote('');
       await load();
@@ -177,7 +189,15 @@ export default function SubscriptionRequestsScreen() {
           </ScrollView>
         )}
 
-        <Modal visible={!!selected} animationType="slide" transparent>
+        <Modal
+          visible={!!selected}
+          animationType="slide"
+          transparent
+          onRequestClose={() => {
+            if (zoomUri) setZoomUri(null);
+            else setSelected(null);
+          }}
+        >
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
               <ScrollView>
@@ -191,16 +211,25 @@ export default function SubscriptionRequestsScreen() {
                   <Text style={styles.note}>User note: {selected.userNote}</Text>
                 ) : null}
                 {selected?.receiptUrl ? (
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => setZoomUri(resolveMediaUrl(selected.receiptUrl))}
-                  >
-                    <Image
-                      source={{ uri: resolveMediaUrl(selected.receiptUrl) }}
-                      style={styles.receipt}
-                    />
-                    <Text style={styles.zoomHint}>Tap receipt to zoom</Text>
-                  </TouchableOpacity>
+                  <View style={styles.receiptWrap}>
+                    <Pressable
+                      onPress={() => setZoomUri(resolveMediaUrl(selected.receiptUrl))}
+                    >
+                      <Image
+                        source={{ uri: resolveMediaUrl(selected.receiptUrl) }}
+                        style={styles.receipt}
+                        resizeMode="contain"
+                      />
+                    </Pressable>
+                    <TouchableOpacity
+                      style={styles.zoomOpenBtn}
+                      onPress={() => setZoomUri(resolveMediaUrl(selected.receiptUrl))}
+                    >
+                      <Text style={styles.zoomOpenBtnText}>
+                        Open full size · تكبير الصورة
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : null}
                 <TextInput
                   style={styles.input}
@@ -227,28 +256,65 @@ export default function SubscriptionRequestsScreen() {
                     </TouchableOpacity>
                   </View>
                 ) : null}
-                <TouchableOpacity style={styles.close} onPress={() => setSelected(null)}>
+                <TouchableOpacity
+                  style={styles.close}
+                  onPress={() => {
+                    setZoomUri(null);
+                    setSelected(null);
+                  }}
+                >
                   <Text style={styles.closeText}>Close</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
-          </View>
-        </Modal>
 
-        <Modal visible={!!zoomUri} transparent animationType="fade" onRequestClose={() => setZoomUri(null)}>
-          <View style={styles.zoomOverlay}>
-            <TouchableOpacity style={styles.zoomClose} onPress={() => setZoomUri(null)}>
-              <Text style={styles.zoomCloseText}>Close zoom</Text>
-            </TouchableOpacity>
-            <ScrollView
-              maximumZoomScale={5}
-              minimumZoomScale={1}
-              contentContainerStyle={styles.zoomScroll}
-            >
-              {zoomUri ? (
-                <Image source={{ uri: zoomUri }} style={styles.zoomImage} resizeMode="contain" />
-              ) : null}
-            </ScrollView>
+            {/* Fullscreen zoom inside same modal (nested Modal is unreliable) */}
+            {zoomUri ? (
+              <View
+                style={[
+                  styles.zoomOverlay,
+                  { paddingTop: Math.max(insets.top, 12) + 4 },
+                ]}
+              >
+                <View style={styles.zoomTopBar}>
+                  <View style={styles.zoomTitleBlock}>
+                    <Text style={styles.zoomTitle} numberOfLines={1}>
+                      Receipt
+                    </Text>
+                    <Text style={styles.zoomTitleAr} numberOfLines={1}>
+                      إيصال التحويل
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.zoomClose}
+                    onPress={() => setZoomUri(null)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.zoomCloseText}>Close</Text>
+                    <Text style={styles.zoomCloseTextAr}>إغلاق</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.zoomPinchHint} numberOfLines={1}>
+                  Pinch to zoom · قرّب الصورة
+                </Text>
+                <ScrollView
+                  style={styles.zoomScrollView}
+                  contentContainerStyle={styles.zoomScroll}
+                  maximumZoomScale={6}
+                  minimumZoomScale={1}
+                  centerContent
+                  bouncesZoom
+                  showsHorizontalScrollIndicator
+                  showsVerticalScrollIndicator
+                >
+                  <Image
+                    source={{ uri: zoomUri }}
+                    style={styles.zoomImage}
+                    resizeMode="contain"
+                  />
+                </ScrollView>
+              </View>
+            ) : null}
           </View>
         </Modal>
       </LinearGradient>
@@ -301,7 +367,23 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  receipt: { width: '100%', height: 280, borderRadius: 10, marginTop: 12, backgroundColor: '#222' },
+  receiptWrap: { marginTop: 12 },
+  receipt: {
+    width: '100%',
+    height: 280,
+    borderRadius: 10,
+    backgroundColor: '#222',
+  },
+  zoomOpenBtn: {
+    marginTop: 10,
+    backgroundColor: 'rgba(78, 205, 196, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(78, 205, 196, 0.45)',
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  zoomOpenBtnText: { color: '#4ECDC4', fontWeight: '700', fontSize: 13 },
   input: {
     marginTop: 12,
     borderWidth: 1,
@@ -317,18 +399,54 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '700' },
   close: { marginTop: 12, alignItems: 'center', paddingVertical: 10 },
   closeText: { color: '#aaa' },
-  zoomHint: { color: '#888', fontSize: 12, marginTop: 6, textAlign: 'center' },
-  zoomOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.96)', paddingTop: 48 },
+  zoomOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000',
+    zIndex: 50,
+    elevation: 50,
+  },
+  zoomTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  zoomTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 8,
+  },
+  zoomTitle: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  zoomTitleAr: { color: '#999', fontSize: 12, marginTop: 2 },
   zoomClose: {
-    alignSelf: 'flex-end',
-    marginRight: 16,
-    marginBottom: 8,
+    flexShrink: 0,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
   },
-  zoomCloseText: { color: '#fff', fontWeight: '600' },
-  zoomScroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 12 },
-  zoomImage: { width: '100%', height: 520 },
+  zoomCloseText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  zoomCloseTextAr: { color: '#bbb', fontSize: 11, marginTop: 1 },
+  zoomPinchHint: {
+    color: '#888',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 6,
+    paddingHorizontal: 16,
+  },
+  zoomScrollView: { flex: 1 },
+  zoomScroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+    minHeight: SCREEN_H - 160,
+  },
+  zoomImage: {
+    width: SCREEN_W - 16,
+    height: SCREEN_H - 180,
+  },
 });

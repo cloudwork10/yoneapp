@@ -91,10 +91,13 @@ router.get('/plans', (req, res) => {
 // Get user's current subscription
 router.get('/subscription', requireAuth, async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({
+    const { ensureSubscriptionNotStale, remainingDays } = require('../services/subscriptionLifecycle');
+    let subscription = await Subscription.findOne({
       user: req.user.id,
       status: 'active'
     }).sort({ createdAt: -1 });
+
+    subscription = await ensureSubscriptionNotStale(subscription);
 
     if (!subscription) {
       return res.json({
@@ -103,9 +106,13 @@ router.get('/subscription', requireAuth, async (req, res) => {
       });
     }
 
+    const plain = subscription.toObject();
+    plain.remainingDays = remainingDays(subscription.endDate);
+    plain.cancelAtPeriodEnd = !!subscription.cancelAtPeriodEnd;
+
     res.json({
       status: 'success',
-      data: { subscription }
+      data: { subscription: plain }
     });
   } catch (error) {
     console.error('Error fetching subscription:', error);
@@ -113,6 +120,44 @@ router.get('/subscription', requireAuth, async (req, res) => {
       status: 'error',
       message: 'Failed to fetch subscription'
     });
+  }
+});
+
+// Cancel at period end (keep access until endDate)
+router.post('/subscription/cancel', requireAuth, async (req, res) => {
+  try {
+    const { ensureSubscriptionNotStale, remainingDays } = require('../services/subscriptionLifecycle');
+    let subscription = await Subscription.findOne({
+      user: req.user.id,
+      status: 'active',
+      endDate: { $gt: new Date() },
+    }).sort({ createdAt: -1 });
+
+    subscription = await ensureSubscriptionNotStale(subscription);
+    if (!subscription) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'No active subscription to cancel',
+      });
+    }
+
+    subscription.cancelAtPeriodEnd = true;
+    subscription.autoRenew = false;
+    await subscription.save();
+
+    res.json({
+      status: 'success',
+      message: 'Subscription will end on the current end date. Access stays open until then.',
+      data: {
+        subscription: {
+          ...subscription.toObject(),
+          remainingDays: remainingDays(subscription.endDate),
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Cancel subscription error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to cancel subscription' });
   }
 });
 
@@ -549,12 +594,14 @@ router.post('/webhook/failure', async (req, res) => {
 // Check subscription status for content access
 router.get('/check-access', requireAuth, async (req, res) => {
   try {
-    const subscription = await Subscription.findOne({
+    const { ensureSubscriptionNotStale } = require('../services/subscriptionLifecycle');
+    let subscription = await Subscription.findOne({
       user: req.user.id,
       status: 'active'
     });
+    subscription = await ensureSubscriptionNotStale(subscription);
 
-    const hasAccess = subscription && subscription.endDate > new Date();
+    const hasAccess = !!(subscription && subscription.endDate > new Date());
 
     res.json({
       status: 'success',

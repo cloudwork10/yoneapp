@@ -833,7 +833,7 @@ export default function ClubScreen() {
     if (!hasAccess) {
       Alert.alert('Subscription required', 'النادي is available for active subscribers.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Subscribe', onPress: () => router.push('/subscription') },
+        { text: 'Subscribe', onPress: () => router.push('/subscription-2') },
       ]);
       return false;
     }
@@ -1264,7 +1264,7 @@ export default function ClubScreen() {
           {!hasAccess ? (
             <TouchableOpacity
               style={[styles.primaryBtn, { marginTop: 8 }]}
-              onPress={() => router.push('/subscription')}
+              onPress={() => router.push('/subscription-2')}
             >
               <Text style={styles.primaryBtnText}>Subscribe & enter النادي</Text>
             </TouchableOpacity>

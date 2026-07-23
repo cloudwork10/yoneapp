@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../../config/api';
 import resolveMediaUrl from '../../utils/mediaUrl';
+import { fetchSubscriptionAccess } from '../../utils/subscriptionAccess';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 type MenuItem = {
@@ -51,15 +52,8 @@ const ACCOUNT_SECTION: MenuSection = {
     {
       id: 2,
       title: 'Subscription',
-      description: 'Online payment (current)',
+      description: 'Transfer + screenshot · check status',
       icon: '💎',
-      route: '/subscription',
-    },
-    {
-      id: 21,
-      title: 'Subscription 2',
-      description: 'Manual transfer · receipt activation',
-      icon: '🧾',
       route: '/subscription-2',
     },
     {
@@ -288,6 +282,14 @@ const ADMIN_SECTION: MenuSection = {
       route: '/subscription-requests',
       adminOnly: true,
     },
+    {
+      id: 20,
+      title: 'Active Subscribers',
+      description: 'Days left · ending soon',
+      icon: '⏱️',
+      route: '/active-subscribers',
+      adminOnly: true,
+    },
   ],
 };
 
@@ -429,6 +431,12 @@ function MenuSectionBlock({
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
   const [pendingSubRequests, setPendingSubRequests] = useState(0);
+  const [mySubStatus, setMySubStatus] = useState<'active' | 'pending' | 'rejected' | 'none'>('none');
+  const [liveStats, setLiveStats] = useState({
+    onlineNow: 0,
+    activeSubscribers: 0,
+    totalUsers: 0,
+  });
 
   const fetchPendingCount = useCallback(async () => {
     if (!isAdmin) {
@@ -447,10 +455,45 @@ export default function MoreScreen() {
     }
   }, [isAdmin]);
 
+  const fetchLiveStats = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/live-stats`);
+      if (!response.ok) return;
+      const data = await response.json();
+      setLiveStats({
+        onlineNow: Number(data?.data?.onlineNow || 0),
+        activeSubscribers: Number(data?.data?.activeSubscribers || 0),
+        totalUsers: Number(data?.data?.totalUsers || 0),
+      });
+    } catch {
+      // ignore
+    }
+  }, [isAdmin]);
+
+  const fetchMyStatus = useCallback(async () => {
+    if (!user) {
+      setMySubStatus('none');
+      return;
+    }
+    try {
+      const access = await fetchSubscriptionAccess();
+      setMySubStatus(access.status === 'cancelled' ? 'none' : access.status);
+    } catch {
+      setMySubStatus('none');
+    }
+  }, [user]);
+
   useFocusEffect(
     useCallback(() => {
       fetchPendingCount();
-    }, [fetchPendingCount])
+      fetchMyStatus();
+      fetchLiveStats();
+      const timer = isAdmin ? setInterval(fetchLiveStats, 20000) : null;
+      return () => {
+        if (timer) clearInterval(timer);
+      };
+    }, [fetchPendingCount, fetchMyStatus, fetchLiveStats, isAdmin])
   );
 
   const adminSection: MenuSection = {
@@ -559,12 +602,57 @@ export default function MoreScreen() {
             ) : null}
           </TouchableOpacity>
 
+          {isAdmin ? (
+            <TouchableOpacity
+              style={styles.liveEyeCard}
+              onPress={() => router.push('/dashboard')}
+              activeOpacity={0.85}
+            >
+              <View style={styles.liveEyeLeft}>
+                <Text style={styles.liveEyeIcon}>👁</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.liveEyeTitle}>Live now · أونلاين دلوقتي</Text>
+                  <Text style={styles.liveEyeValue}>{liveStats.onlineNow}</Text>
+                  <Text style={styles.liveEyeHint}>
+                    Users currently in the app (last 2 min)
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.liveEyeDivider} />
+              <View style={styles.liveEyeRight}>
+                <Text style={styles.liveEyeSubLabel}>Activated · متفعل</Text>
+                <Text style={styles.liveEyeSubValue}>{liveStats.activeSubscribers}</Text>
+                <Text style={styles.liveEyeHint}>Active subscriptions</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
+
           <TouchableOpacity
-            style={styles.subscribeBanner}
-            onPress={() => router.push('/subscription')}
+            style={[
+              styles.subscribeBanner,
+              mySubStatus === 'pending' && styles.subscribeBannerPending,
+              mySubStatus === 'active' && styles.subscribeBannerActive,
+              mySubStatus === 'rejected' && styles.subscribeBannerRejected,
+            ]}
+            onPress={() => router.push('/subscription-2')}
             activeOpacity={0.85}
           >
-            <Text style={styles.subscribeBannerText}>Premium · Subscribe</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.subscribeBannerText}>
+                {mySubStatus === 'active'
+                  ? 'Premium · Active'
+                  : mySubStatus === 'pending'
+                    ? 'Subscription · Pending review'
+                    : mySubStatus === 'rejected'
+                      ? 'Subscription · Not approved'
+                      : 'Premium · Subscribe'}
+              </Text>
+              {mySubStatus === 'pending' ? (
+                <Text style={styles.subscribeBannerSub}>Tap to check status · اضغط لمتابعة</Text>
+              ) : mySubStatus === 'rejected' ? (
+                <Text style={styles.subscribeBannerSub}>Tap to submit again · ابعت طلب جديد</Text>
+              ) : null}
+            </View>
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
 
@@ -684,10 +772,58 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(229, 9, 20, 0.28)',
   },
+  liveEyeCard: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(78, 205, 196, 0.35)',
+  },
+  liveEyeLeft: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  liveEyeIcon: { fontSize: 28 },
+  liveEyeTitle: { color: '#9ee8e1', fontSize: 12, fontWeight: '600' },
+  liveEyeValue: { color: '#fff', fontSize: 28, fontWeight: '800', marginTop: 2 },
+  liveEyeHint: { color: '#777', fontSize: 10, marginTop: 2 },
+  liveEyeDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    marginHorizontal: 12,
+  },
+  liveEyeRight: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  liveEyeSubLabel: { color: '#FF8A8A', fontSize: 12, fontWeight: '600' },
+  liveEyeSubValue: { color: '#fff', fontSize: 26, fontWeight: '800', marginTop: 2 },
+  subscribeBannerPending: {
+    backgroundColor: 'rgba(78, 205, 196, 0.12)',
+    borderColor: 'rgba(78, 205, 196, 0.4)',
+  },
+  subscribeBannerActive: {
+    backgroundColor: 'rgba(78, 205, 196, 0.16)',
+    borderColor: 'rgba(78, 205, 196, 0.5)',
+  },
+  subscribeBannerRejected: {
+    backgroundColor: 'rgba(229, 9, 20, 0.16)',
+    borderColor: 'rgba(229, 9, 20, 0.45)',
+  },
   subscribeBannerText: {
     color: '#FF8A8A',
     fontSize: 14,
     fontWeight: '700',
+  },
+  subscribeBannerSub: {
+    color: '#999',
+    fontSize: 11,
+    marginTop: 2,
   },
   sectionBlock: {
     marginBottom: 18,

@@ -57,6 +57,43 @@ function tryDeleteLocalUpload(url) {
   }
 }
 
+// @route   POST /api/users/push-token
+// @desc    Save Expo push token for the logged-in user
+// @access  Private
+router.post('/push-token', requireAuth, async (req, res) => {
+  try {
+    const token = String(req.body?.pushToken || req.body?.token || '').trim();
+    if (!token || token.length < 20) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Valid pushToken is required',
+      });
+    }
+
+    await User.findByIdAndUpdate(req.user.id, {
+      pushToken: token,
+      lastSeenAt: new Date(),
+    });
+
+    res.json({ status: 'success', message: 'Push token saved' });
+  } catch (error) {
+    console.error('Save push token error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to save push token' });
+  }
+});
+
+// @route   POST /api/users/heartbeat
+// @desc    Mark user as currently online in the app
+// @access  Private
+router.post('/heartbeat', requireAuth, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { lastSeenAt: new Date() });
+    res.json({ status: 'success' });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Heartbeat failed' });
+  }
+});
+
 // @route   POST /api/users/avatar
 // @desc    Upload / update current user profile photo
 // @access  Private

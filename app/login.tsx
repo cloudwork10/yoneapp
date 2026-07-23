@@ -152,13 +152,19 @@ export default function LoginScreen() {
                   placeholder="Enter your password"
                   placeholderTextColor="#666"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => {
+                    if (/strong password|cover view/i.test(text)) return;
+                    setPassword(text);
+                  }}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  textContentType="none"
-                  passwordRules=""
+                  spellCheck={false}
+                  textContentType="oneTimeCode"
                   autoComplete="off"
+                  importantForAutofill="no"
+                  passwordRules=""
+                  blurOnSubmit={false}
                 />
                 <TouchableOpacity
                   style={styles.eyeButton}

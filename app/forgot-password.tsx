@@ -199,9 +199,17 @@ export default function ForgotPasswordScreen() {
                         placeholder="At least 6 characters"
                         placeholderTextColor="#666"
                         value={newPassword}
-                        onChangeText={setNewPassword}
+                        onChangeText={(text) => {
+                          if (/strong password|cover view/i.test(text)) return;
+                          setNewPassword(text);
+                        }}
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
+                        autoCorrect={false}
+                        textContentType="oneTimeCode"
+                        autoComplete="off"
+                        importantForAutofill="no"
+                        passwordRules=""
                       />
                       <TouchableOpacity
                         style={styles.eyeButton}
@@ -212,6 +220,14 @@ export default function ForgotPasswordScreen() {
                     </View>
                   </View>
 
+                  <TextInput
+                    value=""
+                    style={styles.autofillTrap}
+                    importantForAutofill="no"
+                    textContentType="oneTimeCode"
+                    autoComplete="off"
+                  />
+
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Confirm Password</Text>
                     <TextInput
@@ -219,9 +235,17 @@ export default function ForgotPasswordScreen() {
                       placeholder="Re-enter new password"
                       placeholderTextColor="#666"
                       value={confirmPassword}
-                      onChangeText={setConfirmPassword}
+                      onChangeText={(text) => {
+                        if (/strong password|cover view/i.test(text)) return;
+                        setConfirmPassword(text);
+                      }}
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
+                      autoCorrect={false}
+                      textContentType="oneTimeCode"
+                      autoComplete="off"
+                      importantForAutofill="no"
+                      passwordRules=""
                     />
                   </View>
 
@@ -305,6 +329,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  autofillTrap: {
+    height: 1,
+    width: 1,
+    opacity: 0,
+    position: 'absolute',
+    left: -1000,
   },
   passwordInput: { flex: 1, padding: 15, color: '#FFFFFF', fontSize: 16 },
   eyeButton: { padding: 15 },

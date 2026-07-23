@@ -169,13 +169,20 @@ export default function RegisterScreen() {
                   placeholder="Enter your password"
                   placeholderTextColor="#666"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(text) => {
+                    // Block iOS/Safari "Strong Password" overlay junk value
+                    if (/strong password|cover view/i.test(text)) return;
+                    setPassword(text);
+                  }}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  textContentType="none"
-                  passwordRules=""
+                  spellCheck={false}
+                  textContentType="oneTimeCode"
                   autoComplete="off"
+                  importantForAutofill="no"
+                  passwordRules=""
+                  blurOnSubmit={false}
                 />
                 <TouchableOpacity
                   style={styles.eyeButton}
@@ -188,6 +195,15 @@ export default function RegisterScreen() {
               </View>
             </View>
 
+            {/* Dummy field breaks iOS Strong Password when 2 secure fields are adjacent */}
+            <TextInput
+              value=""
+              style={styles.autofillTrap}
+              importantForAutofill="no"
+              textContentType="oneTimeCode"
+              autoComplete="off"
+            />
+
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Confirm Password</Text>
               <View style={styles.passwordContainer}>
@@ -196,13 +212,19 @@ export default function RegisterScreen() {
                   placeholder="Confirm your password"
                   placeholderTextColor="#666"
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={(text) => {
+                    if (/strong password|cover view/i.test(text)) return;
+                    setConfirmPassword(text);
+                  }}
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  textContentType="none"
-                  passwordRules=""
+                  spellCheck={false}
+                  textContentType="oneTimeCode"
                   autoComplete="off"
+                  importantForAutofill="no"
+                  passwordRules=""
+                  blurOnSubmit={false}
                 />
                 <TouchableOpacity
                   style={styles.eyeButton}
@@ -310,6 +332,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  autofillTrap: {
+    height: 1,
+    width: 1,
+    opacity: 0,
+    position: 'absolute',
+    left: -1000,
   },
   passwordInput: {
     flex: 1,

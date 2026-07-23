@@ -307,12 +307,6 @@ export default function SubscriptionScreen() {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Choose Your Plan</Text>
             <Text style={styles.headerSubtitle}>Unlock all premium content</Text>
-            <TouchableOpacity
-              style={styles.manualLink}
-              onPress={() => router.push('/subscription-2')}
-            >
-              <Text style={styles.manualLinkText}>Try Subscription 2 · Manual payment →</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Current Subscription Status */}
@@ -427,21 +421,6 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     color: '#CCCCCC',
-  },
-  manualLink: {
-    marginTop: 14,
-    alignSelf: 'flex-start',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(229, 9, 20, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(229, 9, 20, 0.35)',
-  },
-  manualLinkText: {
-    color: '#E50914',
-    fontSize: 13,
-    fontWeight: '600',
   },
   currentSubscriptionContainer: {
     backgroundColor: 'rgba(78, 205, 196, 0.1)',

@@ -69,10 +69,60 @@ class NotificationService {
       await AsyncStorage.setItem('expoPushToken', token.data);
       
       console.log('✅ Push token registered:', token.data);
+      await this.syncPushTokenToServer(token.data);
       return token.data;
     } catch (error) {
       console.error('Error registering for push notifications:', error);
       return null;
+    }
+  }
+
+  /** Persist Expo push token on the user so admin/server can notify them */
+  async syncPushTokenToServer(token?: string | null): Promise<boolean> {
+    try {
+      const pushToken = token || this.expoPushToken || (await this.getPushToken());
+      if (!pushToken) return false;
+
+      const authToken = await AsyncStorage.getItem('token');
+      if (!authToken) return false;
+
+      const API_BASE_URL = (await import('../config/api')).default;
+      const response = await fetch(`${API_BASE_URL}/api/users/push-token`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pushToken }),
+      });
+      if (!response.ok) {
+        console.warn('Failed to sync push token:', response.status);
+        return false;
+      }
+      console.log('✅ Push token synced to server');
+      return true;
+    } catch (error) {
+      console.warn('syncPushTokenToServer error:', error);
+      return false;
+    }
+  }
+
+  /** Tell the server this user is currently in the app */
+  async sendHeartbeat(): Promise<void> {
+    try {
+      const authToken = await AsyncStorage.getItem('token');
+      if (!authToken) return;
+      const API_BASE_URL = (await import('../config/api')).default;
+      await fetch(`${API_BASE_URL}/api/users/heartbeat`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      });
+    } catch {
+      // ignore — presence is best-effort
     }
   }
 

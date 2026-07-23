@@ -17,6 +17,8 @@ export default function DashboardScreen() {
     activeUsers: 0,
     adminUsers: 0,
     newUsersToday: 0,
+    onlineNow: 0,
+    activeSubscribers: 0,
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -50,10 +52,21 @@ export default function DashboardScreen() {
 
       console.log('🔐 Fetching admin data with token:', token.substring(0, 20) + '...');
 
-      // Fetch users
-      const usersResponse = await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/users`);
+      // Fetch users + live presence / subscription counts
+      const [usersResponse, liveResponse] = await Promise.all([
+        makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/users`),
+        makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/live-stats`),
+      ]);
 
       console.log('📊 Users response status:', usersResponse.status);
+
+      let onlineNow = 0;
+      let activeSubscribers = 0;
+      if (liveResponse.ok) {
+        const liveData = await liveResponse.json();
+        onlineNow = Number(liveData?.data?.onlineNow || 0);
+        activeSubscribers = Number(liveData?.data?.activeSubscribers || 0);
+      }
 
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
@@ -79,9 +92,11 @@ export default function DashboardScreen() {
           activeUsers,
           adminUsers,
           newUsersToday,
+          onlineNow,
+          activeSubscribers,
         });
 
-        console.log('📊 Stats calculated:', { totalUsers, activeUsers, adminUsers, newUsersToday });
+        console.log('📊 Stats calculated:', { totalUsers, activeUsers, adminUsers, newUsersToday, onlineNow, activeSubscribers });
       } else if (usersResponse.status === 401) {
         // Token expired, try to refresh
         console.log('🔄 Token expired, attempting to refresh...');
@@ -135,6 +150,8 @@ export default function DashboardScreen() {
                 activeUsers,
                 adminUsers,
                 newUsersToday,
+                onlineNow: 0,
+                activeSubscribers: 0,
               });
             } else {
               setError('Failed to load users after token refresh');
@@ -182,6 +199,8 @@ export default function DashboardScreen() {
                 activeUsers,
                 adminUsers,
                 newUsersToday,
+                onlineNow: 0,
+                activeSubscribers: 0,
               });
               
               setError(null);
@@ -310,6 +329,20 @@ export default function DashboardScreen() {
 
         <View style={styles.overviewSection}>
           <Text style={styles.sectionTitle}>System Overview</Text>
+          <View style={styles.liveRow}>
+            <View style={[styles.overviewCard, styles.liveCard]}>
+              <Text style={styles.liveEmoji}>👁</Text>
+              <Text style={styles.overviewValue}>{stats.onlineNow}</Text>
+              <Text style={styles.overviewLabel}>Online now</Text>
+              <Text style={styles.liveSub}>أونلاين دلوقتي</Text>
+            </View>
+            <View style={[styles.overviewCard, styles.subCard]}>
+              <Text style={styles.liveEmoji}>💎</Text>
+              <Text style={styles.overviewValue}>{stats.activeSubscribers}</Text>
+              <Text style={styles.overviewLabel}>Activated</Text>
+              <Text style={styles.liveSub}>اشتراكات مفعّلة</Text>
+            </View>
+          </View>
           <View style={styles.overviewCards}>
             <View style={styles.overviewCard}>
               <Text style={styles.overviewValue}>{stats.totalUsers}</Text>
@@ -404,6 +437,27 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 15,
   },
+  liveRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  liveCard: {
+    flex: 1,
+    minWidth: undefined,
+    borderWidth: 1,
+    borderColor: 'rgba(78, 205, 196, 0.4)',
+    backgroundColor: 'rgba(78, 205, 196, 0.12)',
+  },
+  subCard: {
+    flex: 1,
+    minWidth: undefined,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 9, 20, 0.4)',
+    backgroundColor: 'rgba(229, 9, 20, 0.12)',
+  },
+  liveEmoji: { fontSize: 22, marginBottom: 4 },
+  liveSub: { color: '#888', fontSize: 11, marginTop: 2 },
   overviewCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,

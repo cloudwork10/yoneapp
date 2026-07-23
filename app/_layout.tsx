@@ -1,5 +1,5 @@
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { UserProvider } from '@/contexts/UserContext';
+import { UserProvider, useUser } from '@/contexts/UserContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -7,11 +7,55 @@ import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+function PresenceHeartbeat() {
+  const { user } = useUser();
+
+  useEffect(() => {
+    if (!user) return;
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const beat = () => {
+      NotificationService.sendHeartbeat();
+    };
+
+    const start = () => {
+      beat();
+      NotificationService.syncPushTokenToServer();
+      if (interval) clearInterval(interval);
+      interval = setInterval(beat, 45000);
+    };
+
+    const stop = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    start();
+
+    const onAppState = (state: AppStateStatus) => {
+      if (state === 'active') start();
+      else stop();
+    };
+
+    const sub = AppState.addEventListener('change', onAppState);
+    return () => {
+      stop();
+      sub.remove();
+    };
+  }, [user?.id]);
+
+  return null;
+}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -23,41 +67,29 @@ export default function RootLayout() {
   const responseListener = useRef<Notifications.Subscription | null>(null);
 
   useEffect(() => {
-    // Initialize notifications
     const initializeNotifications = async () => {
       try {
-        // Register for push notifications
         await NotificationService.registerForPushNotifications();
-        
-        // Schedule prayer notifications only once per day
         await NotificationService.schedulePrayerNotifications();
-
-        // Schedule النادي lecture reminders (morning + 30m + 1m)
         await NotificationService.scheduleClubLectureNotifications();
-        
         console.log('✅ Notifications initialized');
       } catch (error) {
         console.error('Error initializing notifications:', error);
       }
     };
 
-    // Only initialize once when app starts
     initializeNotifications();
-    
 
-    // Listen for notifications
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    notificationListener.current = Notifications.addNotificationReceivedListener((notification) => {
       console.log('🔔 Notification received:', notification);
     });
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
       console.log('👆 Notification tapped:', response);
-      
-      // Handle notification tap
+
       if (response.notification.request.content.data) {
         const data = response.notification.request.content.data;
-        
-        // Navigate based on notification type
+
         if (data.type === 'prayer') {
           router.push('/prayer-times');
         } else if (data.type === 'club_lecture') {
@@ -66,6 +98,20 @@ export default function RootLayout() {
           router.push('/(tabs)/courses');
         } else if (data.type === 'podcast') {
           router.push('/(tabs)/podcasts');
+        } else if (
+          data.type === 'subscription_approved' ||
+          data.type === 'subscription_rejected' ||
+          data.type === 'subscription_expired' ||
+          data.type === 'subscription_remind_2d' ||
+          data.type === 'subscription_remind_same_day' ||
+          data.type === 'subscription_remind_lock_tonight'
+        ) {
+          router.push('/subscription-2');
+        } else if (
+          data.type === 'admin_subscription_expired' ||
+          data.type === 'admin_subscription_ending_tonight'
+        ) {
+          router.push('/active-subscribers');
         }
       }
     });
@@ -93,6 +139,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <UserProvider>
+        <PresenceHeartbeat />
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack
             screenOptions={{
@@ -118,6 +165,7 @@ export default function RootLayout() {
             <Stack.Screen name="subscription" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="subscription-2" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="subscription-requests" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="active-subscribers" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="notification-settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="help-support" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="terms-conditions" options={{ headerShown: false, animation: 'slide_from_right' }} />

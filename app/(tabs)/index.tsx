@@ -50,7 +50,7 @@ const QUICK_LINKS = [
   { title: 'Prayer', icon: '🕌', route: '/prayer-times' },
   { title: 'Thoughts', icon: '💭', route: '/programmer-thoughts' },
   { title: 'Profile', icon: '👤', route: '/profile' },
-  { title: 'Subscribe', icon: '💎', route: '/subscription' },
+  { title: 'Subscribe', icon: '💎', route: '/subscription-2' },
   { title: 'Alerts', icon: '🔔', route: '/notification-settings' },
   { title: 'Contact', icon: '📞', route: '/contact' },
   { title: 'About', icon: 'ℹ️', route: '/about-us' },

@@ -1,12 +1,98 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Subscription = require('../models/Subscription');
 const { apiLimiter } = require('../middleware/security');
 
 const router = express.Router();
 
-// Apply rate limiting to all admin routes - DISABLED FOR DEBUGGING
-// router.use(apiLimiter);
+const ONLINE_WINDOW_MS = 2 * 60 * 1000; // seen in last 2 minutes = online now
+
+// @route   GET /api/admin/live-stats
+// @desc    Online users now + active paid subscribers
+// @access  Admin
+router.get('/live-stats', async (req, res) => {
+  try {
+    const now = new Date();
+    const onlineSince = new Date(now.getTime() - ONLINE_WINDOW_MS);
+
+    const [onlineNow, activeSubscribers, totalUsers, pendingRequests] = await Promise.all([
+      User.countDocuments({
+        lastSeenAt: { $gte: onlineSince },
+        isActive: { $ne: false },
+      }),
+      Subscription.countDocuments({
+        status: 'active',
+        endDate: { $gt: now },
+      }),
+      User.countDocuments({ isActive: { $ne: false } }),
+      require('../models/SubscriptionRequest').countDocuments({ status: 'pending' }),
+    ]);
+
+    res.json({
+      status: 'success',
+      data: {
+        onlineNow,
+        activeSubscribers,
+        totalUsers,
+        pendingRequests,
+        onlineWindowSeconds: ONLINE_WINDOW_MS / 1000,
+      },
+    });
+  } catch (error) {
+    console.error('Admin live-stats error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to load live stats' });
+  }
+});
+
+// @route   GET /api/admin/active-subscribers
+// @desc    List active subscriptions with remaining days
+// @access  Admin
+router.get('/active-subscribers', async (req, res) => {
+  try {
+    const { remainingDays, PLAN_NAMES } = require('../services/subscriptionLifecycle');
+    const now = new Date();
+
+    // Expire anything already past before listing
+    try {
+      const { expireDueSubscriptions } = require('../services/subscriptionLifecycle');
+      await expireDueSubscriptions(now);
+    } catch (e) {
+      console.warn('expire before list failed:', e.message);
+    }
+
+    const subs = await Subscription.find({
+      status: 'active',
+      endDate: { $gt: now },
+    })
+      .populate('user', 'name email avatar lastSeenAt')
+      .sort({ endDate: 1 })
+      .lean();
+
+    const endingSoonDays = Number(req.query.endingSoonDays || 3);
+    const list = subs.map((s) => {
+      const days = remainingDays(s.endDate, now);
+      return {
+        ...s,
+        planName: PLAN_NAMES[s.plan] || s.plan,
+        remainingDays: days,
+        endingSoon: days <= endingSoonDays,
+      };
+    });
+
+    res.json({
+      status: 'success',
+      data: {
+        count: list.length,
+        endingSoonCount: list.filter((s) => s.endingSoon).length,
+        subscribers: list,
+      },
+    });
+  } catch (error) {
+    console.error('Active subscribers error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to load subscribers' });
+  }
+});
 
 // @route   GET /api/admin/dashboard
 // @desc    Get admin dashboard statistics

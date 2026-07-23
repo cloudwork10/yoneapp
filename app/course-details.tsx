@@ -1,7 +1,8 @@
 import { ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -20,6 +21,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import resolveMediaUrl from '../utils/mediaUrl';
 import { isContentLocked } from '../utils/contentAccess';
+import {
+  fetchSubscriptionAccess,
+  showPremiumGateAlert,
+} from '../utils/subscriptionAccess';
 import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
@@ -79,6 +84,7 @@ export default function CourseDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [subscriptionAccess, setSubscriptionAccess] = useState<any>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   // Generate course videos from course sections and lessons
@@ -159,33 +165,31 @@ export default function CourseDetailsScreen() {
     }
   }, [course]);
 
-  // Check user subscription status
-  useEffect(() => {
-    const checkSubscription = async () => {
-      if (!user) {
-        setSubscriptionLoading(false);
-        return;
-      }
-
-      try {
-        const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/subscription`);
-        const data = await response.json();
-        
-        if (data.status === 'success' && data.data.subscription) {
-          const subscription = data.data.subscription;
-          const isActive = subscription.status === 'active' && new Date(subscription.endDate) > new Date();
-          setHasActiveSubscription(isActive);
+  // Check user subscription + pending request status (refresh when screen focused)
+  useFocusEffect(
+    useCallback(() => {
+      const checkSubscription = async () => {
+        if (!user) {
+          setSubscriptionLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error('Error checking subscription:', error);
-        setHasActiveSubscription(false);
-      } finally {
-        setSubscriptionLoading(false);
-      }
-    };
 
-    checkSubscription();
-  }, [user]);
+        try {
+          const access = await fetchSubscriptionAccess();
+          setSubscriptionAccess(access);
+          setHasActiveSubscription(access.hasActiveSubscription);
+        } catch (error) {
+          console.error('Error checking subscription:', error);
+          setHasActiveSubscription(false);
+          setSubscriptionAccess({ status: 'none', hasActiveSubscription: false });
+        } finally {
+          setSubscriptionLoading(false);
+        }
+      };
+
+      checkSubscription();
+    }, [user])
+  );
 
   // Generate course lessons with subscription logic
   const courseLessons: CourseLesson[] = React.useMemo(() => {
@@ -280,14 +284,7 @@ export default function CourseDetailsScreen() {
 
   const handleVideoPress = (video: CourseVideo) => {
     if (video.isLocked) {
-      Alert.alert(
-        '🔒 Premium Content',
-        'This video is part of our premium content. Subscribe now to unlock all videos and get unlimited access to our courses!',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Subscribe Now', onPress: () => router.push('/subscription') }
-        ]
-      );
+      showPremiumGateAlert(subscriptionAccess, router, 'videos');
     } else {
       setIsVideoLoading(true);
       setSelectedVideo(video);
@@ -309,18 +306,11 @@ export default function CourseDetailsScreen() {
 
   const handleLessonPress = (lesson: CourseLesson) => {
     if (lesson.isLocked) {
-      Alert.alert(
-        '🔒 Premium Content',
-        'This lesson is part of our premium content. Subscribe now to unlock all lessons and get unlimited access to our courses!',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Subscribe Now', onPress: () => router.push('/subscription') }
-        ]
-      );
-    } else {
-      // Handle lesson opening logic here
-      console.log('Opening lesson:', lesson.title);
+      showPremiumGateAlert(subscriptionAccess, router, 'lessons');
+      return;
     }
+    // Handle lesson opening logic here
+    console.log('Opening lesson:', lesson.title);
   };
 
   const renderStars = (rating: number) => {

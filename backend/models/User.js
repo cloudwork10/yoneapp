@@ -115,6 +115,12 @@ const userSchema = new mongoose.Schema({
   lastLoginIP: {
     type: String
   },
+  // Presence — updated by client heartbeat while app is open
+  lastSeenAt: {
+    type: Date,
+    default: null,
+    index: true,
+  },
   // Admin monitoring fields
   isAdmin: {
     type: Boolean,

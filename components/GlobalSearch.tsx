@@ -39,7 +39,7 @@ const SECTION_LINKS: SearchHit[] = [
   { id: 'sec-prayer', title: 'Prayer Times', subtitle: 'Daily prayers', type: 'Section', icon: '🕌', route: '/prayer-times' },
   { id: 'sec-thoughts', title: 'Programmer Thoughts', subtitle: 'Inspiration', type: 'Section', icon: '💭', route: '/programmer-thoughts' },
   { id: 'sec-profile', title: 'Profile', subtitle: 'Your account', type: 'Section', icon: '👤', route: '/profile' },
-  { id: 'sec-subscribe', title: 'Subscription', subtitle: 'Premium access', type: 'Section', icon: '💎', route: '/subscription' },
+  { id: 'sec-subscribe', title: 'Subscription', subtitle: 'Premium access', type: 'Section', icon: '💎', route: '/subscription-2' },
   { id: 'sec-help', title: 'Help & Support', subtitle: 'Get help', type: 'Section', icon: '❓', route: '/help-support' },
   { id: 'sec-contact', title: 'Contact', subtitle: 'Reach us', type: 'Section', icon: '📞', route: '/contact' },
   { id: 'sec-about', title: 'About', subtitle: 'About ELNADY', type: 'Section', icon: 'ℹ️', route: '/about-us' },

@@ -18,6 +18,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../../components/FixedBackBar';
 import API_BASE_URL from '../../config/api';
 import { isContentLocked } from '../../utils/contentAccess';
+import {
+  fetchSubscriptionAccess,
+  showPremiumGateAlert,
+} from '../../utils/subscriptionAccess';
 import { useUser } from '../../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
@@ -42,6 +46,7 @@ export default function AdvicesScreen() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeAudioId, setActiveAudioId] = useState<string | null>(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [subscriptionAccess, setSubscriptionAccess] = useState<any>(null);
   const [audioStates, setAudioStates] = useState<{[key: string]: {
     isPlaying: boolean;
     position: number;
@@ -156,22 +161,18 @@ export default function AdvicesScreen() {
     }
   };
 
-  // Check user subscription status
+  // Check user subscription + pending request status
   const checkSubscription = async () => {
     if (!user) return;
 
     try {
-      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/payments/subscription`);
-      const data = await response.json();
-      
-      if (data.status === 'success' && data.data.subscription) {
-        const subscription = data.data.subscription;
-        const isActive = subscription.status === 'active' && new Date(subscription.endDate) > new Date();
-        setHasActiveSubscription(isActive);
-      }
+      const access = await fetchSubscriptionAccess();
+      setSubscriptionAccess(access);
+      setHasActiveSubscription(access.hasActiveSubscription);
     } catch (error) {
       console.error('Error checking subscription:', error);
       setHasActiveSubscription(false);
+      setSubscriptionAccess({ status: 'none', hasActiveSubscription: false });
     }
   };
 
@@ -378,14 +379,7 @@ export default function AdvicesScreen() {
     
     const handleAdvicePress = () => {
       if (isLocked) {
-        Alert.alert(
-          '🔒 Premium Content',
-          'This advice is part of our premium content. Subscribe now to unlock all advices and get unlimited access!',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Subscribe Now', onPress: () => router.push('/subscription') }
-          ]
-        );
+        showPremiumGateAlert(subscriptionAccess, router, 'advices');
       } else {
         // Handle advice opening logic here
         console.log('Opening advice:', advice.title);

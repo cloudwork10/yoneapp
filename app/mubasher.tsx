@@ -116,7 +116,7 @@ export default function MubasherScreen() {
     if (!hasAccess) {
       Alert.alert('Subscription required', 'البث المباشر متاح للمشتركين.', [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Subscribe', onPress: () => router.push('/subscription') },
+        { text: 'Subscribe', onPress: () => router.push('/subscription-2') },
       ]);
       return false;
     }

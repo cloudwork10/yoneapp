@@ -28,6 +28,11 @@ const subscriptionSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  /** User asked to cancel — access stays until endDate, then cron expires */
+  cancelAtPeriodEnd: {
+    type: Boolean,
+    default: false
+  },
   price: {
     type: Number,
     required: true
@@ -53,26 +58,30 @@ const subscriptionSchema = new mongoose.Schema({
   isSubscriptionActive: {
     type: Boolean,
     default: true
-  }
+  },
+  reminders: {
+    twoDaysBefore: { type: Boolean, default: false },
+    sameDay: { type: Boolean, default: false },
+    lockTonight: { type: Boolean, default: false },
+    expiredNotified: { type: Boolean, default: false },
+  },
 }, {
   timestamps: true
 });
 
-// Index for efficient queries
 subscriptionSchema.index({ user: 1, status: 1 });
 subscriptionSchema.index({ endDate: 1 });
+subscriptionSchema.index({ status: 1, endDate: 1 });
 
-// Method to check if subscription is active
 subscriptionSchema.methods.isActive = function() {
   return this.status === 'active' && this.endDate > new Date();
 };
 
-// Method to get remaining days
 subscriptionSchema.methods.getRemainingDays = function() {
   if (this.status !== 'active') return 0;
   const now = new Date();
   const diffTime = this.endDate - now;
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 };
 
 module.exports = mongoose.model('Subscription', subscriptionSchema);

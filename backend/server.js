@@ -231,4 +231,22 @@ app.listen(PORT, '0.0.0.0', () => {
   } catch (e) {
     console.warn('Tech news scheduler not started:', e.message);
   }
+
+  // Subscription lifecycle: expire past-due + renewal reminders (every 30 min)
+  try {
+    const { runSubscriptionLifecycleJob } = require('./services/subscriptionLifecycle');
+    const runLifecycle = () => {
+      runSubscriptionLifecycleJob()
+        .then((r) =>
+          console.log(
+            `💎 Subscription lifecycle: expired=${r.expired} remind2d=${r.twoDays} sameDay=${r.sameDay} tonight=${r.lockTonight}`
+          )
+        )
+        .catch((e) => console.warn('💎 Subscription lifecycle failed:', e.message));
+    };
+    setTimeout(runLifecycle, 15000);
+    setInterval(runLifecycle, 30 * 60 * 1000);
+  } catch (e) {
+    console.warn('Subscription lifecycle scheduler not started:', e.message);
+  }
 });
