@@ -9,6 +9,9 @@ let imageEnrichRunning = false;
 
 function serialize(doc) {
   const o = doc.toObject ? doc.toObject() : doc;
+  const region =
+    o.region === 'arab' || o.category === 'arab' ? 'arab' : o.region || 'world';
+  const category = o.category === 'arab' ? 'general' : o.category || 'general';
   return {
     _id: o._id,
     title: o.title,
@@ -17,7 +20,8 @@ function serialize(doc) {
     url: o.url,
     image: o.image || '',
     source: o.source || 'Tech',
-    category: o.category || 'general',
+    region,
+    category,
     publishedAt: o.publishedAt,
     isAuto: !!o.isAuto,
     isPinned: !!o.isPinned,
@@ -45,9 +49,29 @@ function kickImageEnrich(limit = 30) {
 router.get('/', async (req, res) => {
   try {
     const category = String(req.query.category || '').toLowerCase();
+    const region = String(req.query.region || 'world').toLowerCase();
     const limit = Math.min(Number(req.query.limit) || 40, 100);
     const filter = { isActive: true, isHidden: false };
-    if (category && category !== 'all') filter.category = category;
+
+    if (region === 'arab') {
+      filter.$or = [{ region: 'arab' }, { category: 'arab' }];
+    } else {
+      // world = global (and legacy rows without region, excluding old arab-only category)
+      filter.$and = [
+        {
+          $or: [
+            { region: 'world' },
+            { region: { $exists: false } },
+            { region: null },
+          ],
+        },
+        { category: { $ne: 'arab' } },
+      ];
+    }
+
+    if (category && category !== 'all' && category !== 'arab') {
+      filter.category = category;
+    }
 
     let items = await TechNews.find(filter)
       .sort({ isPinned: -1, publishedAt: -1 })
@@ -77,7 +101,7 @@ router.get('/', async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { news: items.map(serialize) },
+      data: { news: items.map(serialize), region },
     });
   } catch (error) {
     console.error('Tech news list error:', error);
@@ -151,6 +175,7 @@ router.post('/admin', requireAuth, requireAdmin, async (req, res) => {
       image: String(image || '').trim(),
       source: String(source || 'ELNADY').trim(),
       category: category || 'general',
+      region: req.body.region === 'arab' ? 'arab' : 'world',
       publishedAt: new Date(),
       isAuto: false,
       isPinned: !!req.body.isPinned,

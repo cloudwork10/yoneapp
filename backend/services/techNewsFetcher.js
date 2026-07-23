@@ -22,123 +22,232 @@ const FEEDS = [
   {
     url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
     category: 'ai',
+    region: 'world',
     source: 'TechCrunch · AI',
   },
   {
     url: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml',
     category: 'ai',
+    region: 'world',
     source: 'The Verge · AI',
   },
   {
     url: 'https://techcrunch.com/feed/',
     category: 'general',
+    region: 'world',
     source: 'TechCrunch',
   },
   {
     url: 'https://www.theverge.com/rss/index.xml',
     category: 'general',
+    region: 'world',
     source: 'The Verge',
   },
   {
     url: 'https://www.smashingmagazine.com/feed/',
     category: 'uiux',
+    region: 'world',
     source: 'Smashing Magazine',
   },
   {
     url: 'https://krebsonsecurity.com/feed/',
     category: 'cybersecurity',
+    region: 'world',
     source: 'Krebs on Security',
   },
   {
     url: 'https://news.google.com/rss/search?q=OpenAI+OR+ChatGPT+OR+%22artificial+intelligence%22+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'ai',
+    region: 'world',
     source: 'Google News · AI',
   },
   {
     url: 'https://news.google.com/rss/search?q=React+OR+%22Next.js%22+OR+TypeScript+frontend+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'frontend',
+    region: 'world',
     source: 'Google News · Frontend',
   },
   {
     url: 'https://news.google.com/rss/search?q=%22Node.js%22+OR+Python+OR+Django+OR+backend+API+release+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'backend',
+    region: 'world',
     source: 'Google News · Backend',
   },
   {
     url: 'https://news.google.com/rss/search?q=React+Native+OR+Flutter+OR+Swift+OR+Kotlin+mobile+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'mobile',
+    region: 'world',
     source: 'Google News · Mobile',
   },
   {
     url: 'https://news.google.com/rss/search?q=software+release+OR+%22version%22+(JavaScript+OR+Python+OR+Go+OR+Rust)+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'releases',
+    region: 'world',
     source: 'Google News · Releases',
   },
   {
     url: 'https://news.google.com/rss/search?q=%22UI%2FUX%22+OR+Figma+OR+%22user+experience%22+OR+%22product+design%22+OR+UX+design+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'uiux',
+    region: 'world',
     source: 'Google News · UI/UX',
   },
   {
     url: 'https://news.google.com/rss/search?q=cybersecurity+OR+%22data+breach%22+OR+ransomware+OR+%22ethical+hacking%22+OR+%22info+sec%22+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'cybersecurity',
+    region: 'world',
     source: 'Google News · Security',
   },
   {
     url: 'https://news.google.com/rss/search?q=%22data+analysis%22+OR+%22data+science%22+OR+pandas+OR+%22Power+BI%22+OR+Tableau+OR+SQL+analytics+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'data',
+    region: 'world',
     source: 'Google News · Data',
   },
   {
     url: 'https://news.google.com/rss/search?q=automation+OR+RPA+OR+%22workflow+automation%22+OR+Zapier+OR+n8n+OR+%22no+code+automation%22+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'automation',
+    region: 'world',
     source: 'Google News · Automation',
   },
   {
     url: 'https://news.google.com/rss/search?q=%22digital+marketing%22+OR+SEO+OR+%22social+media+marketing%22+OR+%22Google+Ads%22+OR+content+marketing+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'marketing',
+    region: 'world',
     source: 'Google News · Marketing',
   },
   {
     url: 'https://news.google.com/rss/search?q=freelance+OR+freelancing+OR+Upwork+OR+Fiverr+OR+%22remote+work%22+(design+OR+developer+OR+writer)+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'freelancing',
+    region: 'world',
     source: 'Google News · Freelance',
   },
   {
     url: 'https://github.blog/feed/',
     category: 'general',
+    region: 'world',
     source: 'GitHub Blog',
   },
-  // Egypt & Arab world tech — kept in `arab` category for the Reader chip
+
+  // ── Egypt & Arab world — same domains, region=arab ──
   {
-    url: 'https://news.google.com/rss/search?q=%D8%AA%D9%83%D9%86%D9%88%D9%84%D9%88%D8%AC%D9%8A%D8%A7+OR+%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+OR+%D8%B4%D8%B1%D9%83%D8%A7%D8%AA+%D9%86%D8%A7%D8%B4%D8%A6%D8%A9+when:7d&hl=ar&gl=EG&ceid=EG:ar',
-    category: 'arab',
-    source: 'Google News · مصر تكنولوجيا',
-    lockCategory: true,
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+OR+ChatGPT+OR+OpenAI)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'ai',
+    region: 'arab',
+    source: 'عرب · AI',
   },
   {
-    url: 'https://news.google.com/rss/search?q=Egypt+(tech+OR+startup+OR+%22artificial+intelligence%22+OR+fintech+OR+%22silicon+valley+of+the+middle+east%22)+when:7d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'arab',
-    source: 'Google News · Egypt Tech',
-    lockCategory: true,
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA+OR+Saudi+OR+UAE)+(AI+OR+%22artificial+intelligence%22+OR+OpenAI)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'ai',
+    region: 'arab',
+    source: 'MENA · AI',
   },
   {
-    url: 'https://news.google.com/rss/search?q=%D8%AA%D9%83%D9%86%D9%88%D9%84%D9%88%D8%AC%D9%8A%D8%A7+OR+%D8%B1%D9%82%D9%85%D9%86%D8%A9+OR+%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+(%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA+OR+%D8%A7%D9%84%D8%A3%D8%B1%D8%AF%D9%86+OR+%D8%A7%D9%84%D9%83%D9%88%D9%8A%D8%AA)+when:7d&hl=ar&gl=SA&ceid=SA:ar',
-    category: 'arab',
-    source: 'Google News · عرب تكنولوجيا',
-    lockCategory: true,
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%A8%D8%B1%D9%85%D8%AC%D8%A9+OR+%D9%85%D8%B7%D9%88%D8%B1+%D9%88%D9%8A%D8%A8+OR+React+OR+Frontend)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'frontend',
+    region: 'arab',
+    source: 'عرب · Frontend',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(MENA+OR+%22Middle+East%22+OR+GCC)+(startup+OR+tech+OR+fintech+OR+%22artificial+intelligence%22)+when:7d&hl=en-US&gl=AE&ceid=AE:en',
-    category: 'arab',
-    source: 'Google News · MENA Tech',
-    lockCategory: true,
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(React+OR+Frontend+OR+%22web+development%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'frontend',
+    region: 'arab',
+    source: 'MENA · Frontend',
   },
   {
-    url: 'https://news.google.com/rss/search?q=Wamda+OR+Flat6Labs+OR+%22Cairo+tech%22+OR+%22Egyptian+startup%22+OR+Careem+OR+Fawry+when:14d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'arab',
-    source: 'Google News · Egypt Startups',
-    lockCategory: true,
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AE%D9%88%D8%A7%D8%AF%D9%85+OR+backend+OR+API+OR+Python)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'backend',
+    region: 'arab',
+    source: 'عرب · Backend',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(backend+OR+%22Node.js%22+OR+Python+OR+API)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'backend',
+    region: 'arab',
+    source: 'MENA · Backend',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%D8%A7%D8%AA+%D8%AC%D9%88%D8%A7%D9%84+OR+Flutter+OR+%22React+Native%22)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'mobile',
+    region: 'arab',
+    source: 'عرب · Mobile',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(Flutter+OR+%22React+Native%22+OR+mobile+app)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'mobile',
+    region: 'arab',
+    source: 'MENA · Mobile',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B5%D9%85%D9%8A%D9%85+OR+UI+OR+UX+OR+Figma)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'uiux',
+    region: 'arab',
+    source: 'عرب · UI/UX',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%A3%D9%85%D9%86+%D8%B3%D9%8A%D8%A8%D8%B1%D8%A7%D9%86%D9%8A+OR+%D8%A7%D8%AE%D8%AA%D8%B1%D8%A7%D9%82+%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+cybersecurity)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'cybersecurity',
+    region: 'arab',
+    source: 'عرب · Cybersecurity',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA+OR+Saudi)+(cybersecurity+OR+%22data+breach%22+OR+hacking)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'cybersecurity',
+    region: 'arab',
+    source: 'MENA · Security',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%AD%D9%84%D9%8A%D9%84+%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+%D8%B9%D9%84%D9%85+%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+SQL)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'data',
+    region: 'arab',
+    source: 'عرب · Data',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(%22data+science%22+OR+analytics+OR+%22Power+BI%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'data',
+    region: 'arab',
+    source: 'MENA · Data',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%A3%D8%AA%D9%85%D8%AA%D8%A9+OR+automation+OR+RPA)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'automation',
+    region: 'arab',
+    source: 'عرب · Automation',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B3%D9%88%D9%8A%D9%82+%D8%B1%D9%82%D9%85%D9%8A+OR+SEO+OR+%D8%A5%D8%B9%D9%84%D8%A7%D9%86%D8%A7%D8%AA)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'marketing',
+    region: 'arab',
+    source: 'عرب · Marketing',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%B9%D9%85%D9%84+%D8%AD%D8%B1+OR+freelance+OR+Upwork)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'freelancing',
+    region: 'arab',
+    source: 'عرب · Freelance',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(freelance+OR+Upwork+OR+Fiverr+OR+%22remote+work%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'freelancing',
+    region: 'arab',
+    source: 'MENA · Freelance',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1+OR+%D8%AA%D8%AD%D8%AF%D9%8A%D8%AB+%D8%A8%D8%B1%D9%85%D8%AC%D9%8A+OR+release)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'releases',
+    region: 'arab',
+    source: 'عرب · Releases',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D9%88%D8%B7%D9%86+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A)+(%D8%AA%D9%83%D9%86%D9%88%D9%84%D9%88%D8%AC%D9%8A%D8%A7+OR+%D8%B4%D8%B1%D9%83%D8%A7%D8%AA+%D9%86%D8%A7%D8%B4%D8%A6%D8%A9+OR+%D8%B1%D9%82%D9%85%D9%86%D8%A9)+when:7d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'general',
+    region: 'arab',
+    source: 'مصر / عرب · عام',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(startup+OR+tech+OR+fintech+OR+Wamda+OR+Flat6Labs)+when:7d&hl=en-US&gl=EG&ceid=EG:en',
+    category: 'general',
+    region: 'arab',
+    source: 'MENA · General',
   },
 ];
 
@@ -318,42 +427,30 @@ async function fetchOgImage(pageUrl) {
 }
 
 function categorize(title, fallback) {
-  // Regional Arab/Egypt feeds stay under the arab chip
-  if (fallback === 'arab') return 'arab';
-
   const t = String(title || '').toLowerCase();
-  if (/cyber|security|breach|ransomware|malware|phishing|hacker|vulnerability|cve/.test(t)) {
+  if (/cyber|security|breach|ransomware|malware|phishing|hacker|vulnerability|cve|أمن سيبراني|اختراق/.test(t) || /أمن سيبراني|اختراق بيانات/.test(String(title || ''))) {
     return 'cybersecurity';
   }
-  if (/ui\/?ux|figma|user experience|product design|ux design|interface design|wireframe/.test(t)) {
+  if (/ui\/?ux|figma|user experience|product design|ux design|interface design|wireframe|تصميم/.test(t)) {
     return 'uiux';
   }
-  if (/data science|data anal|pandas|power bi|tableau|\bsql\b|analytics|machine learning dataset/.test(t)) {
+  if (/data science|data anal|pandas|power bi|tableau|\bsql\b|analytics|machine learning dataset|تحليل بيانات|علم البيانات/.test(t)) {
     return 'data';
   }
-  if (/automation|rpa|zapier|\bn8n\b|workflow automation|no-?code automation/.test(t)) {
+  if (/automation|rpa|zapier|\bn8n\b|workflow automation|no-?code automation|أتمتة/.test(t)) {
     return 'automation';
   }
-  if (/digital marketing|\bseo\b|google ads|social media marketing|content marketing|email marketing/.test(t)) {
+  if (/digital marketing|\bseo\b|google ads|social media marketing|content marketing|email marketing|تسويق/.test(t)) {
     return 'marketing';
   }
-  if (/freelance|freelancing|upwork|fiverr|independent contractor|gig economy/.test(t)) {
+  if (/freelance|freelancing|upwork|fiverr|independent contractor|gig economy|عمل حر/.test(t)) {
     return 'freelancing';
   }
-  if (/openai|chatgpt|gpt|claude|gemini|llm|artificial intelligence|\bai\b/.test(t)) return 'ai';
-  if (/react native|flutter|swift|kotlin|ios|android|mobile/.test(t)) return 'mobile';
-  if (/react|next\.?js|vue|angular|typescript|css|frontend|tailwind/.test(t)) return 'frontend';
-  if (/node\.?js|python|django|golang|\bgo\b|rust|java|backend|api|database/.test(t)) return 'backend';
-  if (/release|version|launches|announces|update/.test(t)) return 'releases';
-  // Arabic regional keywords → arab chip even from mixed feeds
-  if (
-    /مصر|السعودية|الإمارات|الكويت|قطر|الأردن|تونس|المغرب|البحرين|عمان|فلسطين|لبنان|العراق|سوريا|الوطن العربي|الشرق الأوسط|شركات ناشئة|ريادة أعمال|التكنولوجيا|الذكاء الاصطناعي/.test(
-      String(title || '')
-    ) ||
-    /\b(egypt|egyptian|mena|saudi|uae|dubai|cairo|riyadh|flat6labs|wamda|fawry|careem)\b/i.test(t)
-  ) {
-    return 'arab';
-  }
+  if (/openai|chatgpt|gpt|claude|gemini|llm|artificial intelligence|\bai\b|ذكاء اصطناعي/.test(t)) return 'ai';
+  if (/react native|flutter|swift|kotlin|ios|android|mobile|تطبيقات جوال/.test(t)) return 'mobile';
+  if (/react|next\.?js|vue|angular|typescript|css|frontend|tailwind|مطور ويب/.test(t)) return 'frontend';
+  if (/node\.?js|python|django|golang|\bgo\b|rust|java|backend|api|database|خوادم/.test(t)) return 'backend';
+  if (/release|version|launches|announces|update|إصدار|تحديث/.test(t)) return 'releases';
   return fallback || 'general';
 }
 
@@ -416,6 +513,13 @@ async function fetchFeed(feed) {
         if (existing.isAuto) {
           existing.title = title;
           existing.summary = summary || existing.summary;
+          existing.region = feed.region || existing.region || 'world';
+          existing.category = categorize(title, feed.category);
+          // Migrate legacy category=arab → region arab + domain
+          if (existing.category === 'arab') {
+            existing.region = 'arab';
+            existing.category = categorize(title, feed.category === 'arab' ? 'general' : feed.category);
+          }
           if (!existing.image) {
             existing.image = await resolveImage(item, url);
           } else {
@@ -431,6 +535,8 @@ async function fetchFeed(feed) {
       }
 
       const image = await resolveImage(item, url);
+      let category = categorize(title, feed.category);
+      if (category === 'arab') category = feed.category === 'arab' ? 'general' : feed.category;
 
       await TechNews.create({
         title,
@@ -438,9 +544,8 @@ async function fetchFeed(feed) {
         url,
         image,
         source: feed.source || result.title || 'Tech',
-        category: feed.lockCategory
-          ? feed.category
-          : categorize(title, feed.category),
+        category,
+        region: feed.region || 'world',
         publishedAt: Number.isNaN(publishedAt.getTime()) ? new Date() : publishedAt,
         externalId,
         isAuto: true,

@@ -8,6 +8,13 @@ const techNewsSchema = new mongoose.Schema({
   url: { type: String, required: true, trim: true },
   image: { type: String, default: '' },
   source: { type: String, default: 'Tech', trim: true },
+  /** world = global tech · arab = Egypt & Arab world */
+  region: {
+    type: String,
+    enum: ['world', 'arab'],
+    default: 'world',
+    index: true,
+  },
   category: {
     type: String,
     enum: [
@@ -22,7 +29,7 @@ const techNewsSchema = new mongoose.Schema({
       'automation',
       'marketing',
       'freelancing',
-      'arab',
+      'arab', // legacy — migrated to region=arab on refresh
       'general',
     ],
     default: 'general',
@@ -38,7 +45,7 @@ const techNewsSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 techNewsSchema.index({ publishedAt: -1, isPinned: -1 });
-techNewsSchema.index({ category: 1, publishedAt: -1 });
+techNewsSchema.index({ region: 1, category: 1, publishedAt: -1 });
 techNewsSchema.index({ url: 1 }, { unique: false });
 
 module.exports = mongoose.model('TechNews', techNewsSchema);

@@ -35,6 +35,7 @@ type NewsItem = {
   url: string;
   image?: string;
   source?: string;
+  region?: string;
   category?: string;
   publishedAt?: string;
   isPinned?: boolean;
@@ -42,9 +43,13 @@ type NewsItem = {
   isAuto?: boolean;
 };
 
+const REGIONS = [
+  { id: 'world', label: 'العالم' },
+  { id: 'arab', label: 'مصر / عرب' },
+];
+
 const CATEGORIES = [
   { id: 'all', label: 'All' },
-  { id: 'arab', label: 'مصر / عرب' },
   { id: 'ai', label: 'AI' },
   { id: 'frontend', label: 'Frontend' },
   { id: 'backend', label: 'Backend' },
@@ -184,6 +189,7 @@ export default function TechNewsScreen() {
   const { isAdmin } = useUser();
   const insets = useSafeAreaInsets();
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [region, setRegion] = useState<'world' | 'arab'>('world');
   const [category, setCategory] = useState('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -203,8 +209,9 @@ export default function TechNewsScreen() {
   const loadPublic = useCallback(async () => {
     try {
       setLoadError('');
-      const q = category === 'all' ? '' : `?category=${category}`;
-      const res = await fetch(`${API_BASE_URL}/api/tech-news${q}`);
+      const params = new URLSearchParams({ region });
+      if (category && category !== 'all') params.set('category', category);
+      const res = await fetch(`${API_BASE_URL}/api/tech-news?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setLoadError(data?.message || `Could not load news (${res.status})`);
@@ -220,7 +227,7 @@ export default function TechNewsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [category]);
+  }, [category, region]);
 
   const loadAdmin = useCallback(async () => {
     try {
@@ -378,37 +385,50 @@ export default function TechNewsScreen() {
           <Text style={styles.brand}>ELNADY</Text>
           <Text style={styles.title}>Tech News</Text>
           <Text style={styles.subtitle}>
-            أخبار التكنولوجيا والـ AI وتحديثات اللغات — تتجدد تلقائيًا، مع تحكم أدمن.
+            العالم أو مصر/عرب · اختَر المجال · تتجدد تلقائيًا
           </Text>
 
-          {isAdmin ? (
-            <View style={styles.adminBar}>
+          <View style={styles.adminBar}>
+            {REGIONS.map((r) => (
               <TouchableOpacity
-                style={[styles.adminChip, !adminMode && styles.adminChipOn]}
-                onPress={() => setAdminMode(false)}
-              >
-                <Text style={styles.adminChipText}>Reader</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.adminChip, adminMode && styles.adminChipOn]}
+                key={r.id}
+                style={[
+                  styles.adminChip,
+                  !adminMode && region === r.id && styles.adminChipOn,
+                ]}
                 onPress={() => {
-                  setAdminMode(true);
-                  loadAdmin();
+                  setAdminMode(false);
+                  setRegion(r.id as 'world' | 'arab');
+                  setCategory('all');
+                  setLoading(true);
                 }}
               >
-                <Text style={styles.adminChipText}>Admin</Text>
+                <Text style={styles.adminChipText}>{r.label}</Text>
               </TouchableOpacity>
-              {adminMode ? (
+            ))}
+            {isAdmin ? (
+              <>
                 <TouchableOpacity
-                  style={[styles.adminChip, styles.refreshChip]}
-                  onPress={refreshFeeds}
-                  disabled={saving}
+                  style={[styles.adminChip, adminMode && styles.adminChipOn]}
+                  onPress={() => {
+                    setAdminMode(true);
+                    loadAdmin();
+                  }}
                 >
-                  <Text style={styles.adminChipText}>{saving ? '…' : 'Refresh feeds'}</Text>
+                  <Text style={styles.adminChipText}>Admin</Text>
                 </TouchableOpacity>
-              ) : null}
-            </View>
-          ) : null}
+                {adminMode ? (
+                  <TouchableOpacity
+                    style={[styles.adminChip, styles.refreshChip]}
+                    onPress={refreshFeeds}
+                    disabled={saving}
+                  >
+                    <Text style={styles.adminChipText}>{saving ? '…' : 'Refresh feeds'}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </>
+            ) : null}
+          </View>
 
           {!adminMode ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cats}>
@@ -416,7 +436,10 @@ export default function TechNewsScreen() {
                 <TouchableOpacity
                   key={c.id}
                   style={[styles.catChip, category === c.id && styles.catChipOn]}
-                  onPress={() => setCategory(c.id)}
+                  onPress={() => {
+                    setCategory(c.id);
+                    setLoading(true);
+                  }}
                 >
                   <Text style={[styles.catText, category === c.id && styles.catTextOn]}>{c.label}</Text>
                 </TouchableOpacity>
