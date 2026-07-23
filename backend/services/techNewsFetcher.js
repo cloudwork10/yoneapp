@@ -19,6 +19,7 @@ const parser = new Parser({
 });
 
 const FEEDS = [
+  // ── World: career tech only (programming · design · marketing · freelance · data · AI · automation) ──
   {
     url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
     category: 'ai',
@@ -32,22 +33,82 @@ const FEEDS = [
     source: 'The Verge · AI',
   },
   {
-    url: 'https://techcrunch.com/feed/',
-    category: 'general',
-    region: 'world',
-    source: 'TechCrunch',
-  },
-  {
-    url: 'https://www.theverge.com/rss/index.xml',
-    category: 'general',
-    region: 'world',
-    source: 'The Verge',
-  },
-  {
     url: 'https://www.smashingmagazine.com/feed/',
     category: 'uiux',
     region: 'world',
     source: 'Smashing Magazine',
+  },
+  {
+    url: 'https://css-tricks.com/feed/',
+    category: 'frontend',
+    region: 'world',
+    source: 'CSS-Tricks',
+  },
+  {
+    url: 'https://github.blog/feed/',
+    category: 'releases',
+    region: 'world',
+    source: 'GitHub Blog',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(OpenAI+OR+ChatGPT+OR+Claude+OR+%22artificial+intelligence%22+OR+LLM)+(developer+OR+coding+OR+programming+OR+API)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'ai',
+    region: 'world',
+    source: 'Google News · AI',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(React+OR+%22Next.js%22+OR+TypeScript+OR+Vue+OR+Angular)+(%22web+development%22+OR+frontend+OR+CSS)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'frontend',
+    region: 'world',
+    source: 'Google News · Frontend',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%22Node.js%22+OR+Django+OR+FastAPI+OR+%22Express.js%22+OR+NestJS)+(backend+OR+API+OR+programming)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'backend',
+    region: 'world',
+    source: 'Google News · Backend',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%22React+Native%22+OR+Flutter+OR+SwiftUI+OR+Kotlin)+(%22mobile+app%22+OR+developer+OR+programming)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'mobile',
+    region: 'world',
+    source: 'Google News · Mobile',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Figma+OR+%22UI%2FUX%22+OR+%22product+design%22+OR+%22UX+design%22+OR+Framer)+(design+OR+designer)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'uiux',
+    region: 'world',
+    source: 'Google News · UI/UX',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%22data+analysis%22+OR+%22data+science%22+OR+%22Power+BI%22+OR+Tableau+OR+pandas+OR+SQL)+(analyst+OR+analytics+OR+dashboard)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'data',
+    region: 'world',
+    source: 'Google News · Data',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(Zapier+OR+n8n+OR+Make.com+OR+%22AI+agent%22+OR+%22workflow+automation%22+OR+%22AI+automation%22)+(developer+OR+automation+OR+no-code)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'automation',
+    region: 'world',
+    source: 'Google News · AI Automation',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(%22digital+marketing%22+OR+SEO+OR+%22Google+Ads%22+OR+%22Meta+Ads%22+OR+%22content+marketing%22+OR+%22email+marketing%22)+(marketing+OR+marketer)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'marketing',
+    region: 'world',
+    source: 'Google News · Digital Marketing',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(freelance+OR+freelancing+OR+Upwork+OR+Fiverr)+(developer+OR+designer+OR+%22web+design%22+OR+programmer+OR+%22graphic+design%22)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'freelancing',
+    region: 'world',
+    source: 'Google News · Freelance',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(JavaScript+OR+TypeScript+OR+Python+OR+React+OR+%22Node.js%22)+(release+OR+version+OR+update)+(developer+OR+framework)+when:7d&hl=en-US&gl=US&ceid=US:en',
+    category: 'releases',
+    region: 'world',
+    source: 'Google News · Dev Releases',
   },
   {
     url: 'https://krebsonsecurity.com/feed/',
@@ -56,198 +117,116 @@ const FEEDS = [
     source: 'Krebs on Security',
   },
   {
-    url: 'https://news.google.com/rss/search?q=OpenAI+OR+ChatGPT+OR+%22artificial+intelligence%22+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'ai',
-    region: 'world',
-    source: 'Google News · AI',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=React+OR+%22Next.js%22+OR+TypeScript+frontend+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'frontend',
-    region: 'world',
-    source: 'Google News · Frontend',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=%22Node.js%22+OR+Python+OR+Django+OR+backend+API+release+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'backend',
-    region: 'world',
-    source: 'Google News · Backend',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=React+Native+OR+Flutter+OR+Swift+OR+Kotlin+mobile+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'mobile',
-    region: 'world',
-    source: 'Google News · Mobile',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=software+release+OR+%22version%22+(JavaScript+OR+Python+OR+Go+OR+Rust)+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'releases',
-    region: 'world',
-    source: 'Google News · Releases',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=%22UI%2FUX%22+OR+Figma+OR+%22user+experience%22+OR+%22product+design%22+OR+UX+design+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'uiux',
-    region: 'world',
-    source: 'Google News · UI/UX',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=cybersecurity+OR+%22data+breach%22+OR+ransomware+OR+%22ethical+hacking%22+OR+%22info+sec%22+when:7d&hl=en-US&gl=US&ceid=US:en',
+    url: 'https://news.google.com/rss/search?q=(%22cyber+security%22+OR+cybersecurity+OR+%22penetration+testing%22+OR+pentest+OR+%22ethical+hacking%22+OR+bug+bounty+OR+OWASP+OR+CVE)+(security+OR+hacker+OR+vulnerability)+when:7d&hl=en-US&gl=US&ceid=US:en',
     category: 'cybersecurity',
     region: 'world',
-    source: 'Google News · Security',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=%22data+analysis%22+OR+%22data+science%22+OR+pandas+OR+%22Power+BI%22+OR+Tableau+OR+SQL+analytics+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'data',
-    region: 'world',
-    source: 'Google News · Data',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=automation+OR+RPA+OR+%22workflow+automation%22+OR+Zapier+OR+n8n+OR+%22no+code+automation%22+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'automation',
-    region: 'world',
-    source: 'Google News · Automation',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=%22digital+marketing%22+OR+SEO+OR+%22social+media+marketing%22+OR+%22Google+Ads%22+OR+content+marketing+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'marketing',
-    region: 'world',
-    source: 'Google News · Marketing',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=freelance+OR+freelancing+OR+Upwork+OR+Fiverr+OR+%22remote+work%22+(design+OR+developer+OR+writer)+when:7d&hl=en-US&gl=US&ceid=US:en',
-    category: 'freelancing',
-    region: 'world',
-    source: 'Google News · Freelance',
-  },
-  {
-    url: 'https://github.blog/feed/',
-    category: 'general',
-    region: 'world',
-    source: 'GitHub Blog',
+    source: 'Google News · Cybersecurity',
   },
 
-  // ── Egypt & Arab world — same domains, region=arab ──
+  // ── Egypt ──
   {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+OR+ChatGPT+OR+OpenAI)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%B0%D9%83%D8%A7%D8%A1+%D8%A7%D8%B5%D8%B7%D9%86%D8%A7%D8%B9%D9%8A+OR+ChatGPT+OR+OpenAI+OR+%D8%A8%D8%B1%D9%85%D8%AC%D8%A9)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'ai',
     region: 'egypt',
     source: 'Egypt · AI',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA+OR+Saudi+OR+UAE)+(AI+OR+%22artificial+intelligence%22+OR+OpenAI)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    url: 'https://news.google.com/rss/search?q=Egypt+(AI+OR+ChatGPT+OR+OpenAI)+(developer+OR+programming+OR+coding+OR+startup)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
     category: 'ai',
-    region: 'arab',
-    source: 'MENA · AI',
+    region: 'egypt',
+    source: 'Egypt · AI EN',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%A8%D8%B1%D9%85%D8%AC%D8%A9+OR+%D9%85%D8%B7%D9%88%D8%B1+%D9%88%D9%8A%D8%A8+OR+React+OR+Frontend)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%A8%D8%B1%D9%85%D8%AC%D8%A9+OR+%D9%85%D8%B7%D9%88%D8%B1+%D9%88%D9%8A%D8%A8+OR+React+OR+Frontend+OR+Python)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'frontend',
     region: 'egypt',
-    source: 'Egypt · Frontend',
+    source: 'Egypt · Programming',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(React+OR+Frontend+OR+%22web+development%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'frontend',
-    region: 'arab',
-    source: 'MENA · Frontend',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AE%D9%88%D8%A7%D8%AF%D9%85+OR+backend+OR+API+OR+Python)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
-    category: 'backend',
-    region: 'egypt',
-    source: 'Egypt · Backend',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(backend+OR+%22Node.js%22+OR+Python+OR+API)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'backend',
-    region: 'arab',
-    source: 'MENA · Backend',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%D8%A7%D8%AA+%D8%AC%D9%88%D8%A7%D9%84+OR+Flutter+OR+%22React+Native%22)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
-    category: 'mobile',
-    region: 'egypt',
-    source: 'Egypt · Mobile',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(Flutter+OR+%22React+Native%22+OR+mobile+app)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'mobile',
-    region: 'arab',
-    source: 'MENA · Mobile',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B5%D9%85%D9%8A%D9%85+OR+UI+OR+UX+OR+Figma)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%AA%D8%B5%D9%85%D9%8A%D9%85+OR+UI+OR+UX+OR+Figma+OR+%D8%AC%D8%B1%D8%A7%D9%81%D9%8A%D9%83)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'uiux',
     region: 'egypt',
-    source: 'Egypt · UI/UX',
+    source: 'Egypt · Design',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%A3%D9%85%D9%86+%D8%B3%D9%8A%D8%A8%D8%B1%D8%A7%D9%86%D9%8A+OR+%D8%A7%D8%AE%D8%AA%D8%B1%D8%A7%D9%82+%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+cybersecurity)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
-    category: 'cybersecurity',
-    region: 'egypt',
-    source: 'Egypt · Cybersecurity',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA+OR+Saudi)+(cybersecurity+OR+%22data+breach%22+OR+hacking)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'cybersecurity',
-    region: 'arab',
-    source: 'MENA · Security',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%AD%D9%84%D9%8A%D9%84+%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+%D8%B9%D9%84%D9%85+%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+SQL)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%AA%D8%AD%D9%84%D9%8A%D9%84+%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+%D8%B9%D9%84%D9%85+%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7%D8%AA+OR+%22Power+BI%22+OR+SQL)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'data',
     region: 'egypt',
     source: 'Egypt · Data',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(%22data+science%22+OR+analytics+OR+%22Power+BI%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'data',
-    region: 'arab',
-    source: 'MENA · Data',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%A3%D8%AA%D9%85%D8%AA%D8%A9+OR+automation+OR+RPA)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
-    category: 'automation',
-    region: 'egypt',
-    source: 'Egypt · Automation',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%AA%D8%B3%D9%88%D9%8A%D9%82+%D8%B1%D9%82%D9%85%D9%8A+OR+SEO+OR+%D8%A5%D8%B9%D9%84%D8%A7%D9%86%D8%A7%D8%AA)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%AA%D8%B3%D9%88%D9%8A%D9%82+%D8%B1%D9%82%D9%85%D9%8A+OR+SEO+OR+%D8%A5%D8%B9%D9%84%D8%A7%D9%86%D8%A7%D8%AA+Google+OR+Meta+Ads)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'marketing',
     region: 'egypt',
     source: 'Egypt · Marketing',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8)+(%D8%B9%D9%85%D9%84+%D8%AD%D8%B1+OR+freelance+OR+Upwork)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%B9%D9%85%D9%84+%D8%AD%D8%B1+OR+freelance+OR+Upwork+OR+Fiverr)+(%D8%A8%D8%B1%D9%85%D8%AC%D8%A9+OR+%D8%AA%D8%B5%D9%85%D9%8A%D9%85+OR+%D8%AA%D8%B3%D9%88%D9%8A%D9%82)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
     category: 'freelancing',
     region: 'egypt',
     source: 'Egypt · Freelance',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(freelance+OR+Upwork+OR+Fiverr+OR+%22remote+work%22)+when:14d&hl=en-US&gl=EG&ceid=EG:en',
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%A3%D8%AA%D9%85%D8%AA%D8%A9+OR+Zapier+OR+n8n+OR+%22AI+automation%22)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'automation',
+    region: 'egypt',
+    source: 'Egypt · Automation',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=%D9%85%D8%B5%D8%B1+(%D8%A3%D9%85%D9%86+%D8%B3%D9%8A%D8%A8%D8%B1%D8%A7%D9%86%D9%8A+OR+cybersecurity+OR+pentest+OR+%D8%A7%D8%AE%D8%AA%D8%B1%D8%A7%D9%82+OR+OWASP)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'cybersecurity',
+    region: 'egypt',
+    source: 'Egypt · Cybersecurity',
+  },
+
+  // ── Arab / MENA ──
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE+OR+Egypt)+(AI+OR+ChatGPT+OR+OpenAI)+(developer+OR+programming+OR+coding)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'ai',
+    region: 'arab',
+    source: 'MENA · AI',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE)+(React+OR+%22web+development%22+OR+Python+OR+Flutter)+(developer+OR+programming)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'frontend',
+    region: 'arab',
+    source: 'MENA · Programming',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE)+(Figma+OR+%22UI%2FUX%22+OR+%22product+design%22)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'uiux',
+    region: 'arab',
+    source: 'MENA · Design',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE)+(%22data+science%22+OR+analytics+OR+%22Power+BI%22)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'data',
+    region: 'arab',
+    source: 'MENA · Data',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE)+(%22digital+marketing%22+OR+SEO+OR+%22Google+Ads%22)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'marketing',
+    region: 'arab',
+    source: 'MENA · Marketing',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE)+(freelance+OR+Upwork+OR+Fiverr)+(developer+OR+designer)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
     category: 'freelancing',
     region: 'arab',
     source: 'MENA · Freelance',
   },
   {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D8%B3%D8%B9%D9%88%D8%AF%D9%8A%D8%A9+OR+%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA)+(%D8%A5%D8%B5%D8%AF%D8%A7%D8%B1+OR+%D8%AA%D8%AD%D8%AF%D9%8A%D8%AB+%D8%A8%D8%B1%D9%85%D8%AC%D9%8A+OR+release)+when:14d&hl=ar&gl=EG&ceid=EG:ar',
-    category: 'releases',
-    region: 'egypt',
-    source: 'Egypt · Releases',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(%D9%85%D8%B5%D8%B1+OR+%D8%A7%D9%84%D9%88%D8%B7%D9%86+%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A)+(%D8%AA%D9%83%D9%86%D9%88%D9%84%D9%88%D8%AC%D9%8A%D8%A7+OR+%D8%B4%D8%B1%D9%83%D8%A7%D8%AA+%D9%86%D8%A7%D8%B4%D8%A6%D8%A9+OR+%D8%B1%D9%82%D9%85%D9%86%D8%A9)+when:7d&hl=ar&gl=EG&ceid=EG:ar',
-    category: 'general',
-    region: 'egypt',
-    source: 'Egypt · General',
-  },
-  {
-    url: 'https://news.google.com/rss/search?q=(Egypt+OR+MENA)+(startup+OR+tech+OR+fintech+OR+Wamda+OR+Flat6Labs)+when:7d&hl=en-US&gl=EG&ceid=EG:en',
-    category: 'general',
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE)+(Zapier+OR+n8n+OR+%22AI+automation%22+OR+%22AI+agent%22)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'automation',
     region: 'arab',
-    source: 'MENA · General',
+    source: 'MENA · Automation',
+  },
+  {
+    url: 'https://news.google.com/rss/search?q=(MENA+OR+Saudi+OR+UAE)+(%22cyber+security%22+OR+cybersecurity+OR+pentest+OR+%22ethical+hacking%22+OR+OWASP)+when:14d&hl=en-US&gl=AE&ceid=AE:en',
+    category: 'cybersecurity',
+    region: 'arab',
+    source: 'MENA · Cybersecurity',
   },
 ];
 
@@ -428,30 +407,50 @@ async function fetchOgImage(pageUrl) {
 
 function categorize(title, fallback) {
   const t = String(title || '').toLowerCase();
-  if (/cyber|security|breach|ransomware|malware|phishing|hacker|vulnerability|cve|أمن سيبراني|اختراق/.test(t) || /أمن سيبراني|اختراق بيانات/.test(String(title || ''))) {
+  const raw = String(title || '');
+  if (
+    /cyber|security|breach|ransomware|malware|phishing|hacker|vulnerability|cve|owasp|pentest|pen.?test|penetration test|ethical hack|bug bounty|أمن سيبراني|اختراق|اختبار اختراق/.test(t) ||
+    /أمن سيبراني|اختراق|اختبار اختراق/.test(raw)
+  ) {
     return 'cybersecurity';
   }
-  if (/ui\/?ux|figma|user experience|product design|ux design|interface design|wireframe|تصميم/.test(t)) {
+  if (/ui\/?ux|figma|user experience|product design|ux design|interface design|wireframe|framer|graphic design|تصميم|جرافيك/.test(t) || /تصميم|جرافيك/.test(raw)) {
     return 'uiux';
   }
-  if (/data science|data anal|pandas|power bi|tableau|\bsql\b|analytics|machine learning dataset|تحليل بيانات|علم البيانات/.test(t)) {
+  if (/data science|data anal|pandas|power bi|tableau|\bsql\b|analytics|dashboard|تحليل بيانات|علم البيانات/.test(t) || /تحليل بيانات|علم البيانات/.test(raw)) {
     return 'data';
   }
-  if (/automation|rpa|zapier|\bn8n\b|workflow automation|no-?code automation|أتمتة/.test(t)) {
+  if (/zapier|\bn8n\b|make\.com|ai agent|workflow automation|ai automation|no-?code automation|أتمتة/.test(t) || /أتمتة/.test(raw)) {
     return 'automation';
   }
-  if (/digital marketing|\bseo\b|google ads|social media marketing|content marketing|email marketing|تسويق/.test(t)) {
+  if (/digital marketing|\bseo\b|google ads|meta ads|social media marketing|content marketing|email marketing|تسويق رقمي|إعلانات/.test(t) || /تسويق|إعلانات/.test(raw)) {
     return 'marketing';
   }
-  if (/freelance|freelancing|upwork|fiverr|independent contractor|gig economy|عمل حر/.test(t)) {
+  if (/freelance|freelancing|upwork|fiverr|عمل حر/.test(t) || /عمل حر/.test(raw)) {
     return 'freelancing';
   }
-  if (/openai|chatgpt|gpt|claude|gemini|llm|artificial intelligence|\bai\b|ذكاء اصطناعي/.test(t)) return 'ai';
-  if (/react native|flutter|swift|kotlin|ios|android|mobile|تطبيقات جوال/.test(t)) return 'mobile';
+  if (/openai|chatgpt|gpt|claude|gemini|llm|artificial intelligence|\bai\b|ذكاء اصطناعي/.test(t) || /ذكاء اصطناعي/.test(raw)) {
+    return 'ai';
+  }
+  if (/react native|flutter|swiftui|kotlin|ios app|android app|mobile app|تطبيقات/.test(t)) return 'mobile';
   if (/react|next\.?js|vue|angular|typescript|css|frontend|tailwind|مطور ويب/.test(t)) return 'frontend';
-  if (/node\.?js|python|django|golang|\bgo\b|rust|java|backend|api|database|خوادم/.test(t)) return 'backend';
-  if (/release|version|launches|announces|update|إصدار|تحديث/.test(t)) return 'releases';
+  if (/node\.?js|django|fastapi|nestjs|express|backend|api|database/.test(t)) return 'backend';
+  if (/release|version|changelog|launches|framework update|إصدار|تحديث/.test(t)) return 'releases';
   return fallback || 'general';
+}
+
+/** Keep only ELNADY career-tech topics — drop politics, gadgets, sports, celebrity noise */
+function isElnadyRelevant(title, summary = '') {
+  const text = `${title || ''} ${summary || ''}`.toLowerCase();
+  const raw = `${title || ''} ${summary || ''}`;
+
+  const deny =
+    /politic|election|war|military|football|soccer|nba|celebrity|hollywood|bitcoin crash|crypto scam|iphone rumor|galaxy s2\d review|hollywood|netflix series|trump|biden|كورة|انتخابات|حرب|مشاهير|فنان|مباراة/;
+  if (deny.test(text) || /كورة|انتخابات|حرب|مشاهير/.test(raw)) return false;
+
+  const allow =
+    /programm|developer|coding|software|javascript|typescript|python|react|node\.?js|flutter|figma|ui\/?ux|design|seo|marketing|freelance|upwork|fiverr|data anal|data science|power bi|tableau|\bsql\b|openai|chatgpt|claude|llm|artificial intelligence|\bai\b|automation|zapier|\bn8n\b|api|frontend|backend|mobile app|web development|digital marketing|meta ads|google ads|machine learning|dashboard|no-?code|low-?code|github|framework|cyber|security|breach|ransomware|malware|phishing|hacker|vulnerability|cve|owasp|pentest|pen.?test|penetration test|ethical hack|bug bounty|مكتبة|برمجة|مطور|تصميم|تسويق|عمل حر|ذكاء اصطناعي|تحليل بيانات|أتمتة|فريلانس|أمن سيبراني|اختراق/;
+  return allow.test(text) || /برمجة|مطور|تصميم|تسويق|عمل حر|ذكاء اصطناعي|تحليل بيانات|أتمتة|أمن سيبراني|اختراق/.test(raw);
 }
 
 async function resolveImage(item, url) {
@@ -491,12 +490,14 @@ async function fetchFeed(feed) {
   const items = result.items || [];
   let upserted = 0;
 
-  for (const item of items.slice(0, 10)) {
+  for (const item of items.slice(0, 12)) {
     const title = stripHtml(item.title || '').slice(0, 300);
     const url = item.link || item.guid;
     if (!title || !url) continue;
 
     const summary = stripHtml(item.contentSnippet || item.content || item.summary || '').slice(0, 600);
+    if (!isElnadyRelevant(title, summary)) continue;
+
     const externalId = String(item.guid || url).slice(0, 500);
     const publishedAt = item.isoDate
       ? new Date(item.isoDate)
@@ -515,11 +516,12 @@ async function fetchFeed(feed) {
           existing.summary = summary || existing.summary;
           existing.region = feed.region || existing.region || 'world';
           existing.category = categorize(title, feed.category);
-          // Migrate legacy category=arab → region arab + domain
           if (existing.category === 'arab') {
-            existing.region = 'arab';
+            existing.region = feed.region || 'arab';
             existing.category = categorize(title, feed.category === 'arab' ? 'general' : feed.category);
           }
+          existing.isHidden = false;
+          existing.isActive = true;
           if (!existing.image) {
             existing.image = await resolveImage(item, url);
           } else {
@@ -564,6 +566,26 @@ async function fetchFeed(feed) {
   return upserted;
 }
 
+/** Hide older auto items that no longer match ELNADY career-tech topics */
+async function hideOffTopicAutoNews() {
+  const autos = await TechNews.find({
+    isAuto: true,
+    isPinned: false,
+    isHidden: { $ne: true },
+  })
+    .select('_id title summary')
+    .limit(800)
+    .lean();
+
+  let hidden = 0;
+  for (const row of autos) {
+    if (isElnadyRelevant(row.title, row.summary)) continue;
+    await TechNews.updateOne({ _id: row._id }, { $set: { isHidden: true, isActive: false } });
+    hidden += 1;
+  }
+  return hidden;
+}
+
 async function refreshTechNews() {
   let total = 0;
   const errors = [];
@@ -583,6 +605,16 @@ async function refreshTechNews() {
     publishedAt: { $lt: cutoff },
   });
 
+  let hiddenOffTopic = 0;
+  try {
+    hiddenOffTopic = await hideOffTopicAutoNews();
+    if (hiddenOffTopic) {
+      console.log(`🧹 Hidden off-topic auto news: ${hiddenOffTopic}`);
+    }
+  } catch (e) {
+    console.warn('Tech news off-topic cleanup failed:', e.message);
+  }
+
   let images = { checked: 0, filled: 0 };
   try {
     images = await enrichMissingImages(50);
@@ -591,7 +623,7 @@ async function refreshTechNews() {
     console.warn('Tech news image enrich failed:', e.message);
   }
 
-  return { imported: total, errors, images };
+  return { imported: total, errors, images, hiddenOffTopic };
 }
 
 module.exports = { refreshTechNews, FEEDS, fetchOgImage, enrichMissingImages };
