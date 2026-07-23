@@ -151,6 +151,7 @@ app.use('/api/auth', securityMiddleware, require('./routes/auth'));
 app.use('/api/users', publicSecurityMiddleware, require('./routes/users'));
 app.use('/api/courses', securityMiddleware, require('./routes/courses'));
 app.use('/api/payments', publicSecurityMiddleware, require('./routes/payments'));
+app.use('/api/subscription-requests', publicSecurityMiddleware, require('./routes/subscriptionRequests'));
 // Admin content: requires auth + admin (was open before - caused 500 when req.user undefined)
 app.use('/api/admin/content', securityMiddleware, requireAuth, requireAdmin, require('./routes/content'));
 // Public content: read-only content for app (no auth required)

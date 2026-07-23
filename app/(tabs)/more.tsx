@@ -1,8 +1,9 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { CONTACT_EMAIL } from '@/config/legal';
 import { useUser } from '@/contexts/UserContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -14,7 +15,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import API_BASE_URL from '../../config/api';
 import resolveMediaUrl from '../../utils/mediaUrl';
+import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 type MenuItem = {
   id: number;
@@ -24,6 +27,7 @@ type MenuItem = {
   route: string;
   adminOnly?: boolean;
   pulse?: boolean;
+  badgeCount?: number;
 };
 
 type MenuSection = {
@@ -47,9 +51,16 @@ const ACCOUNT_SECTION: MenuSection = {
     {
       id: 2,
       title: 'Subscription',
-      description: 'Choose your premium plan',
+      description: 'Online payment (current)',
       icon: '💎',
       route: '/subscription',
+    },
+    {
+      id: 21,
+      title: 'Subscription 2',
+      description: 'Manual transfer · receipt activation',
+      icon: '🧾',
+      route: '/subscription-2',
     },
     {
       id: 30,
@@ -269,6 +280,14 @@ const ADMIN_SECTION: MenuSection = {
       route: '/app-loading?preview=1',
       adminOnly: true,
     },
+    {
+      id: 19,
+      title: 'Subscription Requests',
+      description: 'Approve manual payment receipts',
+      icon: '🧾',
+      route: '/subscription-requests',
+      adminOnly: true,
+    },
   ],
 };
 
@@ -339,7 +358,16 @@ function MenuRow({
         </Animated.Text>
       </View>
       <View style={styles.menuContent}>
-        <Text style={[styles.menuTitle, compact && styles.menuTitleCompact]}>{item.title}</Text>
+        <View style={styles.menuTitleRow}>
+          <Text style={[styles.menuTitle, compact && styles.menuTitleCompact]}>{item.title}</Text>
+          {typeof item.badgeCount === 'number' && item.badgeCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {item.badgeCount > 99 ? '99+' : String(item.badgeCount)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
         <Text
           style={[styles.menuDescription, compact && styles.menuDescriptionCompact]}
           numberOfLines={2}
@@ -400,6 +428,46 @@ function MenuSectionBlock({
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
+  const [pendingSubRequests, setPendingSubRequests] = useState(0);
+
+  const fetchPendingCount = useCallback(async () => {
+    if (!isAdmin) {
+      setPendingSubRequests(0);
+      return;
+    }
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${API_BASE_URL}/api/subscription-requests/admin/pending-count`
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      setPendingSubRequests(Number(data?.data?.count || 0));
+    } catch {
+      // ignore
+    }
+  }, [isAdmin]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPendingCount();
+    }, [fetchPendingCount])
+  );
+
+  const adminSection: MenuSection = {
+    ...ADMIN_SECTION,
+    items: ADMIN_SECTION.items.map((item) =>
+      item.id === 19
+        ? {
+            ...item,
+            badgeCount: pendingSubRequests,
+            description:
+              pendingSubRequests > 0
+                ? `${pendingSubRequests} pending receipt${pendingSubRequests === 1 ? '' : 's'}`
+                : item.description,
+          }
+        : item
+    ),
+  };
 
   const sections: MenuSection[] = [
     ACCOUNT_SECTION,
@@ -407,7 +475,7 @@ export default function MoreScreen() {
     LIBRARY_SECTION,
     SETTINGS_SECTION,
     POLICIES_SECTION,
-    ...(isAdmin ? [ADMIN_SECTION] : []),
+    ...(isAdmin ? [adminSection] : []),
   ];
 
   const handleItemPress = (route: string, adminOnly?: boolean) => {
@@ -724,6 +792,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 2,
+  },
+  menuTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    backgroundColor: '#E50914',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
   menuTitleCompact: {
     fontSize: 15,

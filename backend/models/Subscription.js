@@ -38,7 +38,7 @@ const subscriptionSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['visa', 'mastercard', 'vodafone_cash', 'fawry', 'valu'],
+    enum: ['visa', 'mastercard', 'vodafone_cash', 'fawry', 'valu', 'manual', 'instapay'],
     required: true
   },
   paymobOrderId: {

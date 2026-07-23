@@ -115,6 +115,9 @@ export default function RootLayout() {
             <Stack.Screen name="my-jobs" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="job-applicants" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="jobs-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="subscription" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="subscription-2" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="subscription-requests" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="notification-settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="help-support" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="terms-conditions" options={{ headerShown: false, animation: 'slide_from_right' }} />
@@ -130,7 +133,6 @@ export default function RootLayout() {
             <Stack.Screen name="register" options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="forgot-password" options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
-            <Stack.Screen name="subscription" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="payment" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="top-cv" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="user-profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
