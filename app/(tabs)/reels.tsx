@@ -72,6 +72,17 @@ export default function ReelsScreen() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [pausedVideos, setPausedVideos] = useState<Set<number>>(new Set());
   const [showPlayIcon, setShowPlayIcon] = useState<number | null>(null);
+  /** portrait = fill height · landscape = fill width */
+  const [videoFit, setVideoFit] = useState<Record<string, 'portrait' | 'landscape'>>({});
+  const [progressById, setProgressById] = useState<
+    Record<string, { position: number; duration: number }>
+  >({});
+  const [scrubbingId, setScrubbingId] = useState<string | null>(null);
+  const [scrubRatio, setScrubRatio] = useState(0);
+  const seekTrackWidth = useRef(width);
+  const wasPlayingBeforeScrub = useRef(false);
+  const scrubbingIdRef = useRef<string | null>(null);
+  const scrubRatioRef = useRef(0);
   const videoRefs = useRef<{ [key: string]: any }>({});
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [activeCommentReelId, setActiveCommentReelId] = useState<string | null>(null);
@@ -623,6 +634,89 @@ export default function ReelsScreen() {
     }
   };
 
+  const detectVideoFit = (reelId: string, naturalSize?: {
+    width?: number;
+    height?: number;
+    orientation?: string;
+  }) => {
+    if (!naturalSize) return;
+    const nw = Number(naturalSize.width) || 0;
+    const nh = Number(naturalSize.height) || 0;
+    const orient = String(naturalSize.orientation || '').toLowerCase();
+
+    let fit: 'portrait' | 'landscape' = 'portrait';
+    if (orient === 'landscape' || (nw > 0 && nh > 0 && nw > nh)) {
+      fit = 'landscape';
+    } else if (orient === 'portrait' || (nw > 0 && nh > 0 && nh >= nw)) {
+      fit = 'portrait';
+    }
+
+    setVideoFit((prev) => (prev[reelId] === fit ? prev : { ...prev, [reelId]: fit }));
+  };
+
+  const seekVideoToRatio = async (reelId: string, ratio: number) => {
+    const ref = videoRefs.current[reelId];
+    const duration = progressById[reelId]?.duration || 0;
+    if (!ref || duration <= 0) return;
+    const clamped = Math.max(0, Math.min(1, ratio));
+    try {
+      await ref.setPositionAsync(Math.floor(clamped * duration));
+    } catch (e) {
+      console.warn('Seek failed', e);
+    }
+  };
+
+  const onSeekGrant = async (reelId: string, index: number, locationX: number) => {
+    const ratio = Math.max(0, Math.min(1, locationX / Math.max(1, seekTrackWidth.current)));
+    wasPlayingBeforeScrub.current = currentIndex === index && !pausedVideos.has(index);
+    scrubbingIdRef.current = reelId;
+    scrubRatioRef.current = ratio;
+    setScrubbingId(reelId);
+    setScrubRatio(ratio);
+    const ref = videoRefs.current[reelId];
+    if (ref) {
+      try {
+        await ref.pauseAsync();
+      } catch {}
+    }
+    await seekVideoToRatio(reelId, ratio);
+  };
+
+  const onSeekMove = async (reelId: string, locationX: number) => {
+    if (scrubbingIdRef.current !== reelId) return;
+    const ratio = Math.max(0, Math.min(1, locationX / Math.max(1, seekTrackWidth.current)));
+    scrubRatioRef.current = ratio;
+    setScrubRatio(ratio);
+    await seekVideoToRatio(reelId, ratio);
+  };
+
+  const onSeekRelease = async (reelId: string, index: number) => {
+    if (scrubbingIdRef.current !== reelId) return;
+    await seekVideoToRatio(reelId, scrubRatioRef.current);
+    scrubbingIdRef.current = null;
+    setScrubbingId(null);
+    if (wasPlayingBeforeScrub.current) {
+      setPausedVideos((prev) => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+      const ref = videoRefs.current[reelId];
+      if (ref) {
+        try {
+          await ref.playAsync();
+        } catch {}
+      }
+    }
+  };
+
+  const formatSeekTime = (ms: number) => {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   const togglePlayPause = async (index: number) => {
     if (pausedVideos.has(index)) {
       // Resume video
@@ -665,11 +759,16 @@ export default function ReelsScreen() {
       ? item.uploadedBy._id 
       : (typeof item.uploadedBy === 'string' ? item.uploadedBy : null);
     const isOwner = user && uploadedById && user.id === uploadedById.toString();
+    const fit = videoFit[item._id] || 'portrait';
+    const isLandscape = fit === 'landscape';
 
     return (
       <View style={styles.reelContainer}>
         <TouchableOpacity
-          style={styles.videoTouchable}
+          style={[
+            styles.videoTouchable,
+            isLandscape && styles.videoTouchableLandscape,
+          ]}
           activeOpacity={1}
           onPress={() => togglePlayPause(index)}
         >
@@ -680,14 +779,47 @@ export default function ReelsScreen() {
             }
           }}
           source={{ uri: item.videoUrl }}
-          style={styles.video}
-          resizeMode={ResizeMode.COVER}
+          style={[
+            styles.video,
+            isLandscape ? styles.videoLandscape : styles.videoPortrait,
+            styles.videoDimmed,
+          ]}
+          // Portrait: fill height. Landscape: fit full width (letterbox top/bottom).
+          resizeMode={isLandscape ? ResizeMode.CONTAIN : ResizeMode.COVER}
           isLooping
           shouldPlay={isPlaying}
           volume={1.0}
           isMuted={Platform.OS === 'web'}
           usePoster={false}
-          onLoad={() => {
+          progressUpdateIntervalMillis={250}
+          onPlaybackStatusUpdate={(status: any) => {
+            if (!status?.isLoaded) return;
+            if (scrubbingIdRef.current === item._id) return;
+            const position = status.positionMillis || 0;
+            const duration = status.durationMillis || 0;
+            if (duration <= 0) return;
+            setProgressById((prev) => {
+              const cur = prev[item._id];
+              if (
+                cur &&
+                Math.abs(cur.position - position) < 180 &&
+                cur.duration === duration
+              ) {
+                return prev;
+              }
+              return { ...prev, [item._id]: { position, duration } };
+            });
+          }}
+          onReadyForDisplay={(event: any) => {
+            detectVideoFit(item._id, event?.naturalSize);
+          }}
+          onLoad={(status: any) => {
+            // Fallback when onReadyForDisplay is missing (some web/native builds)
+            const size =
+              status?.naturalSize ||
+              status?.androidImplementation?.naturalSize ||
+              undefined;
+            if (size) detectVideoFit(item._id, size);
             if (index === currentIndex) {
               incrementView(item._id);
             }
@@ -696,15 +828,15 @@ export default function ReelsScreen() {
             console.error('Video error:', item.videoUrl, error);
           }}
         />
-          
+
           {/* Play/Pause Icon Overlay */}
-          {!isPlaying && index === currentIndex && showPlayIcon === index && (
+          {!isPlaying && index === currentIndex && showPlayIcon === index ? (
             <View style={styles.playPauseOverlay}>
               <View style={styles.playPauseIcon}>
                 <Text style={styles.playPauseIconText}>▶</Text>
               </View>
             </View>
-          )}
+          ) : null}
         </TouchableOpacity>
         
         {/* Overlay Content — TikTok style */}
@@ -748,6 +880,72 @@ export default function ReelsScreen() {
             </Text>
             <Text style={styles.viewsInline}>👁 {item.views || 0} views</Text>
           </View>
+
+          {/* TikTok-style seek bar — drag to scrub */}
+          {index === currentIndex ? (
+            <View
+              style={[
+                styles.seekWrap,
+                scrubbingId === item._id && styles.seekWrapActive,
+              ]}
+              onLayout={(e) => {
+                seekTrackWidth.current = e.nativeEvent.layout.width;
+              }}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderTerminationRequest={() => false}
+              onResponderGrant={(e) => {
+                onSeekGrant(item._id, index, e.nativeEvent.locationX);
+              }}
+              onResponderMove={(e) => {
+                onSeekMove(item._id, e.nativeEvent.locationX);
+              }}
+              onResponderRelease={() => {
+                onSeekRelease(item._id, index);
+              }}
+              onResponderTerminate={() => {
+                onSeekRelease(item._id, index);
+              }}
+            >
+              {scrubbingId === item._id ? (
+                <View style={styles.seekTimeRow}>
+                  <Text style={styles.seekTimeText}>
+                    {`${formatSeekTime(
+                      scrubRatio * (progressById[item._id]?.duration || 0)
+                    )} / ${formatSeekTime(progressById[item._id]?.duration || 0)}`}
+                  </Text>
+                </View>
+              ) : null}
+              <View
+                style={[
+                  styles.seekTrack,
+                  scrubbingId === item._id && styles.seekTrackActive,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.seekFill,
+                    {
+                      width: `${Math.max(
+                        0,
+                        Math.min(
+                          100,
+                          (scrubbingId === item._id
+                            ? scrubRatio
+                            : progressById[item._id]?.duration
+                              ? (progressById[item._id].position || 0) /
+                                progressById[item._id].duration
+                              : 0) * 100
+                        )
+                      )}%`,
+                    },
+                    scrubbingId === item._id && styles.seekFillActive,
+                  ]}
+                />
+                {scrubbingId === item._id ? <View style={styles.seekThumb} /> : null}
+              </View>
+            </View>
+          ) : null}
 
           {/* Right side actions */}
           <View style={styles.sideActions}>
@@ -894,6 +1092,7 @@ export default function ReelsScreen() {
           renderItem={renderReel}
           keyExtractor={(item) => item._id}
           pagingEnabled
+          scrollEnabled={scrubbingId === null}
           showsVerticalScrollIndicator={false}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
@@ -1290,11 +1489,27 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     position: 'relative',
+    backgroundColor: '#000000',
+    overflow: 'hidden',
+  },
+  videoTouchableLandscape: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   video: {
+    backgroundColor: '#000000',
+  },
+  videoPortrait: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#000000',
+  },
+  videoLandscape: {
+    width: '100%',
+    height: '100%',
+  },
+  /** Darken the video pixels only (not a screen-wide overlay) */
+  videoDimmed: {
+    opacity: 0.78,
   },
   playPauseOverlay: {
     position: 'absolute',
@@ -1340,7 +1555,72 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 14,
     right: 78,
-    bottom: 24,
+    bottom: 28,
+  },
+  seekWrap: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 6,
+    zIndex: 80,
+    paddingTop: 14,
+    paddingBottom: 4,
+    justifyContent: 'flex-end',
+  },
+  seekWrapActive: {
+    bottom: 10,
+    paddingTop: 8,
+  },
+  seekTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  seekTimeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  seekTimeSep: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  seekTrack: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seekTrackActive: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'visible',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  seekFill: {
+    height: '100%',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 2,
+  },
+  seekFillActive: {
+    backgroundColor: '#E50914',
+    borderRadius: 4,
+  },
+  seekThumb: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginLeft: -7,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#E50914',
   },
   repostBadge: {
     color: '#FFD166',
