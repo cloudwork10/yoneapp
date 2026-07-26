@@ -23,6 +23,7 @@ import {
   showPremiumGateAlert,
 } from '../../utils/subscriptionAccess';
 import { useUser } from '../../contexts/UserContext';
+import { showSignInAlert } from '../../hooks/useAuthGuard';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
@@ -378,7 +379,9 @@ export default function AdvicesScreen() {
     const isLocked = isContentLocked(advice, hasActiveSubscription);
     
     const handleAdvicePress = () => {
-      if (isLocked) {
+      if (isLocked && !user) {
+        showSignInAlert('advices');
+      } else if (isLocked) {
         showPremiumGateAlert(subscriptionAccess, router, 'advices');
       } else {
         // Handle advice opening logic here

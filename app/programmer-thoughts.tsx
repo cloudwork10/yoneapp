@@ -25,6 +25,7 @@ import {
   showPremiumGateAlert,
 } from '../utils/subscriptionAccess';
 import { useUser } from '../contexts/UserContext';
+import { showSignInAlert } from '../hooks/useAuthGuard';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
@@ -265,7 +266,9 @@ export default function ProgrammerThoughts() {
   const openEpisode = (episode, index) => {
     const isLocked = isContentLocked(episode, hasActiveSubscription);
     
-    if (isLocked) {
+    if (isLocked && !user) {
+      showSignInAlert('episodes');
+    } else if (isLocked) {
       showPremiumGateAlert(subscriptionAccess, router, 'episodes');
     } else {
       setSelectedEpisode(episode);

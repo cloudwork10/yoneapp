@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenTransition from '../../components/ScreenTransition';
 import GlobalSearch from '../../components/GlobalSearch';
 import API_BASE_URL from '../../config/api';
+import { useAuthGuard } from '../../hooks/useAuthGuard';
 import resolveMediaUrl from '../../utils/mediaUrl';
 
 type ContentStats = {
@@ -48,7 +49,7 @@ const QUICK_LINKS = [
   { title: 'Top CV', icon: '📄', route: '/(tabs)/top-cv' },
   { title: 'Prayer', icon: '🕌', route: '/prayer-times' },
   { title: 'Thoughts', icon: '💭', route: '/programmer-thoughts' },
-  { title: 'Profile', icon: '👤', route: '/profile' },
+  { title: 'Profile', icon: '👤', route: '/profile', gated: true },
   { title: 'Subscribe', icon: '💎', route: '/subscription-2' },
   { title: 'Alerts', icon: '🔔', route: '/notification-settings' },
   { title: 'Contact', icon: '📞', route: '/contact' },
@@ -57,6 +58,7 @@ const QUICK_LINKS = [
 ];
 
 export default function HomeScreen() {
+  const { requireAuth } = useAuthGuard();
   const [stats, setStats] = useState<ContentStats>({
     courses: 0,
     articles: 0,
@@ -206,7 +208,11 @@ export default function HomeScreen() {
                   key={link.route}
                   style={styles.linkCard}
                   activeOpacity={0.75}
-                  onPress={() => router.push(link.route as any)}
+                  onPress={() =>
+                    link.gated
+                      ? requireAuth(() => router.push(link.route as any))
+                      : router.push(link.route as any)
+                  }
                 >
                   <Text style={styles.linkIcon}>{link.icon}</Text>
                   <Text style={styles.linkTitle} numberOfLines={1}>

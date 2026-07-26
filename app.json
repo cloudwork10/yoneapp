@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ELNADY",
-    "slug": "yoneapp",
+    "slug": "elnady",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,6 +9,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.elnady.app",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload a profile photo and videos for reels.",
@@ -20,16 +21,19 @@
       }
     },
     "android": {
+      "package": "com.elnady.app",
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_MEDIA_IMAGES",
-        "READ_MEDIA_VIDEO"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -51,10 +55,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/notification-icon.png",
           "color": "#4ECDC4",
-          "defaultChannel": "default",
-          "sounds": ["./assets/sounds/notification.wav"]
+          "defaultChannel": "default"
         }
       ],
       "react-native-video",
@@ -67,6 +69,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e22f9716-3f14-4585-ab19-f79c2ae07570"
+      }
+    },
+    "owner": "elnady79s-team"
   }
 }

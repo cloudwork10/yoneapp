@@ -22,6 +22,7 @@ import {
   showPremiumGateAlert,
 } from '../../utils/subscriptionAccess';
 import { useUser } from '../../contexts/UserContext';
+import { showSignInAlert } from '../../hooks/useAuthGuard';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
@@ -121,7 +122,11 @@ export default function PodcastsScreen() {
 
   const handlePodcastPress = (podcast: Podcast) => {
     if (isContentLocked(podcast, hasActiveSubscription)) {
-      showPremiumGateAlert(subscriptionAccess, router, 'podcasts');
+      if (!user) {
+        showSignInAlert('podcasts');
+      } else {
+        showPremiumGateAlert(subscriptionAccess, router, 'podcasts');
+      }
       return;
     }
 

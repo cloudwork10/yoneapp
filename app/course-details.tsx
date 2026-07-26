@@ -25,6 +25,7 @@ import {
   fetchSubscriptionAccess,
   showPremiumGateAlert,
 } from '../utils/subscriptionAccess';
+import { showSignInAlert } from '../hooks/useAuthGuard';
 import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
@@ -283,7 +284,9 @@ export default function CourseDetailsScreen() {
   ];
 
   const handleVideoPress = (video: CourseVideo) => {
-    if (video.isLocked) {
+    if (video.isLocked && !user) {
+      showSignInAlert('videos');
+    } else if (video.isLocked) {
       showPremiumGateAlert(subscriptionAccess, router, 'videos');
     } else {
       setIsVideoLoading(true);
@@ -306,7 +309,11 @@ export default function CourseDetailsScreen() {
 
   const handleLessonPress = (lesson: CourseLesson) => {
     if (lesson.isLocked) {
-      showPremiumGateAlert(subscriptionAccess, router, 'lessons');
+      if (!user) {
+        showSignInAlert('lessons');
+      } else {
+        showPremiumGateAlert(subscriptionAccess, router, 'lessons');
+      }
       return;
     }
     // Handle lesson opening logic here

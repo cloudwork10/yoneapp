@@ -1,3 +1,4 @@
+import { useUser } from '@/contexts/UserContext';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
@@ -8,6 +9,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { user } = useUser();
 
   return (
     <Tabs
@@ -22,20 +24,22 @@ export default function TabLayout() {
           fontSize: 10,
           fontWeight: '500',
         },
-        tabBarStyle: {
-          backgroundColor: '#1a1a1a',
-          borderTopColor: '#333333',
-          borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 18,
-          paddingTop: 8,
-          ...Platform.select({
-            ios: {
-              position: 'absolute',
-            },
-            default: {},
-          }),
-        },
+        tabBarStyle: user
+          ? {
+              backgroundColor: '#1a1a1a',
+              borderTopColor: '#333333',
+              borderTopWidth: 1,
+              height: 88,
+              paddingBottom: 18,
+              paddingTop: 8,
+              ...Platform.select({
+                ios: {
+                  position: 'absolute',
+                },
+                default: {},
+              }),
+            }
+          : { display: 'none' },
       }}>
       <Tabs.Screen
         name="index"

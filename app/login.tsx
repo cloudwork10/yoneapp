@@ -112,6 +112,10 @@ export default function LoginScreen() {
     router.push('/register');
   };
 
+  const continueAsGuest = () => {
+    router.replace('/(tabs)');
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient
@@ -200,6 +204,10 @@ export default function LoginScreen() {
                 <Text style={styles.registerLink}>Sign Up</Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity style={styles.guestButton} onPress={continueAsGuest}>
+              <Text style={styles.guestButtonText}>Continue as Guest</Text>
+            </TouchableOpacity>
           </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -326,5 +334,18 @@ const styles = StyleSheet.create({
     color: '#E50914',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  guestButton: {
+    marginTop: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+  },
+  guestButtonText: {
+    color: '#CCCCCC',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

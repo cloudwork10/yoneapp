@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import API_BASE_URL from '../config/api';
+import { useAuthGuard } from '../hooks/useAuthGuard';
 import resolveMediaUrl from '../utils/mediaUrl';
 
 type SearchHit = {
@@ -23,6 +24,7 @@ type SearchHit = {
   icon: string;
   image?: string;
   route: string;
+  gated?: boolean;
 };
 
 const SECTION_LINKS: SearchHit[] = [
@@ -37,7 +39,7 @@ const SECTION_LINKS: SearchHit[] = [
   { id: 'sec-cv', title: 'Top CV', subtitle: 'CV templates', type: 'Section', icon: '📄', route: '/(tabs)/top-cv' },
   { id: 'sec-prayer', title: 'Prayer Times', subtitle: 'Daily prayers', type: 'Section', icon: '🕌', route: '/prayer-times' },
   { id: 'sec-thoughts', title: 'Programmer Thoughts', subtitle: 'Inspiration', type: 'Section', icon: '💭', route: '/programmer-thoughts' },
-  { id: 'sec-profile', title: 'Profile', subtitle: 'Your account', type: 'Section', icon: '👤', route: '/profile' },
+  { id: 'sec-profile', title: 'Profile', subtitle: 'Your account', type: 'Section', icon: '👤', route: '/profile', gated: true },
   { id: 'sec-subscribe', title: 'Subscription', subtitle: 'Premium access', type: 'Section', icon: '💎', route: '/subscription-2' },
   { id: 'sec-help', title: 'Help & Support', subtitle: 'Get help', type: 'Section', icon: '❓', route: '/help-support' },
   { id: 'sec-contact', title: 'Contact', subtitle: 'Reach us', type: 'Section', icon: '📞', route: '/contact' },
@@ -66,6 +68,7 @@ function matchesQuery(item: SearchHit, query: string) {
 }
 
 export default function GlobalSearch() {
+  const { requireAuth } = useAuthGuard();
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -238,7 +241,11 @@ export default function GlobalSearch() {
     Keyboard.dismiss();
     setFocused(false);
     setQuery('');
-    router.push(item.route as any);
+    if (item.gated) {
+      requireAuth(() => router.push(item.route as any));
+    } else {
+      router.push(item.route as any);
+    }
   };
 
   const clearSearch = () => {
