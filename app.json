@@ -10,29 +10,28 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.elnady.app",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload a profile photo and videos for reels.",
         "NSPhotoLibraryAddUsageDescription": "This app needs access to save videos to your photo library.",
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone to record and upload reels.",
         "LSApplicationQueriesSchemes": [
           "googlechrome",
           "googlechromes"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.elnady.app",
-      "versionCode": 5,
+      "versionCode": 6,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_MEDIA_VIDEO",
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -64,6 +63,16 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow ELNADY to access your photos to set a profile picture."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
+          }
         }
       ]
     ],
