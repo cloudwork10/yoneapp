@@ -11,9 +11,8 @@
     "ios": {
       "bundleIdentifier": "com.elnady.app",
       "buildNumber": "1",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload a profile photo and videos for reels.",
         "NSPhotoLibraryAddUsageDescription": "This app needs access to save videos to your photo library.",
         "NSMicrophoneUsageDescription": "This app needs access to your microphone to record and upload reels.",
         "LSApplicationQueriesSchemes": [
@@ -21,6 +20,16 @@
           "googlechromes"
         ],
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -62,7 +71,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow ELNADY to access your photos to set a profile picture."
+          "photosPermission": "Allow ELNADY to access your photo library to set a profile picture and upload videos for reels.",
+          "cameraPermission": "Allow ELNADY to use your camera to take a profile picture and record videos for reels."
         }
       ],
       [
@@ -70,11 +80,11 @@
         {
           "android": {
             "compileSdkVersion": 36,
-            "targetSdkVersion": 36,
-            "buildToolsVersion": "36.0.0"
+            "targetSdkVersion": 36
           }
         }
-      ]
+      ],
+      "./plugins/withSuppressUnsupportedCompileSdk"
     ],
     "experiments": {
       "typedRoutes": true
