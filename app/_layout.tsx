@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
+import { PAID_FLOW_ENABLED } from '../utils/subscriptionAccess';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -106,7 +107,13 @@ export default function RootLayout() {
           data.type === 'subscription_remind_same_day' ||
           data.type === 'subscription_remind_lock_tonight'
         ) {
-          router.push('/subscription-2');
+          // iOS has no purchase path (App Store 3.1.1/3.1.3) — a subscription
+          // notification must not deep-link into the manual-transfer screen.
+          if (PAID_FLOW_ENABLED) {
+            router.push('/subscription-2');
+          } else {
+            router.push('/(tabs)/more');
+          }
         } else if (
           data.type === 'admin_subscription_expired' ||
           data.type === 'admin_subscription_ending_tonight'

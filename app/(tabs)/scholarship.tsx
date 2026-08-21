@@ -28,6 +28,7 @@ import { WebView } from 'react-native-webview';
 import API_BASE_URL from '../../config/api';
 import NotificationService from '../../services/NotificationService';
 import CommunityLiveCard from '../../components/CommunityLiveCard';
+import { PAID_FLOW_ENABLED, SUBSCRIBE_ROUTE } from '../../utils/subscriptionAccess';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -831,10 +832,16 @@ export default function ClubScreen() {
       return false;
     }
     if (!hasAccess) {
-      Alert.alert('Subscription required', 'النادي is available for active subscribers.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Subscribe', onPress: () => router.push('/subscription-2') },
-      ]);
+      Alert.alert(
+        'Subscription required',
+        'النادي is available for active subscribers.',
+        PAID_FLOW_ENABLED
+          ? [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Subscribe', onPress: () => router.push(SUBSCRIBE_ROUTE) },
+            ]
+          : [{ text: 'OK', style: 'cancel' }]
+      );
       return false;
     }
     return true;
@@ -1261,10 +1268,10 @@ export default function ClubScreen() {
             ))
           )}
 
-          {!hasAccess ? (
+          {!hasAccess && PAID_FLOW_ENABLED ? (
             <TouchableOpacity
               style={[styles.primaryBtn, { marginTop: 8 }]}
-              onPress={() => router.push('/subscription-2')}
+              onPress={() => router.push(SUBSCRIBE_ROUTE)}
             >
               <Text style={styles.primaryBtnText}>Subscribe & enter النادي</Text>
             </TouchableOpacity>

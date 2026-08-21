@@ -29,7 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import { useUser } from '../contexts/UserContext';
 import resolveMediaUrl from '../utils/mediaUrl';
-import { planLabel } from '../utils/subscriptionAccess';
+import { PAID_FLOW_ENABLED, planLabel } from '../utils/subscriptionAccess';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 const { width } = Dimensions.get('window');
@@ -74,6 +74,16 @@ type ManualRequest = {
 
 export default function Subscription2Screen() {
   const { user } = useUser();
+
+  // Last line of defence: this screen shows external payment methods, which
+  // App Store 3.1.1/3.1.3(a) forbid. Nothing on iOS should route here, but if
+  // anything does (deep link, stale nav state), bounce out before rendering.
+  useEffect(() => {
+    if (!PAID_FLOW_ENABLED) {
+      router.replace('/(tabs)/more');
+    }
+  }, []);
+
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

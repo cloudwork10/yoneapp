@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../../config/api';
 import resolveMediaUrl from '../../utils/mediaUrl';
-import { fetchSubscriptionAccess } from '../../utils/subscriptionAccess';
+import { fetchSubscriptionAccess, PAID_FLOW_ENABLED, SUBSCRIBE_ROUTE } from '../../utils/subscriptionAccess';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 type MenuItem = {
@@ -63,7 +63,7 @@ const ACCOUNT_SECTION: MenuSection = {
       icon: '💼',
       route: '/my-jobs',
     },
-  ],
+  ].filter((item) => PAID_FLOW_ENABLED || item.route !== SUBSCRIBE_ROUTE),
 };
 
 const DISCOVER_SECTION: MenuSection = {
@@ -620,34 +620,43 @@ export default function MoreScreen() {
             </TouchableOpacity>
           ) : null}
 
-          <TouchableOpacity
-            style={[
-              styles.subscribeBanner,
-              mySubStatus === 'pending' && styles.subscribeBannerPending,
-              mySubStatus === 'active' && styles.subscribeBannerActive,
-              mySubStatus === 'rejected' && styles.subscribeBannerRejected,
-            ]}
-            onPress={() => router.push('/subscription-2')}
-            activeOpacity={0.85}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.subscribeBannerText}>
-                {mySubStatus === 'active'
-                  ? 'Premium · Active'
-                  : mySubStatus === 'pending'
-                    ? 'Subscription · Pending review'
-                    : mySubStatus === 'rejected'
-                      ? 'Subscription · Not approved'
-                      : 'Premium · Subscribe'}
-              </Text>
-              {mySubStatus === 'pending' ? (
-                <Text style={styles.subscribeBannerSub}>Tap to check status · اضغط لمتابعة</Text>
-              ) : mySubStatus === 'rejected' ? (
-                <Text style={styles.subscribeBannerSub}>Tap to submit again · ابعت طلب جديد</Text>
-              ) : null}
+          {PAID_FLOW_ENABLED ? (
+            <TouchableOpacity
+              style={[
+                styles.subscribeBanner,
+                mySubStatus === 'pending' && styles.subscribeBannerPending,
+                mySubStatus === 'active' && styles.subscribeBannerActive,
+                mySubStatus === 'rejected' && styles.subscribeBannerRejected,
+              ]}
+              onPress={() => router.push(SUBSCRIBE_ROUTE)}
+              activeOpacity={0.85}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.subscribeBannerText}>
+                  {mySubStatus === 'active'
+                    ? 'Premium · Active'
+                    : mySubStatus === 'pending'
+                      ? 'Subscription · Pending review'
+                      : mySubStatus === 'rejected'
+                        ? 'Subscription · Not approved'
+                        : 'Premium · Subscribe'}
+                </Text>
+                {mySubStatus === 'pending' ? (
+                  <Text style={styles.subscribeBannerSub}>Tap to check status · اضغط لمتابعة</Text>
+                ) : mySubStatus === 'rejected' ? (
+                  <Text style={styles.subscribeBannerSub}>Tap to submit again · ابعت طلب جديد</Text>
+                ) : null}
+              </View>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+          ) : mySubStatus === 'active' ? (
+            /* iOS: status only — no navigation to a purchase screen. */
+            <View style={[styles.subscribeBanner, styles.subscribeBannerActive]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.subscribeBannerText}>Premium · Active</Text>
+              </View>
             </View>
-            <Text style={styles.arrow}>›</Text>
-          </TouchableOpacity>
+          ) : null}
 
           {sections.map((section) => (
             <MenuSectionBlock

@@ -82,8 +82,9 @@ export default function ProfileScreen() {
       });
 
       if (result.canceled || !result.assets?.[0]?.uri) {
-        // User cancelled, or picker closed due to missing permission
-        if (Platform.OS !== 'web') {
+        // User cancelled, or picker closed due to missing permission.
+        // Android uses the system photo picker (no permission), so only iOS can be blocked here.
+        if (Platform.OS === 'ios') {
           const permission = await ImagePicker.getMediaLibraryPermissionsAsync();
           const blocked =
             !permission.granted &&

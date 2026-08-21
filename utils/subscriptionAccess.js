@@ -1,6 +1,18 @@
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import API_BASE_URL from '../config/api';
 import { makeAuthenticatedRequest } from './tokenRefresh';
+
+/**
+ * The manual-transfer subscribe flow (Vodafone Cash / InstaPay / WhatsApp) is an
+ * external purchase mechanism for digital content, which App Store guidelines
+ * 3.1.1 and 3.1.3(a) forbid. iOS therefore never surfaces a purchase path:
+ * premium content stays locked with neutral copy and no prices, links, or CTAs.
+ *
+ * Subscriptions bought on Android still unlock everything on iOS — access is
+ * read from the backend in fetchSubscriptionAccess() and does not depend on
+ * where the subscription was purchased.
+ */
+export const PAID_FLOW_ENABLED = Platform.OS !== 'ios';
 
 /** Primary subscribe screen (manual transfer flow) */
 export const SUBSCRIBE_ROUTE = '/subscription-2';
@@ -76,6 +88,17 @@ export function getPremiumGateCopy(access, contentWord = 'content') {
   const latest = access?.latestRequest;
   const label = planLabel(pending?.plan || latest?.plan);
 
+  // iOS: no prices, no purchase instructions, no action to a subscribe screen.
+  if (!PAID_FLOW_ENABLED) {
+    return {
+      title: '🔒 Premium Content',
+      message:
+        `This ${contentWord} is available with an active subscription.\n\n` +
+        `المحتوى ده متاح مع الاشتراك النشط.`,
+      actionLabel: null,
+    };
+  }
+
   if (access?.status === 'pending' && pending) {
     return {
       title: '⏳ Pending activation',
@@ -115,6 +138,12 @@ export function getPremiumGateCopy(access, contentWord = 'content') {
 /** Show lock alert and route to subscription status / subscribe screen */
 export function showPremiumGateAlert(access, router, contentWord = 'content') {
   const copy = getPremiumGateCopy(access, contentWord);
+
+  if (!copy.actionLabel) {
+    Alert.alert(copy.title, copy.message, [{ text: 'OK', style: 'cancel' }]);
+    return;
+  }
+
   Alert.alert(copy.title, copy.message, [
     { text: 'Cancel', style: 'cancel' },
     {
