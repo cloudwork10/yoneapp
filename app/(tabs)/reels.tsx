@@ -119,10 +119,19 @@ export default function ReelsScreen() {
     }
   }, [selectedCategory, isAdmin]);
 
-  // Pause all videos when screen is not focused
+  // Pause all videos when screen is not focused, and resume on return.
+  // Without the resume the surface stays paused after coming back from another
+  // tab, which renders as a black frame (usePoster is off, so there is no
+  // fallback image).
   useFocusEffect(
     useCallback(() => {
-      // Screen is focused - resume current video if needed
+      const current = reels[currentIndex];
+      if (current && !pausedVideos.has(currentIndex)) {
+        videoRefs.current[current._id]?.playAsync().catch(() => {
+          // Ignore if the ref is gone or the source is still loading
+        });
+      }
+
       return () => {
         // Screen is unfocused - pause all videos
         Object.values(videoRefs.current).forEach((videoRef) => {
@@ -133,7 +142,7 @@ export default function ReelsScreen() {
           }
         });
       };
-    }, [])
+    }, [reels, currentIndex, pausedVideos])
   );
 
   // Pause videos when modals are open

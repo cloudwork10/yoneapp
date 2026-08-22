@@ -17,6 +17,7 @@ import {
     View
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../components/FixedBackBar';
 import API_BASE_URL from '../config/api';
 import { isContentLocked } from '../utils/contentAccess';
@@ -469,7 +470,7 @@ export default function ProgrammerThoughts() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
       <View style={styles.gradient}>
         <FixedBackBar />
@@ -518,7 +519,7 @@ export default function ProgrammerThoughts() {
         {/* Video Modal */}
         {renderVideoModal()}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

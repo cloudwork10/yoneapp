@@ -29,6 +29,7 @@ import { showSignInAlert } from '../hooks/useAuthGuard';
 import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
+import { goBackOr } from '../utils/navigation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -216,6 +217,15 @@ export default function CourseDetailsScreen() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        {/* The tab bar is hidden on pushed screens, so this branch needs its
+            own way out — otherwise a slow or failed fetch traps the user. */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => goBackOr('/(tabs)/courses')}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Course Details</Text>
+          <View style={styles.backButton} />
+        </View>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>جاري تحميل تفاصيل الكورس...</Text>
         </View>
@@ -334,7 +344,7 @@ export default function CourseDetailsScreen() {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)/courses')}>
+        <TouchableOpacity style={styles.backButton} onPress={() => goBackOr('/(tabs)/courses')}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Course Details</Text>

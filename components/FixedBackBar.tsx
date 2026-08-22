@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { goBackOr } from '../utils/navigation';
 
 type FixedBackBarProps = {
   label?: string;
@@ -11,17 +11,9 @@ export default function FixedBackBar({
   label = '← Back',
   fallbackHref = '/(tabs)/more',
 }: FixedBackBarProps) {
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace(fallbackHref as any);
-  };
-
   return (
     <View style={styles.bar}>
-      <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.75}>
+      <TouchableOpacity style={styles.backButton} onPress={() => goBackOr(fallbackHref)} activeOpacity={0.75}>
         <Text style={styles.backText}>{label}</Text>
       </TouchableOpacity>
     </View>

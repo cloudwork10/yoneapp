@@ -1,4 +1,3 @@
-import { useUser } from '@/contexts/UserContext';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
@@ -9,7 +8,6 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { user } = useUser();
 
   return (
     <Tabs
@@ -24,22 +22,24 @@ export default function TabLayout() {
           fontSize: 10,
           fontWeight: '500',
         },
-        tabBarStyle: user
-          ? {
-              backgroundColor: '#1a1a1a',
-              borderTopColor: '#333333',
-              borderTopWidth: 1,
-              height: 88,
-              paddingBottom: 18,
-              paddingTop: 8,
-              ...Platform.select({
-                ios: {
-                  position: 'absolute',
-                },
-                default: {},
-              }),
-            }
-          : { display: 'none' },
+        // Always visible. Hiding it for guests left them with no tab bar and
+        // no back button once they opened anything, i.e. no way to navigate
+        // at all. Guests browse free content and are prompted to sign in per
+        // action (see hooks/useAuthGuard.ts).
+        tabBarStyle: {
+          backgroundColor: '#1a1a1a',
+          borderTopColor: '#333333',
+          borderTopWidth: 1,
+          height: 88,
+          paddingBottom: 18,
+          paddingTop: 8,
+          ...Platform.select({
+            ios: {
+              position: 'absolute',
+            },
+            default: {},
+          }),
+        },
       }}>
       <Tabs.Screen
         name="index"
@@ -60,6 +60,9 @@ export default function TabLayout() {
         options={{
           title: 'Reels',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="play.rectangle.fill" color={color} />,
+          // Freezing this tab tears down the native expo-av video surface, and
+          // it comes back black when the tab regains focus.
+          freezeOnBlur: false,
         }}
       />
       <Tabs.Screen

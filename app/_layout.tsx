@@ -184,9 +184,9 @@ export default function RootLayout() {
             <Stack.Screen name="article-details" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="roadmap-details" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="podcast-details" options={{ headerShown: false, animation: 'slide_from_right' }} />
-            <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
-            <Stack.Screen name="register" options={{ headerShown: false, animation: 'fade' }} />
-            <Stack.Screen name="forgot-password" options={{ headerShown: false, animation: 'fade' }} />
+            <Stack.Screen name="login" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="register" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="forgot-password" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="payment" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="top-cv" options={{ headerShown: false, animation: 'slide_from_right' }} />

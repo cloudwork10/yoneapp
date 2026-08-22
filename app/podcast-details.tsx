@@ -18,6 +18,8 @@ import {
 import { WebView } from 'react-native-webview';
 import API_BASE_URL from '../config/api';
 import resolveMediaUrl from '../utils/mediaUrl';
+import { goBackOr } from '../utils/navigation';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -175,6 +177,9 @@ interface PodcastEpisode {
 }
 
 export default function PodcastDetailsScreen() {
+  // No SafeAreaView on this screen (the hero image is full-bleed), so the
+  // back button has to clear the notch itself.
+  const insets = useSafeAreaInsets();
   const { podcastId } = useLocalSearchParams();
   const [podcast, setPodcast] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -278,6 +283,9 @@ export default function PodcastDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
+        <TouchableOpacity style={[styles.backButton, { top: insets.top + 8 }]} onPress={() => goBackOr('/(tabs)/podcasts')}>
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading podcast...</Text>
         </View>
@@ -288,6 +296,9 @@ export default function PodcastDetailsScreen() {
   if (!podcast) {
     return (
       <View style={styles.container}>
+        <TouchableOpacity style={[styles.backButton, { top: insets.top + 8 }]} onPress={() => goBackOr('/(tabs)/podcasts')}>
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>Podcast not found</Text>
         </View>
@@ -374,7 +385,7 @@ export default function PodcastDetailsScreen() {
               colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
               style={styles.heroGradient}
             >
-              <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)/podcasts')}>
+              <TouchableOpacity style={[styles.backButton, { top: insets.top + 8 }]} onPress={() => goBackOr('/(tabs)/podcasts')}>
                 <Text style={styles.backButtonText}>←</Text>
               </TouchableOpacity>
               
@@ -962,7 +973,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 60,
     left: 20,
     width: 40,
     height: 40,

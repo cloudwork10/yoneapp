@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import resolveMediaUrl from '../utils/mediaUrl';
+import { goBackOr } from '../utils/navigation';
 
 const { width } = Dimensions.get('window');
 
@@ -114,6 +115,14 @@ export default function RoadmapDetailsScreen() {
         <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#9B59B6" />
+            {/* The tab bar is hidden on pushed screens — without this a slow
+                fetch leaves the user with no way back. */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => goBackOr('/(tabs)/roadmaps')}
+            >
+              <Text style={styles.backButtonText}>Go Back</Text>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -138,7 +147,7 @@ export default function RoadmapDetailsScreen() {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={() => goBackOr('/(tabs)/roadmaps')}
             >
               <Text style={styles.backButtonText}>Go Back</Text>
             </TouchableOpacity>
@@ -156,7 +165,7 @@ export default function RoadmapDetailsScreen() {
           <View style={styles.header}>
             <TouchableOpacity 
               style={styles.backButtonHeader}
-              onPress={() => router.back()}
+              onPress={() => goBackOr('/(tabs)/roadmaps')}
             >
               <Text style={styles.backIcon}>←</Text>
             </TouchableOpacity>
