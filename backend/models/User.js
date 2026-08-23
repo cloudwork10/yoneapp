@@ -150,6 +150,11 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  /** Users this account has blocked — their reels and comments are hidden. */
+  blockedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   // User preferences
   preferences: {
     notifications: {

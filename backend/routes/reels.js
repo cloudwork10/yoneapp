@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const Reel = require('../models/Reel');
 const User = require('../models/User');
+const Report = require('../models/Report');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/adminAuth');
 const { uploadLimiter, apiLimiter } = require('../middleware/security');
@@ -163,11 +164,20 @@ router.get('/', apiLimiter, optionalAuth, async (req, res) => {
       isActive: true
     };
 
+    // Blocking must actually hide content, not just mute notifications.
+    if (req.user) {
+      const me = await User.findById(req.user.id).select('blockedUsers');
+      if (me?.blockedUsers?.length) {
+        query.uploadedBy = { $nin: me.blockedUsers };
+      }
+    }
+
     // If feed is 'following', show only reels from followed users
     if (feed === 'following' && req.user) {
       const user = await User.findById(req.user.id);
       if (user && user.following && user.following.length > 0) {
-        query.uploadedBy = { $in: user.following };
+        // Keep the blocked-user exclusion when narrowing to followed users.
+        query.uploadedBy = { ...(query.uploadedBy || {}), $in: user.following };
       } else {
         // User is not following anyone, return empty
         return res.json({
@@ -498,7 +508,7 @@ router.post('/:id/repost', requireAuth, async (req, res) => {
 // @route   GET /api/reels/:id/comments
 // @desc    Get comments for a reel
 // @access  Public
-router.get('/:id/comments', apiLimiter, async (req, res) => {
+router.get('/:id/comments', apiLimiter, optionalAuth, async (req, res) => {
   try {
     const reel = await Reel.findById(req.params.id)
       .populate('comments.user', 'name avatar');
@@ -507,7 +517,15 @@ router.get('/:id/comments', apiLimiter, async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Reel not found' });
     }
 
+    // A blocked user's comments must disappear too, not just their reels.
+    let blocked = [];
+    if (req.user) {
+      const me = await User.findById(req.user.id).select('blockedUsers');
+      blocked = (me?.blockedUsers || []).map((id) => String(id));
+    }
+
     const comments = (reel.comments || [])
+      .filter((c) => !(c.user && blocked.includes(String(c.user._id || c.user))))
       .slice()
       .reverse()
       .map((c) => ({
@@ -658,6 +676,96 @@ router.delete('/:id', requireAuth, async (req, res) => {
       status: 'error',
       message: 'Failed to delete reel'
     });
+  }
+});
+
+// @route   POST /api/reels/:id/report
+// @desc    Report a reel or one of its comments (App Store guideline 1.2)
+// @access  Private
+router.post('/:id/report', requireAuth, [
+  body('reason').isIn(['spam', 'harassment', 'hate', 'violence', 'sexual', 'copyright', 'other']),
+  body('details').optional().trim().isLength({ max: 500 }),
+  body('commentId').optional().isMongoId(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'A valid reason is required',
+        errors: errors.array(),
+      });
+    }
+
+    const reel = await Reel.findById(req.params.id);
+    if (!reel) {
+      return res.status(404).json({ status: 'error', message: 'Reel not found' });
+    }
+
+    const { commentId } = req.body;
+    let targetType = 'reel';
+    let reportedUser = reel.uploadedBy || null;
+
+    if (commentId) {
+      const comment = reel.comments.id(commentId);
+      if (!comment) {
+        return res.status(404).json({ status: 'error', message: 'Comment not found' });
+      }
+      targetType = 'comment';
+      reportedUser = comment.user || null;
+    }
+
+    const userId = req.user.id || req.user._id;
+
+    try {
+      await Report.create({
+        reportedBy: userId,
+        targetType,
+        reel: reel._id,
+        commentId: commentId || null,
+        reportedUser,
+        reason: req.body.reason,
+        details: (req.body.details || '').trim(),
+      });
+    } catch (err) {
+      // Duplicate key = already reported by this user; treat as success so the
+      // client shows the same confirmation either way.
+      if (err && err.code === 11000) {
+        return res.json({
+          status: 'success',
+          message: 'You have already reported this content. Our team is reviewing it.',
+        });
+      }
+      throw err;
+    }
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Thanks — our team will review this content within 24 hours.',
+    });
+  } catch (error) {
+    console.error('Error reporting content:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to submit report' });
+  }
+});
+
+// @route   GET /api/reels/admin/reports
+// @desc    Moderation queue
+// @access  Admin
+router.get('/admin/reports', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const status = req.query.status || 'pending';
+    const reports = await Report.find({ status })
+      .populate('reportedBy', 'name email')
+      .populate('reportedUser', 'name email')
+      .populate('reel', 'title videoUrl uploadedByName')
+      .sort({ createdAt: -1 })
+      .limit(200);
+
+    res.json({ status: 'success', data: { reports } });
+  } catch (error) {
+    console.error('Error fetching reports:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch reports' });
   }
 });
 

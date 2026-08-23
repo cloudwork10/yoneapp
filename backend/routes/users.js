@@ -696,4 +696,62 @@ router.get('/:id/following', async (req, res) => {
   }
 });
 
+// @route   POST /api/users/block/:userId
+// @desc    Block a user — hides their reels and comments (App Store 1.2)
+// @access  Private
+router.post('/block/:userId', requireAuth, async (req, res) => {
+  try {
+    const meId = String(req.user.id || req.user._id);
+    const targetId = String(req.params.userId);
+
+    if (meId === targetId) {
+      return res.status(400).json({ status: 'error', message: 'You cannot block yourself' });
+    }
+
+    const target = await User.findById(targetId).select('_id name');
+    if (!target) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    await User.findByIdAndUpdate(meId, { $addToSet: { blockedUsers: target._id } });
+
+    res.json({
+      status: 'success',
+      message: `You will no longer see content from ${target.name || 'this user'}.`,
+    });
+  } catch (error) {
+    console.error('Error blocking user:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to block user' });
+  }
+});
+
+// @route   POST /api/users/unblock/:userId
+// @desc    Unblock a previously blocked user
+// @access  Private
+router.post('/unblock/:userId', requireAuth, async (req, res) => {
+  try {
+    const meId = req.user.id || req.user._id;
+    await User.findByIdAndUpdate(meId, { $pull: { blockedUsers: req.params.userId } });
+    res.json({ status: 'success', message: 'User unblocked' });
+  } catch (error) {
+    console.error('Error unblocking user:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to unblock user' });
+  }
+});
+
+// @route   GET /api/users/blocked
+// @desc    List blocked users so they can be managed/unblocked
+// @access  Private
+router.get('/blocked', requireAuth, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id || req.user._id)
+      .select('blockedUsers')
+      .populate('blockedUsers', 'name avatar');
+    res.json({ status: 'success', data: { blockedUsers: me?.blockedUsers || [] } });
+  } catch (error) {
+    console.error('Error fetching blocked users:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to fetch blocked users' });
+  }
+});
+
 module.exports = router;

@@ -525,6 +525,147 @@ export default function ReelsScreen() {
     setReels((prev) => prev.map((r) => (r._id === reelId ? { ...r, ...patch } : r)));
   };
 
+  // --- App Store guideline 1.2: report content, block abusive users ---
+
+  const REPORT_REASONS: { key: string; label: string }[] = [
+    { key: 'spam', label: 'Spam or misleading' },
+    { key: 'harassment', label: 'Harassment or bullying' },
+    { key: 'hate', label: 'Hate speech' },
+    { key: 'violence', label: 'Violence or dangerous acts' },
+    { key: 'sexual', label: 'Nudity or sexual content' },
+    { key: 'copyright', label: 'Copyright infringement' },
+    { key: 'other', label: 'Something else' },
+  ];
+
+  const submitReport = async (reelId: string, reason: string, commentId?: string) => {
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${API_BASE_URL}/api/reels/${reelId}/report`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(commentId ? { reason, commentId } : { reason }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      Alert.alert(
+        response.ok ? 'Report received' : 'Report failed',
+        data.message || (response.ok ? 'Our team will review this content.' : 'Please try again.')
+      );
+    } catch {
+      Alert.alert('Report failed', 'Network error. Please try again.');
+    }
+  };
+
+  const chooseReportReason = (reelId: string, commentId?: string) => {
+    Alert.alert(
+      'Report content',
+      'Why are you reporting this?',
+      [
+        ...REPORT_REASONS.map((r) => ({
+          text: r.label,
+          onPress: () => submitReport(reelId, r.key, commentId),
+        })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]
+    );
+  };
+
+  const blockUser = async (userId: string, name: string) => {
+    Alert.alert(
+      `Block ${name}?`,
+      'You will no longer see their reels or comments.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await makeAuthenticatedRequest(
+                `${API_BASE_URL}/api/users/block/${userId}`,
+                { method: 'POST' }
+              );
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                Alert.alert('Block failed', data.message || 'Please try again.');
+                return;
+              }
+              // Drop their content from the current feed immediately.
+              setReels((prev) =>
+                prev.filter((r) => {
+                  const uploader =
+                    typeof r.uploadedBy === 'string' ? r.uploadedBy : r.uploadedBy?._id;
+                  return String(uploader) !== String(userId);
+                })
+              );
+              Alert.alert('Blocked', data.message || `You will no longer see content from ${name}.`);
+            } catch {
+              Alert.alert('Block failed', 'Network error. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openCommentModeration = (comment: ReelComment) => {
+    if (!user || !activeCommentReelId) return;
+    const authorId = comment.user?._id ? String(comment.user._id) : null;
+    const authorName = comment.user?.name || 'this user';
+
+    const options: any[] = [
+      {
+        text: 'Report this comment',
+        onPress: () => chooseReportReason(activeCommentReelId, comment._id),
+      },
+    ];
+
+    if (authorId) {
+      options.push({
+        text: `Block ${authorName}`,
+        style: 'destructive',
+        onPress: async () => {
+          await blockUser(authorId, authorName);
+          // Hide their comments from the open thread straight away.
+          setComments((prev) =>
+            prev.filter((c) => String(c.user?._id) !== authorId)
+          );
+        },
+      });
+    }
+
+    options.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert('Options', 'Report this comment or block its author.', options);
+  };
+
+  const openReelModeration = (reel: Reel) => {
+    if (!user) return requireLogin();
+
+    const uploaderId =
+      typeof reel.uploadedBy === 'string' ? reel.uploadedBy : reel.uploadedBy?._id;
+    const uploaderName =
+      (typeof reel.uploadedBy === 'object' ? reel.uploadedBy?.name : '') ||
+      reel.uploadedByName ||
+      'this user';
+
+    const options: any[] = [
+      { text: 'Report this reel', onPress: () => chooseReportReason(reel._id) },
+    ];
+
+    if (uploaderId) {
+      options.push({
+        text: `Block ${uploaderName}`,
+        style: 'destructive',
+        onPress: () => blockUser(String(uploaderId), uploaderName),
+      });
+    }
+
+    options.push({ text: 'Cancel', style: 'cancel' });
+
+    Alert.alert('Options', 'Report this content or block the person who posted it.', options);
+  };
+
   const toggleLike = async (reel: Reel) => {
     if (!user) return requireLogin();
     const prevLiked = !!reel.isLiked;
@@ -986,10 +1127,21 @@ export default function ReelsScreen() {
               <Text style={styles.sideActionText}>{item.reposts || 0}</Text>
             </TouchableOpacity>
 
-            {isOwner && (
+            {isOwner ? (
               <TouchableOpacity style={styles.sideAction} onPress={() => deleteReel(item._id)}>
                 <Text style={styles.sideActionIcon}>🗑️</Text>
                 <Text style={styles.sideActionText}>Delete</Text>
+              </TouchableOpacity>
+            ) : (
+              /* App Store guideline 1.2: user-generated content needs a way to
+                 report it and to block the person who posted it. */
+              <TouchableOpacity
+                style={styles.sideAction}
+                onPress={() => openReelModeration(item)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.sideActionIcon}>⋯</Text>
+                <Text style={styles.sideActionText}>More</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1330,6 +1482,17 @@ export default function ReelsScreen() {
                       <Text style={styles.commentAuthor}>{item.user?.name || 'User'}</Text>
                       <Text style={styles.commentText}>{item.text}</Text>
                     </View>
+                    {/* Comments are not pre-moderated, so each one needs its
+                        own report/block affordance (App Store 1.2). */}
+                    {user && item.user?._id && String(item.user._id) !== String(user.id) ? (
+                      <TouchableOpacity
+                        style={styles.commentMoreBtn}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        onPress={() => openCommentModeration(item)}
+                      >
+                        <Text style={styles.commentMoreText}>⋯</Text>
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
                   );
                 }}
@@ -1830,6 +1993,16 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 20,
+  },
+  commentMoreBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+  },
+  commentMoreText: {
+    color: '#888888',
+    fontSize: 18,
+    fontWeight: '700',
   },
   actionButton: {
     alignItems: 'center',
