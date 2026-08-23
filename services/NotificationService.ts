@@ -4,10 +4,13 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import API_BASE_URL from '../config/api';
 
-// Configure notification behavior
+// Configure notification behavior.
+// SDK 54 deprecated `shouldShowAlert` in favour of `shouldShowBanner` (the
+// heads-up alert) and `shouldShowList` (the notification centre entry).
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -287,9 +290,12 @@ class NotificationService {
         vibrate: [0, 250, 250, 250],
         priority: 'max',
       },
+      // expo-notifications (SDK 54) requires an explicit trigger type; the old
+      // { date, repeats: true } shape throws. DAILY is what this always meant.
       trigger: {
-        date: prayerTime,
-        repeats: true,
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: prayerTime.getHours(),
+        minute: prayerTime.getMinutes(),
       },
     });
   }
@@ -331,8 +337,9 @@ class NotificationService {
         priority: 'high',
       },
       trigger: {
-        date: reminderTime,
-        repeats: true,
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: reminderTime.getHours(),
+        minute: reminderTime.getMinutes(),
       },
     });
   }

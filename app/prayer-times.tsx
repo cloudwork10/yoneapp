@@ -4,11 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../components/FixedBackBar';
+import NotificationService from '../services/NotificationService';
 
-// Configure notifications
+// Configure notifications.
+// SDK 54 replaced `shouldShowAlert` with `shouldShowBanner` / `shouldShowList`.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
