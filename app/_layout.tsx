@@ -191,7 +191,6 @@ export default function RootLayout() {
             <Stack.Screen name="payment" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="top-cv" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="user-profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
-            <Stack.Screen name="movies" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="egyptian-baccalaureate" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="prayer-times" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="+not-found" />
