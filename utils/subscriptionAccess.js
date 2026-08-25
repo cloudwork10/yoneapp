@@ -3,30 +3,20 @@ import API_BASE_URL from '../config/api';
 import { makeAuthenticatedRequest } from './tokenRefresh';
 
 /**
- * The manual-transfer subscribe flow (Vodafone Cash / InstaPay / WhatsApp) is an
- * external purchase mechanism for digital content, which App Store guidelines
- * 3.1.1 and 3.1.3(a) forbid. iOS therefore never surfaces a purchase path:
- * premium content stays locked with neutral copy and no prices, links, or CTAs.
+ * This iOS build has no purchase flow at all — no manual-transfer screen, no
+ * payment numbers, no prices, no purchase copy anywhere in the codebase.
+ * That code was deleted rather than platform-hidden, to eliminate any chance
+ * of App Store guideline 5.6 flagging dormant payment functionality in the
+ * binary. Premium content stays locked with neutral copy and no CTA.
  *
- * Subscriptions bought on Android still unlock everything on iOS — access is
+ * Subscriptions bought on Android still unlock everything here — access is
  * read from the backend in fetchSubscriptionAccess() and does not depend on
  * where the subscription was purchased.
  */
 export const PAID_FLOW_ENABLED = Platform.OS !== 'ios';
 
-/** Primary subscribe screen (manual transfer flow) */
+/** Route name used only for the nav-guard filters below (points at a neutral redirect). */
 export const SUBSCRIBE_ROUTE = '/subscription-2';
-
-export const PLAN_LABELS = {
-  monthly: { en: 'Monthly Plan', ar: 'الباقة الشهرية', days: 30 },
-  quarterly: { en: 'Quarterly Plan', ar: 'الباقة الربع سنوية', days: 90 },
-  'semi-annual': { en: 'Semi-Annual Plan', ar: 'الباقة نصف السنوية', days: 180 },
-  annual: { en: 'Annual Plan', ar: 'الباقة السنوية', days: 365 },
-};
-
-export function planLabel(planId) {
-  return PLAN_LABELS[planId] || { en: planId || 'Plan', ar: planId || 'باقة', days: 0 };
-}
 
 /**
  * @returns {Promise<{
@@ -84,71 +74,23 @@ export async function fetchSubscriptionAccess() {
 }
 
 export function getPremiumGateCopy(access, contentWord = 'content') {
-  const pending = access?.pendingRequest;
-  const latest = access?.latestRequest;
-  const label = planLabel(pending?.plan || latest?.plan);
-
-  // iOS: no prices, no purchase instructions, no action to a subscribe screen.
-  if (!PAID_FLOW_ENABLED) {
-    return {
-      title: '🔒 Premium Content',
-      message:
-        `This ${contentWord} is available with an active subscription.\n\n` +
-        `المحتوى ده متاح مع الاشتراك النشط.`,
-      actionLabel: null,
-    };
-  }
-
-  if (access?.status === 'pending' && pending) {
-    return {
-      title: '⏳ Pending activation',
-      message:
-        `You selected ${label.en} (EGP ${pending.price}).\n` +
-        `Your request is under review — premium ${contentWord} unlocks after activation.\n\n` +
-        `اخترت ${label.ar} (${pending.price} ج).\n` +
-        `طلبك قيد المراجعة — هتقدر تدخل بعد التفعيل.`,
-      actionLabel: 'Check status · متابعة الحالة',
-    };
-  }
-
-  if (access?.status === 'rejected') {
-    const note = latest?.adminNote ? `\n${latest.adminNote}` : '';
-    return {
-      title: 'Request not approved',
-      message:
-        `Your last subscription request was rejected.${note}\n` +
-        `Submit again to unlock premium ${contentWord}.\n\n` +
-        `طلب الاشتراك السابق اترفض.${note ? `\n${latest.adminNote}` : ''}\n` +
-        `ابعت طلب جديد عشان تفتح المحتوى.`,
-      actionLabel: 'Submit again · إرسال طلب جديد',
-    };
-  }
-
+  // No purchase copy exists in this build — see the PAID_FLOW_ENABLED
+  // comment above. Every status maps to the same neutral message.
   return {
     title: '🔒 Premium Content',
     message:
-      `This ${contentWord} needs an active subscription.\n` +
-      `Subscribe, transfer, upload your receipt — we activate your access.\n\n` +
-      `المحتوى ده محتاج اشتراك نشط.\n` +
-      `اشترك · حوّل · ارفع السكرين — ويتم التفعيل.`,
-    actionLabel: 'Subscribe · اشترك',
+      `This ${contentWord} is available with an active subscription.\n\n` +
+      `المحتوى ده متاح مع الاشتراك النشط.`,
+    actionLabel: null,
   };
 }
 
-/** Show lock alert and route to subscription status / subscribe screen */
+/**
+ * Show the lock alert. `router` is unused now that getPremiumGateCopy never
+ * returns an action, but kept in the signature — this is called from ~5
+ * screens and changing it isn't worth the diff for a no-op parameter.
+ */
 export function showPremiumGateAlert(access, router, contentWord = 'content') {
   const copy = getPremiumGateCopy(access, contentWord);
-
-  if (!copy.actionLabel) {
-    Alert.alert(copy.title, copy.message, [{ text: 'OK', style: 'cancel' }]);
-    return;
-  }
-
-  Alert.alert(copy.title, copy.message, [
-    { text: 'Cancel', style: 'cancel' },
-    {
-      text: copy.actionLabel,
-      onPress: () => router.push(SUBSCRIBE_ROUTE),
-    },
-  ]);
+  Alert.alert(copy.title, copy.message, [{ text: 'OK', style: 'cancel' }]);
 }

@@ -52,7 +52,7 @@ const ACCOUNT_SECTION: MenuSection = {
     {
       id: 2,
       title: 'Subscription',
-      description: 'Transfer + screenshot · check status',
+      description: 'Check your subscription status',
       icon: '💎',
       route: '/subscription-2',
     },
@@ -270,7 +270,7 @@ const ADMIN_SECTION: MenuSection = {
     {
       id: 19,
       title: 'Subscription Requests',
-      description: 'Approve manual payment receipts',
+      description: 'Review pending subscription requests',
       icon: '🧾',
       route: '/subscription-requests',
       adminOnly: true,
@@ -283,7 +283,10 @@ const ADMIN_SECTION: MenuSection = {
       route: '/active-subscribers',
       adminOnly: true,
     },
-  ],
+  // These two manage the manual-transfer flow and don't exist in the iOS
+  // bundle (see app/subscription-requests.tsx, app/active-subscribers.tsx) —
+  // don't show admins a menu item that just bounces back to this screen.
+  ].filter((item) => PAID_FLOW_ENABLED || !['/subscription-requests', '/active-subscribers'].includes(item.route)),
 };
 
 function MenuRow({

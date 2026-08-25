@@ -118,7 +118,13 @@ export default function RootLayout() {
           data.type === 'admin_subscription_expired' ||
           data.type === 'admin_subscription_ending_tonight'
         ) {
-          router.push('/active-subscribers');
+          // This admin screen manages the manual-transfer flow and doesn't
+          // exist in the iOS bundle at all — the stub would just redirect.
+          if (PAID_FLOW_ENABLED) {
+            router.push('/active-subscribers');
+          } else {
+            router.push('/(tabs)/more');
+          }
         }
       }
     });
