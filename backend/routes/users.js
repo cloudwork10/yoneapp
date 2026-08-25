@@ -148,7 +148,7 @@ router.get('/:id/profile', optionalAuth, async (req, res) => {
   try {
     const userId = req.params.id;
     const requestingUser = req.user; // May be undefined if not logged in
-    
+
     // Validate userId format (MongoDB ObjectId is 24 characters)
     if (!userId) {
       return res.status(400).json({
@@ -156,7 +156,20 @@ router.get('/:id/profile', optionalAuth, async (req, res) => {
         message: 'User ID is required'
       });
     }
-    
+
+    // A block must actually stop the viewer from reaching the blocked
+    // account's profile, not just filter it out of the feed.
+    if (requestingUser) {
+      const me = await User.findById(requestingUser.id).select('blockedUsers');
+      if (me?.blockedUsers?.some((id) => id.toString() === userId.toString())) {
+        return res.status(403).json({
+          status: 'error',
+          code: 'USER_BLOCKED',
+          message: 'You have blocked this account.'
+        });
+      }
+    }
+
     // Check if requesting user is admin
     let user;
     if (requestingUser) {

@@ -72,6 +72,7 @@ export default function UserProfileScreen() {
   const [selectedReel, setSelectedReel] = useState<Reel | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     if (userIdString) {
@@ -153,9 +154,10 @@ export default function UserProfileScreen() {
         setIsFollowing(data.data.isFollowing || false);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Failed to fetch user profile:', errorData.message || response.status);
-        if (response.status === 404) {
-          // User not found - this is handled in the UI
+        if (errorData.code === 'USER_BLOCKED') {
+          setIsBlocked(true);
+        } else {
+          console.error('Failed to fetch user profile:', errorData.message || response.status);
         }
       }
     } catch (error) {
@@ -257,6 +259,22 @@ export default function UserProfileScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#E50914" />
           <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isBlocked) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>You have blocked this account</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
