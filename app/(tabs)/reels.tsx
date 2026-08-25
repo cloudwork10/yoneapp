@@ -548,6 +548,15 @@ export default function ReelsScreen() {
         }
       );
       const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        // Don't leave the reporter staring at what they just flagged while
+        // it awaits admin review — same treatment as blocking a user.
+        if (commentId) {
+          setComments((prev) => prev.filter((c) => c._id !== commentId));
+        } else {
+          setReels((prev) => prev.filter((r) => r._id !== reelId));
+        }
+      }
       Alert.alert(
         response.ok ? 'Report received' : 'Report failed',
         data.message || (response.ok ? 'Our team will review this content.' : 'Please try again.')
