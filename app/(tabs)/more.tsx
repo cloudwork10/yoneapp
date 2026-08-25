@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../../config/api';
 import resolveMediaUrl from '../../utils/mediaUrl';
-import { fetchSubscriptionAccess, PAID_FLOW_ENABLED, SUBSCRIBE_ROUTE } from '../../utils/subscriptionAccess';
+import { fetchSubscriptionAccess } from '../../utils/subscriptionAccess';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 type MenuItem = {
@@ -50,20 +50,13 @@ const ACCOUNT_SECTION: MenuSection = {
       route: '/profile',
     },
     {
-      id: 2,
-      title: 'Subscription',
-      description: 'Check your subscription status',
-      icon: '💎',
-      route: '/subscription-2',
-    },
-    {
       id: 30,
       title: 'My Jobs',
       description: 'Jobs you posted · applicants',
       icon: '💼',
       route: '/my-jobs',
     },
-  ].filter((item) => PAID_FLOW_ENABLED || item.route !== SUBSCRIBE_ROUTE),
+  ],
 };
 
 const DISCOVER_SECTION: MenuSection = {
@@ -267,26 +260,10 @@ const ADMIN_SECTION: MenuSection = {
       route: '/app-loading?preview=1',
       adminOnly: true,
     },
-    {
-      id: 19,
-      title: 'Subscription Requests',
-      description: 'Review pending subscription requests',
-      icon: '🧾',
-      route: '/subscription-requests',
-      adminOnly: true,
-    },
-    {
-      id: 20,
-      title: 'Active Subscribers',
-      description: 'Days left · ending soon',
-      icon: '⏱️',
-      route: '/active-subscribers',
-      adminOnly: true,
-    },
-  // These two manage the manual-transfer flow and don't exist in the iOS
-  // bundle (see app/subscription-requests.tsx, app/active-subscribers.tsx) —
-  // don't show admins a menu item that just bounces back to this screen.
-  ].filter((item) => PAID_FLOW_ENABLED || !['/subscription-requests', '/active-subscribers'].includes(item.route)),
+  // 'Subscription Requests' and 'Active Subscribers' were here — they
+  // managed the manual-transfer flow, which doesn't exist in this build at
+  // all. Both routes were deleted, not just hidden from this menu.
+  ],
 };
 
 function MenuRow({
@@ -426,30 +403,12 @@ function MenuSectionBlock({
 
 export default function MoreScreen() {
   const { user, isAdmin, logout } = useUser();
-  const [pendingSubRequests, setPendingSubRequests] = useState(0);
   const [mySubStatus, setMySubStatus] = useState<'active' | 'pending' | 'rejected' | 'none'>('none');
   const [liveStats, setLiveStats] = useState({
     onlineNow: 0,
     activeSubscribers: 0,
     totalUsers: 0,
   });
-
-  const fetchPendingCount = useCallback(async () => {
-    if (!isAdmin) {
-      setPendingSubRequests(0);
-      return;
-    }
-    try {
-      const response = await makeAuthenticatedRequest(
-        `${API_BASE_URL}/api/subscription-requests/admin/pending-count`
-      );
-      if (!response.ok) return;
-      const data = await response.json();
-      setPendingSubRequests(Number(data?.data?.count || 0));
-    } catch {
-      // ignore
-    }
-  }, [isAdmin]);
 
   const fetchLiveStats = useCallback(async () => {
     if (!isAdmin) return;
@@ -482,31 +441,14 @@ export default function MoreScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchPendingCount();
       fetchMyStatus();
       fetchLiveStats();
       const timer = isAdmin ? setInterval(fetchLiveStats, 20000) : null;
       return () => {
         if (timer) clearInterval(timer);
       };
-    }, [fetchPendingCount, fetchMyStatus, fetchLiveStats, isAdmin])
+    }, [fetchMyStatus, fetchLiveStats, isAdmin])
   );
-
-  const adminSection: MenuSection = {
-    ...ADMIN_SECTION,
-    items: ADMIN_SECTION.items.map((item) =>
-      item.id === 19
-        ? {
-            ...item,
-            badgeCount: pendingSubRequests,
-            description:
-              pendingSubRequests > 0
-                ? `${pendingSubRequests} pending receipt${pendingSubRequests === 1 ? '' : 's'}`
-                : item.description,
-          }
-        : item
-    ),
-  };
 
   const sections: MenuSection[] = [
     ACCOUNT_SECTION,
@@ -514,7 +456,7 @@ export default function MoreScreen() {
     LIBRARY_SECTION,
     SETTINGS_SECTION,
     POLICIES_SECTION,
-    ...(isAdmin ? [adminSection] : []),
+    ...(isAdmin ? [ADMIN_SECTION] : []),
   ];
 
   const handleItemPress = (route: string, adminOnly?: boolean) => {
@@ -623,37 +565,8 @@ export default function MoreScreen() {
             </TouchableOpacity>
           ) : null}
 
-          {PAID_FLOW_ENABLED ? (
-            <TouchableOpacity
-              style={[
-                styles.subscribeBanner,
-                mySubStatus === 'pending' && styles.subscribeBannerPending,
-                mySubStatus === 'active' && styles.subscribeBannerActive,
-                mySubStatus === 'rejected' && styles.subscribeBannerRejected,
-              ]}
-              onPress={() => router.push(SUBSCRIBE_ROUTE)}
-              activeOpacity={0.85}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.subscribeBannerText}>
-                  {mySubStatus === 'active'
-                    ? 'Premium · Active'
-                    : mySubStatus === 'pending'
-                      ? 'Subscription · Pending review'
-                      : mySubStatus === 'rejected'
-                        ? 'Subscription · Not approved'
-                        : 'Premium · Subscribe'}
-                </Text>
-                {mySubStatus === 'pending' ? (
-                  <Text style={styles.subscribeBannerSub}>Tap to check status · اضغط لمتابعة</Text>
-                ) : mySubStatus === 'rejected' ? (
-                  <Text style={styles.subscribeBannerSub}>Tap to submit again · ابعت طلب جديد</Text>
-                ) : null}
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-          ) : mySubStatus === 'active' ? (
-            /* iOS: status only — no navigation to a purchase screen. */
+          {mySubStatus === 'active' ? (
+            /* Status only — this build has no purchase screen to navigate to. */
             <View style={[styles.subscribeBanner, styles.subscribeBannerActive]}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.subscribeBannerText}>Premium · Active</Text>

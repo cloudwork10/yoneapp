@@ -118,14 +118,9 @@ export default function CommunityLiveCard({ communityLive, hasAccess, onRequireA
           </Text>
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => {
-            onRequireAccess();
-          }}
-        >
-          <Text style={styles.primaryBtnText}>Unlock with subscription</Text>
-        </TouchableOpacity>
+        <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
+          <Text style={styles.primaryBtnText}>Available for active subscribers</Text>
+        </View>
       )}
 
       {hasAccess && communityLive?.hasRecording ? (
@@ -213,6 +208,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  primaryBtnDisabled: { backgroundColor: '#3a3a3a' },
   miniGhost: {
     borderRadius: 10,
     paddingVertical: 8,

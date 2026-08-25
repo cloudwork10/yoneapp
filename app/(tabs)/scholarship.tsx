@@ -28,7 +28,6 @@ import { WebView } from 'react-native-webview';
 import API_BASE_URL from '../../config/api';
 import NotificationService from '../../services/NotificationService';
 import CommunityLiveCard from '../../components/CommunityLiveCard';
-import { PAID_FLOW_ENABLED, SUBSCRIBE_ROUTE } from '../../utils/subscriptionAccess';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -835,12 +834,7 @@ export default function ClubScreen() {
       Alert.alert(
         'Subscription required',
         'النادي is available for active subscribers.',
-        PAID_FLOW_ENABLED
-          ? [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Subscribe', onPress: () => router.push(SUBSCRIBE_ROUTE) },
-            ]
-          : [{ text: 'OK', style: 'cancel' }]
+        [{ text: 'OK', style: 'cancel' }]
       );
       return false;
     }
@@ -1057,14 +1051,9 @@ export default function ClubScreen() {
                     <Text style={styles.primaryBtnText}>Join Zoom</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity
-                    style={styles.primaryBtn}
-                    onPress={() => {
-                      if (!requireAccess()) return;
-                    }}
-                  >
-                    <Text style={styles.primaryBtnText}>Unlock with subscription</Text>
-                  </TouchableOpacity>
+                  <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
+                    <Text style={styles.primaryBtnText}>Available for active subscribers</Text>
+                  </View>
                 )}
               </>
             ) : (
@@ -1268,14 +1257,6 @@ export default function ClubScreen() {
             ))
           )}
 
-          {!hasAccess && PAID_FLOW_ENABLED ? (
-            <TouchableOpacity
-              style={[styles.primaryBtn, { marginTop: 8 }]}
-              onPress={() => router.push(SUBSCRIBE_ROUTE)}
-            >
-              <Text style={styles.primaryBtnText}>Subscribe & enter النادي</Text>
-            </TouchableOpacity>
-          ) : null}
 
           <View style={{ height: 48 }} />
         </ScrollView>
@@ -1653,6 +1634,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  primaryBtnDisabled: { backgroundColor: '#3a3a3a' },
   sectionLabel: {
     color: '#fff',
     fontSize: 13,

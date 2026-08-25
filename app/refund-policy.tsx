@@ -40,16 +40,16 @@ const SECTIONS = [
   {
     title: 'Payment Processing',
     body:
-      'In-app payments are processed through secure payment gateways (e.g. Paymob or app stores). ' +
-      'ELNADY does not store your full card details — they are handled by the payment provider.',
+      'This app does not process payments directly. ' +
+      'Subscriptions are managed through the account associated with your purchase, and ' +
+      'ELNADY does not store your full card details.',
   },
   {
-    title: 'App Store / Google Play',
+    title: 'Store Purchases',
     body:
-      'Purchases through Apple or Google follow their refund policies:\n\n' +
-      '• Apple: reportaproblem.apple.com\n' +
-      '• Google Play: play.google.com/store/account\n\n' +
-      'ELNADY cannot override store refund decisions, but we can help with your request.',
+      'If a subscription was purchased through an app store, refunds follow that store’s ' +
+      'own refund policy. ELNADY cannot override a store’s refund decisions, but we can ' +
+      'help with your request — contact us using the details below.',
   },
   {
     title: 'Non-Refundable Cases',

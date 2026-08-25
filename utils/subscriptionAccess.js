@@ -1,22 +1,20 @@
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import API_BASE_URL from '../config/api';
 import { makeAuthenticatedRequest } from './tokenRefresh';
 
 /**
  * This iOS build has no purchase flow at all — no manual-transfer screen, no
- * payment numbers, no prices, no purchase copy anywhere in the codebase.
- * That code was deleted rather than platform-hidden, to eliminate any chance
- * of App Store guideline 5.6 flagging dormant payment functionality in the
- * binary. Premium content stays locked with neutral copy and no CTA.
+ * payment numbers, no prices, no purchase copy, and no runtime platform
+ * check gating any of it. All of that was deleted outright rather than
+ * hidden behind a Platform.OS branch, because a hidden branch's strings and
+ * routes still compile into the binary — that shape is what caused an App
+ * Store guideline 5.6 rejection on an earlier build. Premium content stays
+ * locked with neutral copy and no CTA.
  *
  * Subscriptions bought on Android still unlock everything here — access is
  * read from the backend in fetchSubscriptionAccess() and does not depend on
  * where the subscription was purchased.
  */
-export const PAID_FLOW_ENABLED = Platform.OS !== 'ios';
-
-/** Route name used only for the nav-guard filters below (points at a neutral redirect). */
-export const SUBSCRIBE_ROUTE = '/subscription-2';
 
 /**
  * @returns {Promise<{
@@ -74,8 +72,8 @@ export async function fetchSubscriptionAccess() {
 }
 
 export function getPremiumGateCopy(access, contentWord = 'content') {
-  // No purchase copy exists in this build — see the PAID_FLOW_ENABLED
-  // comment above. Every status maps to the same neutral message.
+  // No purchase copy exists in this build — see the file header above.
+  // Every status maps to the same neutral message.
   return {
     title: '🔒 Premium Content',
     message:

@@ -19,7 +19,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
-import { PAID_FLOW_ENABLED, SUBSCRIBE_ROUTE } from '../utils/subscriptionAccess';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const COVER_HEIGHT = Math.round(SCREEN_WIDTH * 0.58);
@@ -118,12 +117,7 @@ export default function MubasherScreen() {
       Alert.alert(
         'Subscription required',
         'البث المباشر متاح للمشتركين.',
-        PAID_FLOW_ENABLED
-          ? [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Subscribe', onPress: () => router.push(SUBSCRIBE_ROUTE) },
-            ]
-          : [{ text: 'OK', style: 'cancel' }]
+        [{ text: 'OK', style: 'cancel' }]
       );
       return false;
     }

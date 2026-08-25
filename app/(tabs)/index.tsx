@@ -16,7 +16,6 @@ import GlobalSearch from '../../components/GlobalSearch';
 import API_BASE_URL from '../../config/api';
 import { useAuthGuard } from '../../hooks/useAuthGuard';
 import resolveMediaUrl from '../../utils/mediaUrl';
-import { PAID_FLOW_ENABLED, SUBSCRIBE_ROUTE } from '../../utils/subscriptionAccess';
 
 type ContentStats = {
   courses: number;
@@ -51,12 +50,11 @@ const QUICK_LINKS = [
   { title: 'Prayer', icon: '🕌', route: '/prayer-times' },
   { title: 'Thoughts', icon: '💭', route: '/programmer-thoughts' },
   { title: 'Profile', icon: '👤', route: '/profile', gated: true },
-  { title: 'Subscribe', icon: '💎', route: '/subscription-2' },
   { title: 'Alerts', icon: '🔔', route: '/notification-settings' },
   { title: 'Contact', icon: '📞', route: '/contact' },
   { title: 'About', icon: 'ℹ️', route: '/about-us' },
   { title: 'More', icon: '⋯', route: '/(tabs)/more' },
-].filter((link) => PAID_FLOW_ENABLED || link.route !== SUBSCRIBE_ROUTE);
+];
 
 export default function HomeScreen() {
   const { requireAuth } = useAuthGuard();
