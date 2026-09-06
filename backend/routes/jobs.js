@@ -53,6 +53,7 @@ function serializeJob(doc, { includePrivate = false } = {}) {
     applyUrl: o.applyType === 'external' ? o.applyUrl || '' : '',
     accessType: o.accessType || 'free',
     source: o.source,
+    sourceName: o.sourceName || '',
     approvalStatus: o.approvalStatus,
     isActive: o.isActive !== false,
     isFeatured: !!o.isFeatured,
@@ -337,6 +338,21 @@ router.get('/:id/applications', requireAuth, async (req, res) => {
 });
 
 // ——— Admin routes (before /:id) ———
+router.post('/admin/sync-feed', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { refreshJobFeed } = require('../services/jobFeed');
+    const result = await refreshJobFeed();
+    res.json({
+      status: 'success',
+      message: 'Job feed refreshed',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Job feed sync error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to refresh job feed' });
+  }
+});
+
 router.get('/admin/all', requireAuth, requireAdmin, async (req, res) => {
   try {
     const status = String(req.query.status || 'all').toLowerCase();
@@ -345,7 +361,7 @@ router.get('/admin/all', requireAuth, requireAdmin, async (req, res) => {
       filter.approvalStatus = status;
     }
 
-    const jobs = await Job.find(filter).sort({ createdAt: -1 }).limit(200);
+    const jobs = await Job.find(filter).sort({ createdAt: -1 }).limit(400);
     res.json({
       status: 'success',
       data: { jobs: jobs.map((j) => serializeJob(j, { includePrivate: true })) },

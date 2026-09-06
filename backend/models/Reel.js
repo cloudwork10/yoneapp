@@ -102,6 +102,21 @@ const reelSchema = new mongoose.Schema({
     enum: ['programming', 'motivation', 'education', 'entertainment', 'other'],
     default: 'other'
   },
+  linkType: {
+    type: String,
+    enum: ['none', 'course', 'thought', 'podcast', 'roadmap', 'article', 'news'],
+    default: 'none'
+  },
+  linkId: {
+    type: String,
+    default: ''
+  },
+  linkLabel: {
+    type: String,
+    trim: true,
+    maxlength: [80, 'Link label cannot be more than 80 characters'],
+    default: ''
+  },
   isActive: {
     type: Boolean,
     default: true

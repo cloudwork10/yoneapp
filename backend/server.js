@@ -44,6 +44,9 @@ app.use((req, res, next) => {
   if (req.method === 'DELETE') {
     return next();
   }
+  if (String(req.headers['content-type'] || '').includes('multipart/form-data')) {
+    return next();
+  }
   express.json({ 
     limit: process.env.MAX_FILE_SIZE || '10mb',
     verify: (req, res, buf) => {
@@ -58,10 +61,15 @@ app.use((req, res, next) => {
     }
   })(req, res, next);
 });
-app.use(express.urlencoded({ 
-  extended: true, 
-  limit: process.env.MAX_FILE_SIZE || '10mb' 
-}));
+app.use((req, res, next) => {
+  if (String(req.headers['content-type'] || '').includes('multipart/form-data')) {
+    return next();
+  }
+  express.urlencoded({
+    extended: true,
+    limit: process.env.MAX_FILE_SIZE || '10mb',
+  })(req, res, next);
+});
 
 // Static file serving for uploads with security headers
 app.use('/uploads', express.static(uploadsRoot, {
@@ -152,6 +160,7 @@ app.use('/api/users', publicSecurityMiddleware, require('./routes/users'));
 app.use('/api/courses', securityMiddleware, require('./routes/courses'));
 app.use('/api/payments', publicSecurityMiddleware, require('./routes/payments'));
 app.use('/api/subscription-requests', publicSecurityMiddleware, require('./routes/subscriptionRequests'));
+app.use('/api/course-projects', publicSecurityMiddleware, require('./routes/courseProjects'));
 // Admin content: requires auth + admin (was open before - caused 500 when req.user undefined)
 app.use('/api/admin/content', securityMiddleware, requireAuth, requireAdmin, require('./routes/content'));
 // Public content: read-only content for app (no auth required)
@@ -251,5 +260,22 @@ app.listen(PORT, '0.0.0.0', () => {
     setInterval(runLifecycle, 30 * 60 * 1000);
   } catch (e) {
     console.warn('Subscription lifecycle scheduler not started:', e.message);
+  }
+
+  try {
+    const { refreshJobFeed } = require('./services/jobFeed');
+    const runJobFeed = () => {
+      refreshJobFeed()
+        .then((r) =>
+          console.log(
+            `💼 Job feed: created=${r.created} updated=${r.updated} remotive=${r.remotive} jobicy=${r.jobicy}`
+          )
+        )
+        .catch((e) => console.warn('💼 Job feed refresh failed:', e.message));
+    };
+    setTimeout(runJobFeed, 20000);
+    setInterval(runJobFeed, 6 * 60 * 60 * 1000);
+  } catch (e) {
+    console.warn('Job feed scheduler not started:', e.message);
   }
 });

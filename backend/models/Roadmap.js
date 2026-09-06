@@ -50,7 +50,7 @@ const roadmapSchema = new mongoose.Schema({
   }],
   image: {
     type: String,
-    required: [true, 'Roadmap image is required']
+    default: 'https://images.unsplash.com/photo-1516321318423-f06f85e504f3?auto=format&fit=crop&w=1200&q=80',
   },
   icon: {
     type: String,

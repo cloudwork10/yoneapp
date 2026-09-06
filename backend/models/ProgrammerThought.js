@@ -24,7 +24,8 @@ const programmerThoughtSchema = new mongoose.Schema({
   },
   videoUrl: {
     type: String,
-    required: [true, 'Video URL is required']
+    required: false,
+    default: ''
   },
   category: {
     type: String,
@@ -79,6 +80,10 @@ const programmerThoughtSchema = new mongoose.Schema({
   isPublic: {
     type: Boolean,
     default: true
+  },
+  comingSoon: {
+    type: Boolean,
+    default: false
   },
   accessType: {
     type: String,

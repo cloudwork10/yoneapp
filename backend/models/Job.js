@@ -49,9 +49,12 @@ const jobSchema = new mongoose.Schema(
     // Who created it
     source: {
       type: String,
-      enum: ['admin', 'company'],
+      enum: ['admin', 'company', 'feed'],
       default: 'admin',
     },
+    sourceName: { type: String, default: '', trim: true },
+    sourceKey: { type: String, default: '', trim: true },
+    lastSeenAt: { type: Date, default: null },
     // Company posts need admin approval
     approvalStatus: {
       type: String,
@@ -82,5 +85,6 @@ const jobSchema = new mongoose.Schema(
 jobSchema.index({ title: 'text', companyName: 'text', description: 'text' });
 jobSchema.index({ approvalStatus: 1, isActive: 1, createdAt: -1 });
 jobSchema.index({ type: 1, workMode: 1 });
+jobSchema.index({ sourceKey: 1 }, { unique: true, sparse: true, partialFilterExpression: { sourceKey: { $gt: '' } } });
 
 module.exports = mongoose.model('Job', jobSchema);

@@ -417,24 +417,43 @@ router.get('/stats', async (req, res) => {
     const Advice = require('../models/Advice');
     const ProgrammingTerm = require('../models/ProgrammingTerm');
     const CVTemplate = require('../models/CVTemplate');
+    const ProgrammerThought = require('../models/ProgrammerThought');
 
-    // Get total counts
-    const totalCourses = await Course.countDocuments();
-    const totalPodcasts = await Podcast.countDocuments();
-    const totalArticles = await Article.countDocuments();
-    const totalRoadmaps = await Roadmap.countDocuments();
-    const totalAdvices = await Advice.countDocuments();
-    const totalTerms = await ProgrammingTerm.countDocuments();
-    const totalCVTemplates = await CVTemplate.countDocuments();
-
-    // Get active counts
-    const activeCourses = await Course.countDocuments({ isActive: true });
-    const activePodcasts = await Podcast.countDocuments({ isActive: true });
-    const activeArticles = await Article.countDocuments({ isActive: true });
-    const activeRoadmaps = await Roadmap.countDocuments({ isActive: true });
-    const activeAdvices = await Advice.countDocuments({ isActive: true });
-    const activeTerms = await ProgrammingTerm.countDocuments({ isActive: true });
-    const activeCVTemplates = await CVTemplate.countDocuments({ isActive: true });
+    const [
+      totalCourses,
+      totalPodcasts,
+      totalArticles,
+      totalRoadmaps,
+      totalAdvices,
+      totalTerms,
+      totalThoughts,
+      totalCVTemplates,
+      activeCourses,
+      activePodcasts,
+      activeArticles,
+      activeRoadmaps,
+      activeAdvices,
+      activeTerms,
+      activeThoughts,
+      activeCVTemplates,
+    ] = await Promise.all([
+      Course.countDocuments(),
+      Podcast.countDocuments(),
+      Article.countDocuments(),
+      Roadmap.countDocuments(),
+      Advice.countDocuments(),
+      ProgrammingTerm.countDocuments(),
+      ProgrammerThought.countDocuments(),
+      CVTemplate.countDocuments(),
+      Course.countDocuments({ isActive: true }),
+      Podcast.countDocuments({ isActive: true }),
+      Article.countDocuments({ isActive: true }),
+      Roadmap.countDocuments({ isActive: true }),
+      Advice.countDocuments({ isActive: true }),
+      ProgrammingTerm.countDocuments({ isActive: true }),
+      ProgrammerThought.countDocuments({ isActive: true }),
+      CVTemplate.countDocuments({ isActive: true }),
+    ]);
 
     res.status(200).json({
       status: 'success',
@@ -446,6 +465,7 @@ router.get('/stats', async (req, res) => {
           roadmaps: totalRoadmaps,
           advices: totalAdvices,
           terms: totalTerms,
+          thoughts: totalThoughts,
           cvTemplates: totalCVTemplates
         },
         active: {
@@ -455,6 +475,7 @@ router.get('/stats', async (req, res) => {
           roadmaps: activeRoadmaps,
           advices: activeAdvices,
           terms: activeTerms,
+          thoughts: activeThoughts,
           cvTemplates: activeCVTemplates
         }
       }

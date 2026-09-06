@@ -21,7 +21,8 @@ const cvTemplateSchema = new mongoose.Schema({
   category: {
     type: String,
     default: 'General',
-    enum: ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Mobile Developer', 'DevOps Engineer', 'Data Scientist', 'UI/UX Designer', 'Product Manager', 'General']
+    trim: true,
+    maxlength: [40, 'Category cannot be more than 40 characters'],
   },
   experience: {
     type: String,

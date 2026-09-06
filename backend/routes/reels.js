@@ -9,8 +9,11 @@ const Report = require('../models/Report');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/adminAuth');
 const { uploadLimiter, apiLimiter } = require('../middleware/security');
+const { getUploadRoot } = require('../utils/uploadDirs');
+const crypto = require('crypto');
 
 const router = express.Router();
+const pendingReelUploads = new Map();
 
 const SAMPLE_VIDEOS = [
   'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
@@ -19,6 +22,12 @@ const SAMPLE_VIDEOS = [
   'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
   'https://www.w3schools.com/html/mov_bbb.mp4',
 ];
+
+function sanitizeReelPublic(reelObj) {
+  reelObj.title = String(reelObj.title || '').replace(/\n?\[\[YONE_LINK\|[^\]]+\]\]/g, '').trim();
+  reelObj.description = String(reelObj.description || '').replace(/\n?\[\[YONE_LINK\|[^\]]+\]\]/g, '').trim();
+  return reelObj;
+}
 
 function resolveReelVideoUrl(reel, index = 0) {
   const url = reel.videoUrl || '';
@@ -32,7 +41,7 @@ function resolveReelVideoUrl(reel, index = 0) {
   }
 
   const filename = url.split('/').pop();
-  const filePath = path.join(__dirname, '../uploads/videos', filename || '');
+  const filePath = path.join(getUploadRoot(), 'videos', filename || '');
   if (filename && fs.existsSync(filePath)) {
     const baseUrl = process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
     return `${baseUrl.replace(/\/$/, '')}/uploads/videos/${filename}`;
@@ -45,7 +54,7 @@ function resolveReelVideoUrl(reel, index = 0) {
 // Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, '../uploads/videos');
+    const uploadPath = path.join(getUploadRoot(), 'videos');
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
@@ -53,14 +62,17 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'reel-' + uniqueSuffix + path.extname(file.originalname));
+    const ext = path.extname(file.originalname || '') || '.mp4';
+    cb(null, 'reel-' + uniqueSuffix + ext);
   }
 });
+
+const MAX_REEL_BYTES = 500 * 1024 * 1024;
 
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit for videos
+    fileSize: MAX_REEL_BYTES
   },
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith('video/')) {
@@ -71,17 +83,76 @@ const upload = multer({
   }
 });
 
+function cleanupPendingUpload(uploadId) {
+  const pending = pendingReelUploads.get(uploadId);
+  if (!pending) return;
+  try {
+    fs.rmSync(pending.tmpDir, { recursive: true, force: true });
+  } catch {
+    // ignore
+  }
+  pendingReelUploads.delete(uploadId);
+}
+
+async function createReelFromUpload({ user, filename, body }) {
+  const isAdmin = user.isAdmin && ['super', 'admin'].includes(user.adminLevel);
+  const status = isAdmin ? 'approved' : 'pending';
+  const baseUrl = process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
+  const linkType = ['course', 'thought', 'podcast', 'roadmap', 'article', 'news'].includes(body.linkType)
+    ? body.linkType
+    : 'none';
+  const linkId = linkType === 'none' ? '' : String(body.linkId || '').trim();
+
+  return Reel.create({
+    title: body.title || '',
+    description: body.description || '',
+    videoUrl: `${baseUrl}/uploads/videos/${filename}`,
+    thumbnail: body.thumbnail || '',
+    uploadedBy: user._id,
+    uploadedByName: user.name,
+    uploadedByAvatar: user.avatar || '',
+    status,
+    category: body.category || 'other',
+    linkType: linkId ? linkType : 'none',
+    linkId,
+    linkLabel: body.linkLabel || '',
+    approvedBy: isAdmin ? user._id : null,
+    approvedAt: isAdmin ? new Date() : null,
+  });
+}
+
+const handleReelUpload = (req, res, next) => {
+  req.setTimeout(10 * 60 * 1000);
+  res.setTimeout(10 * 60 * 1000);
+  upload.single('video')(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        status: 'error',
+        message: 'الفيديو كبير أوي بعد التجهيز. حاول تاني أو اختار نسخة أخف.'
+      });
+    }
+    return res.status(400).json({
+      status: 'error',
+      message: err.message || 'فشل رفع الفيديو'
+    });
+  });
+};
+
 // @route   POST /api/reels/upload
 // @desc    Upload a new reel (requires approval for non-admin users)
 // @access  Private
 router.post('/upload', 
   requireAuth,
   uploadLimiter,
-  upload.single('video'),
+  handleReelUpload,
   [
     body('title').optional().trim().isLength({ max: 200 }),
     body('description').optional().trim().isLength({ max: 500 }),
-    body('category').optional().isIn(['programming', 'motivation', 'education', 'entertainment', 'other'])
+    body('category').optional().isIn(['programming', 'motivation', 'education', 'entertainment', 'other']),
+    body('linkType').optional().isIn(['none', 'course', 'thought', 'podcast', 'roadmap', 'article', 'news']),
+    body('linkId').optional().trim().isLength({ max: 50 }),
+    body('linkLabel').optional().trim().isLength({ max: 80 })
   ],
   async (req, res) => {
     try {
@@ -109,33 +180,17 @@ router.post('/upload',
         });
       }
 
-      // Admin reels are auto-approved, regular users need approval
-      const isAdmin = user.isAdmin && ['super', 'admin'].includes(user.adminLevel);
-      const status = isAdmin ? 'approved' : 'pending';
-
-      // Use the same pattern as content.js
-      const baseUrl = process.env.BASE_URL || process.env.API_BASE_URL || 'http://localhost:3000';
-      const videoUrl = `${baseUrl}/uploads/videos/${req.file.filename}`;
-
-      const reelData = {
-        title: req.body.title || '',
-        description: req.body.description || '',
-        videoUrl: videoUrl,
-        thumbnail: req.body.thumbnail || '',
-        uploadedBy: req.user.id,
-        uploadedByName: user.name,
-        uploadedByAvatar: user.avatar || '',
-        status: status,
-        category: req.body.category || 'other',
-        approvedBy: isAdmin ? req.user.id : null,
-        approvedAt: isAdmin ? new Date() : null
-      };
-
-      const reel = await Reel.create(reelData);
+      const reel = await createReelFromUpload({
+        user,
+        filename: req.file.filename,
+        body: req.body,
+      });
 
       res.status(201).json({
         status: 'success',
-        message: isAdmin ? 'Reel uploaded and approved successfully' : 'Reel uploaded successfully. Waiting for admin approval.',
+        message: (user.isAdmin && ['super', 'admin'].includes(user.adminLevel))
+          ? 'Reel uploaded and approved successfully'
+          : 'Reel uploaded successfully. Waiting for admin approval.',
         data: { reel }
       });
     } catch (error) {
@@ -147,6 +202,115 @@ router.post('/upload',
     }
   }
 );
+
+router.post('/upload/init', requireAuth, uploadLimiter, async (req, res) => {
+  try {
+    const totalChunks = Number(req.body.totalChunks);
+    if (!Number.isInteger(totalChunks) || totalChunks < 1 || totalChunks > 400) {
+      return res.status(400).json({ status: 'error', message: 'Invalid chunk count' });
+    }
+
+    const uploadId = crypto.randomBytes(16).toString('hex');
+    const tmpDir = path.join(getUploadRoot(), 'tmp', `reel-${uploadId}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    pendingReelUploads.set(uploadId, {
+      userId: String(req.user.id),
+      tmpDir,
+      totalChunks,
+      received: new Set(),
+      createdAt: Date.now(),
+    });
+
+    setTimeout(() => cleanupPendingUpload(uploadId), 60 * 60 * 1000);
+
+    res.json({ status: 'success', data: { uploadId, totalChunks } });
+  } catch (error) {
+    console.error('Reel upload init error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to start upload' });
+  }
+});
+
+const chunkUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 4 * 1024 * 1024 },
+});
+
+router.post('/upload/chunk', requireAuth, (req, res, next) => {
+  chunkUpload.single('chunk')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ status: 'error', message: err.message || 'Chunk too large' });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const uploadId = String(req.body.uploadId || '');
+    const pending = pendingReelUploads.get(uploadId);
+    if (!pending || pending.userId !== String(req.user.id)) {
+      return res.status(404).json({ status: 'error', message: 'Upload session not found' });
+    }
+
+    const chunkIndex = Number(req.body.index);
+    if (!Number.isInteger(chunkIndex) || chunkIndex < 0 || chunkIndex >= pending.totalChunks) {
+      return res.status(400).json({ status: 'error', message: 'Invalid chunk index' });
+    }
+    if (!req.file?.buffer?.length) {
+      return res.status(400).json({ status: 'error', message: 'Missing chunk data' });
+    }
+
+    fs.writeFileSync(path.join(pending.tmpDir, `${chunkIndex}.part`), req.file.buffer);
+    pending.received.add(chunkIndex);
+    res.json({ status: 'success', data: { received: pending.received.size, totalChunks: pending.totalChunks } });
+  } catch (error) {
+    console.error('Reel chunk upload error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to upload chunk' });
+  }
+});
+
+router.post('/upload/complete', requireAuth, async (req, res) => {
+  try {
+    const { uploadId } = req.body;
+    const pending = pendingReelUploads.get(uploadId);
+    if (!pending || pending.userId !== String(req.user.id)) {
+      return res.status(404).json({ status: 'error', message: 'Upload session not found' });
+    }
+    if (pending.received.size !== pending.totalChunks) {
+      return res.status(400).json({
+        status: 'error',
+        message: `Missing chunks (${pending.received.size}/${pending.totalChunks})`,
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    const filename = `reel-${Date.now()}-${Math.round(Math.random() * 1e9)}.mp4`;
+    const finalPath = path.join(getUploadRoot(), 'videos', filename);
+    const output = fs.createWriteStream(finalPath);
+    for (let i = 0; i < pending.totalChunks; i += 1) {
+      output.write(fs.readFileSync(path.join(pending.tmpDir, `${i}.part`)));
+    }
+    await new Promise((resolve, reject) => {
+      output.end((err) => (err ? reject(err) : resolve()));
+    });
+
+    cleanupPendingUpload(uploadId);
+    const reel = await createReelFromUpload({ user, filename, body: req.body });
+
+    res.status(201).json({
+      status: 'success',
+      message: (user.isAdmin && ['super', 'admin'].includes(user.adminLevel))
+        ? 'Reel uploaded and approved successfully'
+        : 'Reel uploaded successfully. Waiting for admin approval.',
+      data: { reel },
+    });
+  } catch (error) {
+    console.error('Reel upload complete error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to finish upload' });
+  }
+});
 
 // @route   GET /api/reels
 // @desc    Get all approved reels (public) or from followed users
@@ -224,7 +388,7 @@ router.get('/', apiLimiter, optionalAuth, async (req, res) => {
         reelObj.isLiked = false;
         reelObj.isReposted = false;
       }
-      return reelObj;
+      return sanitizeReelPublic(reelObj);
     });
 
     res.json({
@@ -259,7 +423,7 @@ router.get('/pending', requireAuth, requireAdmin, async (req, res) => {
 
     res.json({
       status: 'success',
-      data: { reels }
+      data: { reels: reels.map((reel) => sanitizeReelPublic(reel.toObject())) }
     });
   } catch (error) {
     console.error('Error fetching pending reels:', error);
@@ -291,7 +455,7 @@ router.get('/my-reels', requireAuth, async (req, res) => {
       reelObj.isLiked = reel.likedBy && reel.likedBy.some((id) => id.toString() === userId.toString());
       reelObj.isReposted = reel.repostedBy && reel.repostedBy.some((id) => id.toString() === userId.toString());
       reelObj.isRepostItem = isRepost;
-      return reelObj;
+      return sanitizeReelPublic(reelObj);
     };
 
     const reels = [
@@ -309,6 +473,43 @@ router.get('/my-reels', requireAuth, async (req, res) => {
       status: 'error',
       message: 'Failed to fetch your reels'
     });
+  }
+});
+
+// @route   PATCH /api/reels/:id/link
+// @desc    Attach a promo link to an existing reel
+// @access  Owner or admin
+router.patch('/:id/link', requireAuth, async (req, res) => {
+  try {
+    const reel = await Reel.findById(req.params.id);
+    if (!reel) {
+      return res.status(404).json({ status: 'error', message: 'Reel not found' });
+    }
+
+    const user = await User.findById(req.user.id);
+    const isOwner = reel.uploadedBy.toString() === String(req.user.id);
+    const isAdminUser = user?.isAdmin && ['super', 'admin'].includes(user.adminLevel);
+    if (!isOwner && !isAdminUser) {
+      return res.status(403).json({ status: 'error', message: 'Not allowed' });
+    }
+
+    const linkType = ['course', 'thought', 'podcast', 'roadmap', 'article', 'news'].includes(req.body.linkType)
+      ? req.body.linkType
+      : 'none';
+    const linkId = linkType === 'none' ? '' : String(req.body.linkId || '').trim();
+
+    reel.linkType = linkId ? linkType : 'none';
+    reel.linkId = linkId;
+    reel.linkLabel = String(req.body.linkLabel || '').trim().slice(0, 80);
+    await reel.save();
+
+    res.json({
+      status: 'success',
+      data: { reel },
+    });
+  } catch (error) {
+    console.error('Error updating reel link:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to update reel link' });
   }
 });
 

@@ -157,8 +157,11 @@ router.get('/articles', async (req, res) => {
 // @access  Public
 router.get('/articles/:id', async (req, res) => {
   try {
-    const article = await Article.findById(req.params.id)
-      .select('-createdBy -updatedBy -__v');
+    const article = await Article.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    ).select('-createdBy -updatedBy -__v');
 
     if (!article) {
       return res.status(404).json({
@@ -411,6 +414,7 @@ router.post('/courses', async (req, res) => {
     
     const courseData = {
       ...req.body,
+      category: String(req.body.category || '').trim().replace(/\s+/g, ' ').slice(0, 40),
       sections: req.body.sections || [],
       requirements: req.body.requirements || [],
       learningOutcomes: req.body.learningOutcomes || []
@@ -462,6 +466,7 @@ router.put('/courses/:id', async (req, res) => {
     
     const courseData = {
       ...req.body,
+      category: String(req.body.category || '').trim().replace(/\s+/g, ' ').slice(0, 40),
       sections: req.body.sections || [],
       requirements: req.body.requirements || [],
       learningOutcomes: req.body.learningOutcomes || []
@@ -1005,7 +1010,7 @@ router.get('/programmer-thoughts', async (req, res) => {
     }
 
     const thoughts = await ProgrammerThought.find(filter)
-      .sort({ season: -1, episodeNumber: -1 })
+      .sort({ season: 1, episodeNumber: 1, createdAt: 1 })
       .select('-createdBy -updatedBy -__v');
 
     res.json({
@@ -1039,8 +1044,9 @@ router.get('/programmer-thoughts/:id', async (req, res) => {
       });
     }
 
-    // Increment views
-    await ProgrammerThought.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+    if (!thought.comingSoon) {
+      await ProgrammerThought.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
+    }
 
     res.json({
       status: 'success',
@@ -1064,8 +1070,15 @@ router.post('/programmer-thoughts', async (req, res) => {
   try {
     console.log('💭 Creating programmer thought with data:', req.body);
     
+    const videoUrl = String(req.body.videoUrl || '').trim();
+    const comingSoon =
+      req.body.comingSoon === true ||
+      req.body.comingSoon === 'true' ||
+      !videoUrl;
     const thoughtData = {
       ...req.body,
+      comingSoon,
+      videoUrl,
       keyPoints: req.body.keyPoints || [],
       resources: req.body.resources || [],
       tags: req.body.tags || []
@@ -1115,18 +1128,7 @@ router.put('/programmer-thoughts/:id', async (req, res) => {
   try {
     console.log('💭 Updating programmer thought with data:', req.body);
     
-    const thoughtData = {
-      ...req.body,
-      keyPoints: req.body.keyPoints || [],
-      resources: req.body.resources || [],
-      tags: req.body.tags || []
-    };
-
-    const thought = await ProgrammerThought.findByIdAndUpdate(
-      req.params.id,
-      thoughtData,
-      { new: true, runValidators: true }
-    );
+    const thought = await ProgrammerThought.findById(req.params.id);
 
     if (!thought) {
       return res.status(404).json({
@@ -1134,6 +1136,21 @@ router.put('/programmer-thoughts/:id', async (req, res) => {
         message: 'Programmer thought not found'
       });
     }
+
+    const videoUrl = String(req.body.videoUrl || '').trim();
+    const comingSoon =
+      req.body.comingSoon === true ||
+      req.body.comingSoon === 'true' ||
+      !videoUrl;
+    thought.set({
+      ...req.body,
+      comingSoon,
+      videoUrl,
+      keyPoints: req.body.keyPoints || [],
+      resources: req.body.resources || [],
+      tags: req.body.tags || []
+    });
+    await thought.save();
 
     console.log('✅ Programmer thought updated:', thought);
     res.status(200).json({

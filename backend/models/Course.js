@@ -48,7 +48,8 @@ const courseSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Course category is required'],
-    enum: ['Programming', 'Design', 'Business', 'Marketing', 'Data Science']
+    trim: true,
+    maxlength: [40, 'Category cannot be more than 40 characters'],
   },
   rating: {
     type: Number,
@@ -161,6 +162,15 @@ const courseSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  projectKind: {
+    type: String,
+    enum: ['auto', 'web', 'mobile', 'design', 'marketing', 'data', 'business'],
+    default: 'auto',
+  },
+  projectGithubRequired: { type: Boolean, default: undefined },
+  projectLiveRequired: { type: Boolean, default: undefined },
+  projectVideoRequired: { type: Boolean, default: undefined },
+  projectExtraRequired: { type: Boolean, default: undefined },
   // Course requirements
   requirements: [{
     type: String,

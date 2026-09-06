@@ -16,6 +16,51 @@ const { apiLimiter } = require('../middleware/security');
 
 const router = express.Router();
 
+const ROADMAP_CATEGORIES = ['Frontend', 'Backend', 'Full Stack', 'Mobile', 'DevOps', 'Data Science', 'AI/ML'];
+const ROADMAP_DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
+const ROADMAP_RESOURCE_TYPES = ['course', 'article', 'video', 'documentation', 'tool'];
+const ROADMAP_FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504f3?auto=format&fit=crop&w=1200&q=80';
+
+function sanitizeRoadmapPayload(body = {}) {
+  const steps = Array.isArray(body.steps)
+    ? body.steps
+        .map((step, index) => ({
+          title: String(step?.title || '').trim() || `Step ${index + 1}`,
+          description: String(step?.description || '').trim(),
+          resources: (Array.isArray(step?.resources) ? step.resources : [])
+            .filter((resource) => resource && (resource.title || resource.url))
+            .map((resource) => ({
+              title: String(resource.title || 'Resource').trim(),
+              url: String(resource.url || '').trim(),
+              type: ROADMAP_RESOURCE_TYPES.includes(resource.type) ? resource.type : 'article',
+            })),
+          completed: Boolean(step?.completed),
+        }))
+        .filter((step) => step.title)
+    : [];
+
+  let image = String(body.image || '').trim();
+  if (!image || /^(file|ph|content|assets-library):/i.test(image)) {
+    image = ROADMAP_FALLBACK_IMAGE;
+  }
+
+  return {
+    title: String(body.title || '').trim(),
+    description: String(body.description || '').trim(),
+    category: ROADMAP_CATEGORIES.includes(body.category) ? body.category : 'Frontend',
+    difficulty: ROADMAP_DIFFICULTIES.includes(body.difficulty) ? body.difficulty : 'Beginner',
+    duration: String(body.duration || '').trim(),
+    steps,
+    image,
+    icon: String(body.icon || '🗺️').trim() || '🗺️',
+    color: String(body.color || '#E50914').trim() || '#E50914',
+    isActive: body.isActive !== false,
+    isFeatured: Boolean(body.isFeatured),
+    accessType: body.accessType === 'premium' ? 'premium' : 'free',
+  };
+}
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -333,7 +378,7 @@ router.post('/courses', [
   body('instructor').trim().isLength({ min: 1 }).withMessage('Instructor name is required'),
   body('duration').trim().isLength({ min: 1 }).withMessage('Duration is required'),
   body('level').isIn(['Beginner', 'Intermediate', 'Advanced']).withMessage('Invalid level'),
-  body('category').isIn(['Programming', 'Design', 'Business', 'Marketing', 'Data Science']).withMessage('Invalid category'),
+  body('category').trim().isLength({ min: 1, max: 40 }).withMessage('Category is required'),
   body('thumbnail').isURL().withMessage('Valid thumbnail URL is required')
 ], async (req, res) => {
   try {
@@ -374,7 +419,7 @@ router.put('/courses/:id', [
   body('title').optional().trim().isLength({ min: 1, max: 100 }),
   body('description').optional().trim().isLength({ min: 1, max: 1000 }),
   body('level').optional().isIn(['Beginner', 'Intermediate', 'Advanced']),
-  body('category').optional().isIn(['Programming', 'Design', 'Business', 'Marketing', 'Data Science'])
+  body('category').optional().trim().isLength({ min: 1, max: 40 })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -1461,17 +1506,15 @@ router.post('/roadmaps', [
     if (!errors.isEmpty()) {
       return res.status(400).json({
         status: 'error',
-        message: 'Validation failed',
+        message: errors.array()[0]?.msg || 'Validation failed',
         errors: errors.array()
       });
     }
 
-    const roadmapData = {
-      ...req.body,
-      createdBy: req.user?.id || null
-    };
-
-    const roadmap = new Roadmap(roadmapData);
+    const roadmap = new Roadmap({
+      ...sanitizeRoadmapPayload(req.body),
+      createdBy: req.user?._id || req.user?.id || null,
+    });
     await roadmap.save();
 
     await roadmap.populate('createdBy', 'name email');
@@ -1482,9 +1525,9 @@ router.post('/roadmaps', [
     });
   } catch (error) {
     console.error('Create roadmap error:', error);
-    res.status(500).json({
+    res.status(error.name === 'ValidationError' ? 400 : 500).json({
       status: 'error',
-      message: 'Server error'
+      message: error.name === 'ValidationError' ? error.message : 'Server error'
     });
   }
 });
@@ -1523,14 +1566,12 @@ router.put('/roadmaps/:id', [
       });
     }
 
-    const updateData = {
-      ...req.body,
-      updatedBy: req.user?.id || null
-    };
-
     const updatedRoadmap = await Roadmap.findByIdAndUpdate(
       req.params.id,
-      updateData,
+      {
+        ...sanitizeRoadmapPayload(req.body),
+        updatedBy: req.user?._id || req.user?.id || null,
+      },
       { new: true, runValidators: true }
     ).populate('createdBy', 'name email').populate('updatedBy', 'name email');
 
@@ -1540,9 +1581,9 @@ router.put('/roadmaps/:id', [
     });
   } catch (error) {
     console.error('Update roadmap error:', error);
-    res.status(500).json({
+    res.status(error.name === 'ValidationError' ? 400 : 500).json({
       status: 'error',
-      message: 'Server error'
+      message: error.name === 'ValidationError' ? error.message : 'Server error'
     });
   }
 });
