@@ -2,13 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { ResizeMode, Video } from 'expo-av';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  AppState,
   Dimensions,
+  Easing,
   FlatList,
   Image,
   Modal,
@@ -23,9 +27,95 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../../config/api';
 import { useUser } from '../../contexts/UserContext';
+import resolveMediaUrl from '../../utils/mediaUrl';
+import {
+  REEL_LINK_TYPES,
+  fetchReelLinkOptions,
+  getReelLinkMeta,
+  getReelLinkRoute,
+  hydrateReels,
+  saveReelLinkOverride,
+} from '../../utils/reelLinks';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
+
+function ReelPromoCta({
+  linkType,
+  remainingMs,
+  onPress,
+}: {
+  linkType?: Reel['linkType'];
+  remainingMs: number;
+  onPress: () => void;
+}) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  const spin = useRef(new Animated.Value(0)).current;
+  const isEnding = remainingMs <= 2000 && remainingMs >= 0;
+  const label = getReelLinkMeta(linkType).cta || 'See more';
+
+  useEffect(() => {
+    if (!isEnding) {
+      pulse.setValue(1);
+      spin.setValue(0);
+      return;
+    }
+
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1.08,
+          duration: 420,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 420,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    const spinLoop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    pulseLoop.start();
+    spinLoop.start();
+    return () => {
+      pulseLoop.stop();
+      spinLoop.stop();
+    };
+  }, [isEnding, pulse, spin]);
+
+  const rotate = spin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Animated.View style={[styles.promoWrap, { transform: [{ scale: pulse }] }]}>
+      {isEnding ? (
+        <Animated.View style={[styles.promoLoaderRing, { transform: [{ rotate }] }]} />
+      ) : null}
+      <TouchableOpacity
+        style={[styles.promoLink, isEnding && styles.promoLinkEnding]}
+        onPress={onPress}
+        activeOpacity={0.85}
+      >
+        {isEnding ? (
+          <ActivityIndicator color="#FFFFFF" size="small" style={styles.promoLoader} />
+        ) : (
+          <Text style={styles.promoPlay}>▶</Text>
+        )}
+        <Text style={styles.promoLinkText}>{label}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 interface Reel {
   _id: string;
@@ -51,6 +141,9 @@ interface Reel {
   category: string;
   createdAt: string;
   rejectedReason?: string;
+  linkType?: 'none' | 'course' | 'thought' | 'podcast' | 'roadmap' | 'article' | 'news';
+  linkId?: string;
+  linkLabel?: string;
 }
 
 interface ReelComment {
@@ -84,6 +177,8 @@ export default function ReelsScreen() {
   const scrubbingIdRef = useRef<string | null>(null);
   const scrubRatioRef = useRef(0);
   const videoRefs = useRef<{ [key: string]: any }>({});
+  const [isScreenFocused, setIsScreenFocused] = useState(true);
+  const isScreenFocusedRef = useRef(true);
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [activeCommentReelId, setActiveCommentReelId] = useState<string | null>(null);
   const [comments, setComments] = useState<ReelComment[]>([]);
@@ -96,6 +191,11 @@ export default function ReelsScreen() {
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadCategory, setUploadCategory] = useState('other');
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState('');
+  const [linkType, setLinkType] = useState<(typeof REEL_LINK_TYPES)[number]['value']>('none');
+  const [linkId, setLinkId] = useState('');
+  const [linkLabel, setLinkLabel] = useState('');
+  const [linkOptions, setLinkOptions] = useState<Record<string, { id: string; title: string }[]>>({});
 
   const categories = [
     { value: 'all', label: 'All' },
@@ -119,42 +219,66 @@ export default function ReelsScreen() {
     }
   }, [selectedCategory, isAdmin]);
 
+  useEffect(() => {
+    if (!showUploadModal) return;
+
+    fetchReelLinkOptions().then(setLinkOptions);
+  }, [showUploadModal]);
+
+  const pauseAllVideos = useCallback(() => {
+    Object.values(videoRefs.current).forEach((videoRef) => {
+      if (videoRef) {
+        videoRef.pauseAsync().catch(() => {});
+      }
+    });
+  }, []);
+
+  const resumeCurrentVideo = useCallback(() => {
+    const current = reels[currentIndex];
+    if (
+      current &&
+      isScreenFocusedRef.current &&
+      !pausedVideos.has(currentIndex) &&
+      !showUploadModal &&
+      !showPendingModal &&
+      !showCommentsModal
+    ) {
+      videoRefs.current[current._id]?.playAsync().catch(() => {});
+    }
+  }, [reels, currentIndex, pausedVideos, showUploadModal, showPendingModal, showCommentsModal]);
+
   // Pause all videos when screen is not focused, and resume on return.
-  // Without the resume the surface stays paused after coming back from another
-  // tab, which renders as a black frame (usePoster is off, so there is no
-  // fallback image).
+  // shouldPlay is also tied to isScreenFocused so a re-render cannot restart audio.
   useFocusEffect(
     useCallback(() => {
-      const current = reels[currentIndex];
-      if (current && !pausedVideos.has(currentIndex)) {
-        videoRefs.current[current._id]?.playAsync().catch(() => {
-          // Ignore if the ref is gone or the source is still loading
-        });
-      }
+      isScreenFocusedRef.current = true;
+      setIsScreenFocused(true);
+      resumeCurrentVideo();
 
       return () => {
-        // Screen is unfocused - pause all videos
-        Object.values(videoRefs.current).forEach((videoRef) => {
-          if (videoRef) {
-            videoRef.pauseAsync().catch(() => {
-              // Ignore errors if video is already paused
-            });
-          }
-        });
+        isScreenFocusedRef.current = false;
+        setIsScreenFocused(false);
+        pauseAllVideos();
       };
-    }, [reels, currentIndex, pausedVideos])
+    }, [resumeCurrentVideo, pauseAllVideos])
   );
 
-  // Pause videos when modals are open
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') {
+        pauseAllVideos();
+        return;
+      }
+      resumeCurrentVideo();
+    });
+    return () => sub.remove();
+  }, [pauseAllVideos, resumeCurrentVideo]);
+
   useEffect(() => {
     if (showUploadModal || showPendingModal || showCommentsModal) {
-      Object.values(videoRefs.current).forEach((videoRef) => {
-        if (videoRef) {
-          videoRef.pauseAsync().catch(() => {});
-        }
-      });
+      pauseAllVideos();
     }
-  }, [showUploadModal, showPendingModal, showCommentsModal]);
+  }, [showUploadModal, showPendingModal, showCommentsModal, pauseAllVideos]);
 
   const fetchReels = async () => {
     try {
@@ -180,7 +304,7 @@ export default function ReelsScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setReels(data.data.reels || []);
+        setReels(await hydrateReels(data.data.reels || []));
       } else {
         setReels([]);
       }
@@ -203,7 +327,7 @@ export default function ReelsScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setReels(data.data.reels || []);
+        setReels(await hydrateReels(data.data.reels || []));
       } else {
         setReels([]);
       }
@@ -226,7 +350,7 @@ export default function ReelsScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setReels(data.data.reels || []);
+        setReels(await hydrateReels(data.data.reels || []));
       } else {
         setReels([]);
       }
@@ -245,7 +369,7 @@ export default function ReelsScreen() {
       const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/reels/pending`);
       if (response.ok) {
         const data = await response.json();
-        setPendingReels(data.data.reels || []);
+        setPendingReels(await hydrateReels(data.data.reels || []));
       }
     } catch (error) {
       console.error('Error fetching pending reels:', error);
@@ -254,25 +378,18 @@ export default function ReelsScreen() {
 
   const pickVideo = async () => {
     try {
-      // Use DocumentPicker - no permissions needed!
       const result = await DocumentPicker.getDocumentAsync({
         type: 'video/*',
         copyToCacheDirectory: true,
         multiple: false,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const video = result.assets[0];
-        if (video.uri) {
-          setSelectedVideo(video.uri);
-          console.log('Video selected:', video.name, video.uri);
-        } else {
-          Alert.alert('Error', 'Failed to get video URI');
-        }
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setSelectedVideo(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Error picking video:', error);
-      Alert.alert('Error', 'Failed to pick video. Please try again.');
+      Alert.alert('خطأ', 'فشل اختيار الفيديو. حاول تاني.');
     }
   };
 
@@ -289,80 +406,152 @@ export default function ReelsScreen() {
 
     try {
       setUploading(true);
-
-      // Get file extension from URI
-      const uriParts = selectedVideo.split('.');
-      const fileType = uriParts[uriParts.length - 1];
-      const fileName = `reel-${Date.now()}.${fileType}`;
-
-      // Create form data
-      const formData = new FormData();
-      
-      // Append video file - React Native FormData format
-      formData.append('video', {
-        uri: selectedVideo,
-        type: `video/${fileType}`,
-        name: fileName,
-      } as any);
-      
-      // Append other fields
-      if (uploadTitle.trim()) {
-        formData.append('title', uploadTitle.trim());
-      }
-      if (uploadDescription.trim()) {
-        formData.append('description', uploadDescription.trim());
-      }
-      formData.append('category', uploadCategory);
+      setUploadProgress('جاري الرفع…');
 
       const token = await AsyncStorage.getItem('token');
-      
       if (!token) {
         Alert.alert('Error', 'Please login again');
         setUploading(false);
+        setUploadProgress('');
         return;
       }
 
-      console.log('Uploading reel...', {
-        videoUri: selectedVideo.substring(0, 50) + '...',
-        title: uploadTitle,
+      const selectedLink =
+        linkId && linkType !== 'none'
+          ? { linkType, linkId, linkLabel: linkLabel.trim() }
+          : null;
+      const meta: Record<string, string> = {
         category: uploadCategory,
-      });
+        linkType: selectedLink ? linkType : 'none',
+        description: uploadDescription.trim(),
+      };
+      if (uploadTitle.trim()) meta.title = uploadTitle.trim();
+      if (selectedLink) {
+        meta.linkId = selectedLink.linkId;
+        meta.linkLabel = selectedLink.linkLabel;
+      }
 
-      // Don't set Content-Type for FormData - let fetch set it automatically with boundary
-      const response = await fetch(`${API_BASE_URL}/api/reels/upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Don't set Content-Type - React Native will set it with boundary
-        },
-        body: formData,
-      });
+      let videoUri = selectedVideo;
+      if (videoUri.startsWith('ph://') || videoUri.startsWith('assets-library://')) {
+        const localCopy = `${FileSystem.cacheDirectory}reel-src-${Date.now()}.mov`;
+        await FileSystem.copyAsync({ from: videoUri, to: localCopy });
+        videoUri = localCopy;
+      }
+
+      const fileInfo = await FileSystem.getInfoAsync(videoUri);
+      const fileSize = Number((fileInfo as any).size || 0);
+      const chunkSize = 1.5 * 1024 * 1024;
+      const shouldTryChunks = fileSize > 8 * 1024 * 1024;
+
+      const uploadSingle = async () => {
+        const formData = new FormData();
+        formData.append('video', {
+          uri: videoUri,
+          type: 'video/mp4',
+          name: `reel-${Date.now()}.mp4`,
+        } as any);
+        Object.entries(meta).forEach(([key, value]) => formData.append(key, value));
+        return fetch(`${API_BASE_URL}/api/reels/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+      };
+
+      let response: Response;
+
+      if (shouldTryChunks) {
+        const totalChunks = Math.ceil(fileSize / chunkSize);
+        const initRes = await fetch(`${API_BASE_URL}/api/reels/upload/init`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ totalChunks }),
+        });
+        const initData = await initRes.json().catch(() => ({}));
+
+        if (initRes.ok && initData?.data?.uploadId) {
+          const uploadId = initData.data.uploadId;
+          for (let index = 0; index < totalChunks; index += 1) {
+            setUploadProgress(`رفع ${index + 1} من ${totalChunks}`);
+            const start = index * chunkSize;
+            const length = Math.min(chunkSize, fileSize - start);
+            const base64 = await FileSystem.readAsStringAsync(videoUri, {
+              encoding: FileSystem.EncodingType.Base64,
+              position: start,
+              length,
+            });
+            const chunkPath = `${FileSystem.cacheDirectory}reel-chunk-${index}.bin`;
+            await FileSystem.writeAsStringAsync(chunkPath, base64, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            const chunkForm = new FormData();
+            chunkForm.append('uploadId', uploadId);
+            chunkForm.append('index', String(index));
+            chunkForm.append('chunk', {
+              uri: chunkPath,
+              type: 'application/octet-stream',
+              name: `chunk-${index}.bin`,
+            } as any);
+            const chunkRes = await fetch(`${API_BASE_URL}/api/reels/upload/chunk`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+              body: chunkForm,
+            });
+            await FileSystem.deleteAsync(chunkPath, { idempotent: true });
+            if (!chunkRes.ok) {
+              const chunkData = await chunkRes.json().catch(() => ({}));
+              throw new Error(chunkData.message || 'فشل رفع جزء من الفيديو');
+            }
+          }
+
+          setUploadProgress('جاري حفظ الريل…');
+          response = await fetch(`${API_BASE_URL}/api/reels/upload/complete`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ uploadId, ...meta }),
+          });
+        } else {
+          setUploadProgress('جاري الرفع…');
+          response = await uploadSingle();
+        }
+      } else {
+        response = await uploadSingle();
+      }
 
       const data = await response.json();
-      console.log('Upload response:', data);
-
       if (response.ok) {
-        Alert.alert('Success', data.message || 'Reel uploaded successfully!');
+        const uploadedReel = data.data?.reel;
+        if (uploadedReel?._id && selectedLink) {
+          await saveReelLinkOverride(uploadedReel._id, selectedLink);
+        }
+        Alert.alert('تم', data.message || 'تم رفع الريل بنجاح');
         setShowUploadModal(false);
         setSelectedVideo(null);
         setUploadTitle('');
         setUploadDescription('');
         setUploadCategory('other');
+        setLinkType('none');
+        setLinkId('');
+        setLinkLabel('');
         fetchReels();
         if (isAdmin) {
           fetchPendingReels();
         }
       } else {
-        Alert.alert('Error', data.message || 'Failed to upload reel. Please try again.');
+        Alert.alert('خطأ', data.message || 'فشل رفع الريل. حاول تاني.');
       }
     } catch (error: any) {
       console.error('Error uploading reel:', error);
-      Alert.alert(
-        'Error', 
-        error.message || 'Failed to upload reel. Please check your connection and try again.'
-      );
+      Alert.alert('خطأ', error.message || 'فشل رفع الريل. تحقق من النت وحاول تاني.');
     } finally {
       setUploading(false);
+      setUploadProgress('');
     }
   };
 
@@ -905,19 +1094,26 @@ export default function ReelsScreen() {
   };
 
   const renderReel = ({ item, index }: { item: Reel; index: number }) => {
-    const isPlaying = currentIndex === index && !pausedVideos.has(index);
+    const isPlaying =
+      isScreenFocused &&
+      currentIndex === index &&
+      !pausedVideos.has(index) &&
+      !showUploadModal &&
+      !showPendingModal &&
+      !showCommentsModal;
     const uploadedByName = typeof item.uploadedBy === 'object' 
       ? item.uploadedBy.name 
       : item.uploadedByName || 'Unknown';
-    const uploadedByAvatar = typeof item.uploadedBy === 'object' 
-      ? item.uploadedBy.avatar 
-      : item.uploadedByAvatar;
-    
-    // Check if current user is the owner of this reel
+    const rawAvatar =
+      typeof item.uploadedBy === 'object'
+        ? item.uploadedBy.avatar
+        : item.uploadedByAvatar;
     const uploadedById = typeof item.uploadedBy === 'object' 
       ? item.uploadedBy._id 
       : (typeof item.uploadedBy === 'string' ? item.uploadedBy : null);
     const isOwner = user && uploadedById && user.id === uploadedById.toString();
+    const uploadedByAvatar = resolveMediaUrl(rawAvatar || (isOwner ? user.avatar : '') || '');
+    
     const fit = videoFit[item._id] || 'portrait';
     const isLandscape = fit === 'landscape';
 
@@ -1034,9 +1230,25 @@ export default function ReelsScreen() {
               <Text style={styles.userName}>{uploadedByName}</Text>
             </TouchableOpacity>
 
-            <Text style={styles.description} numberOfLines={3}>
-              {item.title || item.description || 'No description'}
-            </Text>
+            {item.title || item.description ? (
+              <Text style={styles.description} numberOfLines={3}>
+                {item.title || item.description}
+              </Text>
+            ) : null}
+            {item.linkType && item.linkType !== 'none' && item.linkId ? (
+              <ReelPromoCta
+                linkType={item.linkType}
+                remainingMs={
+                  progressById[item._id]?.duration
+                    ? progressById[item._id].duration - (progressById[item._id].position || 0)
+                    : Number.POSITIVE_INFINITY
+                }
+                onPress={() => {
+                  const route = getReelLinkRoute(item.linkType, item.linkId);
+                  if (route) router.push(route as any);
+                }}
+              />
+            ) : null}
             <Text style={styles.viewsInline}>👁 {item.views || 0} views</Text>
           </View>
 
@@ -1314,13 +1526,11 @@ export default function ReelsScreen() {
             >
               {selectedVideo ? (
                 <View style={styles.videoSelectedContainer}>
-                  <Text style={styles.videoPickerText}>✓ Video Selected</Text>
-                  <Text style={styles.videoPickerSubtext}>
-                    {selectedVideo.split('/').pop()?.substring(0, 30) || 'Video file'}
-                  </Text>
+                  <Text style={styles.videoPickerText}>✓ الفيديو جاهز</Text>
+                  <Text style={styles.videoPickerSubtext}>هيترفع بنفس الجودة</Text>
                 </View>
               ) : (
-                <Text style={styles.videoPickerText}>📹 Select Video</Text>
+                <Text style={styles.videoPickerText}>📹 اختار فيديو</Text>
               )}
             </TouchableOpacity>
 
@@ -1365,13 +1575,76 @@ export default function ReelsScreen() {
               ))}
             </ScrollView>
 
+            <Text style={[styles.label, { marginTop: 8 }]}>رابط تسويقي (اختياري)</Text>
+            <View style={styles.linkTypeRow}>
+              {REEL_LINK_TYPES.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.categoryChip,
+                    linkType === option.value && styles.categoryChipActive,
+                  ]}
+                  onPress={() => {
+                    setLinkType(option.value);
+                    setLinkId('');
+                    setLinkLabel('');
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      linkType === option.value && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {linkType !== 'none' ? (
+              <>
+                <Text style={styles.linkHint}>
+                  {getReelLinkMeta(linkType).hint}
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {(linkOptions[linkType] || []).map((option) => (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={[
+                        styles.categoryChip,
+                        linkId === option.id && styles.categoryChipActive,
+                      ]}
+                      onPress={() => {
+                        setLinkId(option.id);
+                        setLinkLabel(getReelLinkMeta(linkType).cta);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          linkId === option.id && styles.categoryChipTextActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {option.title}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
+
             <TouchableOpacity
               style={[styles.submitButton, uploading && styles.submitButtonDisabled]}
               onPress={uploadReel}
               disabled={uploading || !selectedVideo}
             >
               {uploading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <View style={{ alignItems: 'center', gap: 8 }}>
+                  <ActivityIndicator color="#FFFFFF" />
+                  <Text style={styles.submitButtonText}>{uploadProgress || 'جاري الرفع…'}</Text>
+                </View>
               ) : (
                 <Text style={styles.submitButtonText}>Upload Reel</Text>
               )}
@@ -2132,6 +2405,80 @@ const styles = StyleSheet.create({
   },
   categoryChipTextActive: {
     color: '#FFFFFF',
+  },
+  linkTypeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  linkHint: {
+    color: '#999999',
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  promoWrap: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    marginBottom: 8,
+    justifyContent: 'center',
+  },
+  promoLoaderRing: {
+    position: 'absolute',
+    left: -6,
+    right: -6,
+    top: -6,
+    bottom: -6,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#E50914',
+    borderTopColor: '#FFFFFF',
+    borderRightColor: 'rgba(255,255,255,0.25)',
+  },
+  promoLink: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E50914',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
+  },
+  promoLinkEnding: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    shadowColor: '#E50914',
+    shadowOpacity: 0.7,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
+  },
+  promoPlay: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  promoLoader: {
+    marginRight: 2,
+  },
+  promoLinkText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  promoLinkAttach: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#E50914',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  promoLinkAttachText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
   submitButton: {
     backgroundColor: '#E50914',

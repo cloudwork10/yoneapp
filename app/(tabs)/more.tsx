@@ -276,6 +276,14 @@ const ADMIN_SECTION: MenuSection = {
       adminOnly: true,
     },
     {
+      id: 21,
+      title: 'Project Submissions',
+      description: 'Review projects · issue certificates',
+      icon: '🎓',
+      route: '/project-submissions',
+      adminOnly: true,
+    },
+    {
       id: 20,
       title: 'Active Subscribers',
       description: 'Days left · ending soon',

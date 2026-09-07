@@ -19,6 +19,8 @@ export const MANUAL_PAYMENT_HINT =
 
 export const TELEGRAM_URL = 'https://t.me/+hMz0vFEexds2ZjY0';
 
+export const CERTIFICATE_FOUNDER_NAME = 'Abdulrahman Alaa';
+
 /** Digits for https://wa.me/ (country code 20 + number without leading 0). */
 export function whatsappWaMeNumber(raw = WHATSAPP_NUMBER) {
   const digits = String(raw).replace(/[^\d]/g, '');

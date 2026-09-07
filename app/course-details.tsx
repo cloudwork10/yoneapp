@@ -3,7 +3,7 @@ import { ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -22,6 +22,8 @@ import {
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
+import CertificateCard from '../components/CertificateCard';
+import { buildCertificateHtml, getCertificateFields } from '../utils/certificate';
 import resolveMediaUrl from '../utils/mediaUrl';
 import { isContentLocked } from '../utils/contentAccess';
 import {
@@ -33,6 +35,9 @@ import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 import { recordActivityDay } from '../utils/learningProgress';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import { goBackOr } from '../utils/navigation';
 import { resolveProjectRules } from '../utils/projectRules';
 
@@ -116,6 +121,59 @@ export default function CourseDetailsScreen() {
   const [submittingProject, setSubmittingProject] = useState(false);
   const [projectSubmission, setProjectSubmission] = useState<any>(null);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [downloadingCertificate, setDownloadingCertificate] = useState(false);
+  const certCaptureRef = useRef<View>(null);
+
+  const certificateFields = getCertificateFields({
+    course,
+    projectSubmission,
+    fullName,
+    user,
+  });
+
+  const downloadCertificatePdf = async () => {
+    try {
+      setDownloadingCertificate(true);
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        Alert.alert('Certificate', 'Sharing is not available on this device.');
+        return;
+      }
+
+      if (certCaptureRef.current) {
+        const uri = await captureRef(certCaptureRef, {
+          format: 'png',
+          quality: 1,
+          result: 'tmpfile',
+          pixelRatio: 3,
+        });
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          UTI: 'public.png',
+          dialogTitle: 'Download certificate',
+        });
+        return;
+      }
+
+      const html = buildCertificateHtml(certificateFields);
+      const file = await Print.printToFileAsync({
+        html,
+        width: 842,
+        height: 595,
+        margins: { left: 0, top: 0, right: 0, bottom: 0 },
+      });
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf',
+        dialogTitle: 'Download certificate PDF',
+      });
+    } catch (error) {
+      console.error('Certificate PDF error:', error);
+      Alert.alert('Certificate', 'Could not create the certificate. Try again.');
+    } finally {
+      setDownloadingCertificate(false);
+    }
+  };
 
   // Generate course videos from course sections and lessons
   const courseVideos: CourseVideo[] = React.useMemo(() => {
@@ -290,6 +348,7 @@ export default function CourseDetailsScreen() {
   const totalVideos = courseVideos.length;
   const watchedCount = courseVideos.filter((video) => watchedSet.has(video.id) || video.isCompleted).length;
   const progressPercent = totalVideos ? Math.round((watchedCount / totalVideos) * 100) : 0;
+  const isCourseComplete = totalVideos > 0 && watchedCount >= totalVideos;
   const projectRules = React.useMemo(() => resolveProjectRules(course || {}), [course]);
 
   // Show loading screen if course data is not loaded yet
@@ -396,6 +455,13 @@ export default function CourseDetailsScreen() {
   const submitProject = async () => {
     if (!user || !courseId) {
       showSignInAlert('courses');
+      return;
+    }
+    if (!isCourseComplete) {
+      Alert.alert(
+        'أكمل الكورس أولاً',
+        `لازم تخلّص كل الدروس قبل تسليم المشروع. (${watchedCount} من ${totalVideos})`
+      );
       return;
     }
     const name = fullName.trim().replace(/\s+/g, ' ');
@@ -787,19 +853,37 @@ export default function CourseDetailsScreen() {
               ) : null}
 
               {projectSubmission?.status === 'approved' ? (
-                <TouchableOpacity
-                  style={styles.projectButton}
-                  onPress={() => setShowCertificate(true)}
-                >
-                  <Text style={styles.projectButtonText}>View Certificate</Text>
-                </TouchableOpacity>
+                <View style={styles.certificateReady}>
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={() => setShowCertificate(true)}
+                  >
+                    <View ref={certCaptureRef} collapsable={false} style={{ width: '100%', overflow: 'hidden' }}>
+                      <CertificateCard fields={certificateFields} compact />
+                    </View>
+                  </TouchableOpacity>
+                  <Text style={styles.certOpenHint}>اضغط على الشهادة لفتحها</Text>
+                  <TouchableOpacity
+                    style={[styles.projectButton, downloadingCertificate && { opacity: 0.6 }]}
+                    onPress={downloadCertificatePdf}
+                    disabled={downloadingCertificate}
+                  >
+                    <Text style={styles.projectButtonText}>
+                      {downloadingCertificate ? 'Preparing...' : 'تحميل الشهادة'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <>
                   <TouchableOpacity
-                    style={styles.projectButton}
+                    style={[styles.projectButton, !isCourseComplete && styles.projectButtonDisabled]}
+                    disabled={!isCourseComplete}
                     onPress={() => {
                       if (!user) {
                         showSignInAlert('courses');
+                        return;
+                      }
+                      if (!isCourseComplete) {
                         return;
                       }
                       setShowProjectForm(true);
@@ -808,7 +892,9 @@ export default function CourseDetailsScreen() {
                     <Text style={styles.projectButtonText}>بدء تسليم المشروع</Text>
                   </TouchableOpacity>
                   <Text style={styles.projectHint}>
-                    إذا عديت نسبة 90% من المشروع هيتم الموافقة واستلام الشهادة.
+                    {isCourseComplete
+                      ? 'إذا عديت نسبة 90% من المشروع هيتم الموافقة واستلام الشهادة.'
+                      : `أكمل كل دروس الكورس أولاً عشان تقدر تسلّم المشروع. (${watchedCount} من ${totalVideos})`}
                   </Text>
                 </>
               )}
@@ -991,20 +1077,19 @@ export default function CourseDetailsScreen() {
         onRequestClose={() => setShowCertificate(false)}
       >
         <View style={styles.certOverlay}>
-          <View style={styles.certCard}>
-            <Text style={styles.certBrand}>ELNADY</Text>
-            <Text style={styles.certKicker}>Certificate of Completion</Text>
-            <Text style={styles.certName}>
-              {projectSubmission?.certificate?.studentName || projectSubmission?.fullName || fullName || user?.name || 'Student'}
-            </Text>
-            <Text style={styles.certCopy}>has successfully completed</Text>
-            <Text style={styles.certCourse}>{course.title}</Text>
-            <Text style={styles.certDate}>
-              {new Date(projectSubmission?.certificate?.issuedAt || Date.now()).toLocaleDateString()}
-              {projectSubmission?.certificate?.code ? `  ·  #${projectSubmission.certificate.code}` : ''}
-            </Text>
-            <TouchableOpacity style={styles.projectButton} onPress={() => setShowCertificate(false)}>
-              <Text style={styles.projectButtonText}>Close</Text>
+          <View style={styles.certModalCard}>
+            <CertificateCard fields={certificateFields} />
+            <TouchableOpacity
+              style={[styles.projectButton, downloadingCertificate && { opacity: 0.6 }]}
+              onPress={downloadCertificatePdf}
+              disabled={downloadingCertificate}
+            >
+              <Text style={styles.projectButtonText}>
+                {downloadingCertificate ? 'Preparing...' : 'تحميل الشهادة'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.certCloseBtn} onPress={() => setShowCertificate(false)}>
+              <Text style={styles.certCloseText}>إغلاق</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1587,6 +1672,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
   },
+  projectButtonDisabled: {
+    backgroundColor: '#3a3a3a',
+    opacity: 0.7,
+  },
   projectHint: {
     color: '#CCCCCC',
     fontSize: 13,
@@ -1658,57 +1747,34 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 14,
   },
+  certificateReady: {
+    width: '100%',
+  },
+  certOpenHint: {
+    color: '#AAAAAA',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 14,
+  },
   certOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.82)',
+    backgroundColor: 'rgba(0,0,0,0.88)',
     justifyContent: 'center',
-    padding: 20,
+    padding: 16,
   },
-  certCard: {
-    backgroundColor: '#0b0b0b',
-    borderRadius: 18,
-    padding: 28,
-    borderWidth: 2,
-    borderColor: '#E50914',
-    alignItems: 'center',
+  certModalCard: {
+    alignItems: 'stretch',
+    gap: 14,
   },
-  certBrand: {
-    color: '#E50914',
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 3,
-    marginBottom: 8,
+  certCloseBtn: {
+    marginTop: 12,
+    paddingVertical: 8,
   },
-  certKicker: {
-    color: '#aaa',
-    fontSize: 13,
-    marginBottom: 18,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  certName: {
-    color: '#fff',
-    fontSize: 26,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  certCopy: {
-    color: '#999',
+  certCloseText: {
+    color: '#AAAAAA',
     fontSize: 14,
-    marginBottom: 6,
-  },
-  certCourse: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  certDate: {
-    color: '#888',
-    fontSize: 12,
-    marginBottom: 22,
+    fontWeight: '600',
   },
   projectButtonText: {
     color: '#FFFFFF',

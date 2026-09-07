@@ -172,6 +172,7 @@ export default function RootLayout() {
             <Stack.Screen name="subscription" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="subscription-2" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="subscription-requests" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="project-submissions" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="active-subscribers" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="notification-settings" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="help-support" options={{ headerShown: false, animation: 'slide_from_right' }} />
