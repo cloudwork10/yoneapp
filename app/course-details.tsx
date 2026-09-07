@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ResizeMode, Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,11 +9,13 @@ import {
     Alert,
     Dimensions,
     ImageBackground,
+    Linking,
     Modal,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -29,9 +32,23 @@ import { showSignInAlert } from '../hooks/useAuthGuard';
 import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
-import { goBackOr } from '../utils/navigation';
+import { recordActivityDay } from '../utils/learningProgress';
+import { resolveProjectRules } from '../utils/projectRules';
 
 const { width, height } = Dimensions.get('window');
+
+function cleanProjectUrl(value: string) {
+  let next = String(value || '').trim();
+  next = next.replace(/^\/+(https?:\/\/)/i, '$1');
+  if (next && !/^https?:\/\//i.test(next) && /^[\w.-]+\.[a-z]{2,}/i.test(next)) {
+    next = `https://${next}`;
+  }
+  return next;
+}
+
+function courseProgressKey(courseId: string, userId?: string) {
+  return `yone_course_progress_v1:${userId || 'guest'}:${courseId}`;
+}
 
 interface CourseVideo {
   id: string;
@@ -88,6 +105,16 @@ export default function CourseDetailsScreen() {
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [subscriptionAccess, setSubscriptionAccess] = useState<any>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  const [watchedVideoIds, setWatchedVideoIds] = useState<string[]>([]);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [githubUrl, setGithubUrl] = useState('');
+  const [liveUrl, setLiveUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [extraUrl, setExtraUrl] = useState('');
+  const [submittingProject, setSubmittingProject] = useState(false);
+  const [projectSubmission, setProjectSubmission] = useState<any>(null);
+  const [showCertificate, setShowCertificate] = useState(false);
 
   // Generate course videos from course sections and lessons
   const courseVideos: CourseVideo[] = React.useMemo(() => {
@@ -117,7 +144,7 @@ export default function CourseDetailsScreen() {
         url: lesson.videoUrl?.trim() || course?.previewVideo?.trim() || '',
         thumbnail: lesson.thumbnail || course?.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
         description: lesson.description || lesson.title || 'وصف الدرس',
-        isCompleted: lesson.isCompleted || false,
+        isCompleted: Boolean(lesson.isCompleted),
         category: section.title || `القسم ${sectionIndex + 1}`,
         accessType: lesson.accessType || course?.accessType || 'free',
         isLocked: isContentLocked(
@@ -154,6 +181,34 @@ export default function CourseDetailsScreen() {
       fetchCourseDetails();
     }
   }, [courseId]);
+
+  useEffect(() => {
+    const id = String(courseId || '');
+    if (!id) return;
+    const userId = String((user as any)?._id || (user as any)?.id || '');
+    AsyncStorage.getItem(courseProgressKey(id, userId))
+      .then((raw) => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setWatchedVideoIds(parsed.map(String));
+        }
+      })
+      .catch(() => {});
+  }, [courseId, user]);
+
+  const markVideoWatched = useCallback((videoId: string) => {
+    const id = String(courseId || '');
+    if (!id || !videoId) return;
+    const userId = String((user as any)?._id || (user as any)?.id || '');
+    setWatchedVideoIds((prev) => {
+      if (prev.includes(videoId)) return prev;
+      const next = [...prev, videoId];
+      AsyncStorage.setItem(courseProgressKey(id, userId), JSON.stringify(next)).catch(() => {});
+      recordActivityDay(userId);
+      return next;
+    });
+  }, [courseId, user]);
 
   // Set expanded categories based on course sections
   useEffect(() => {
@@ -193,24 +248,48 @@ export default function CourseDetailsScreen() {
     }, [user])
   );
 
-  // Generate course lessons with subscription logic
-  const courseLessons: CourseLesson[] = React.useMemo(() => {
-    const lessons = [
-      { id: '1', title: 'Introduction to React Native', duration: '15:30', type: 'video' as const, isCompleted: true },
-      { id: '2', title: 'Setting Up Development Environment', duration: '22:45', type: 'video' as const, isCompleted: false },
-      { id: '3', title: 'Components and Styling', duration: '28:15', type: 'video' as const, isCompleted: false },
-      { id: '4', title: 'Navigation and Routing', duration: '35:20', type: 'video' as const, isCompleted: false },
-      { id: '5', title: 'State Management with Redux', duration: '42:10', type: 'video' as const, isCompleted: false },
-      { id: '6', title: 'API Integration', duration: '38:25', type: 'video' as const, isCompleted: false },
-      { id: '7', title: 'App Deployment', duration: '25:40', type: 'video' as const, isCompleted: false }
-    ];
+  const loadProjectSubmission = useCallback(async () => {
+    if (!user || !courseId) {
+      setProjectSubmission(null);
+      return;
+    }
+    try {
+      const response = await makeAuthenticatedRequest(
+        `${API_BASE_URL}/api/course-projects/${courseId}/mine`
+      );
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setProjectSubmission(data?.data?.submission || null);
+        const current = data?.data?.submission;
+        if (current?.fullName) {
+          setFullName(current.fullName);
+        } else {
+          const accountName = String(user?.name || '').trim().replace(/\s+/g, ' ');
+          if (accountName.split(' ').filter(Boolean).length >= 2) {
+            setFullName(accountName);
+          }
+        }
+        if (current?.githubUrl) setGithubUrl(current.githubUrl);
+        if (current?.liveUrl) setLiveUrl(current.liveUrl);
+        if (current?.videoUrl) setVideoUrl(current.videoUrl);
+        if (current?.extraUrl) setExtraUrl(current.extraUrl);
+      }
+    } catch {
+      // Keep the form usable even if the inbox API is not deployed yet.
+    }
+  }, [user, courseId]);
 
-    return lessons.map((lesson, index) => ({
-      ...lesson,
-      accessType: index === 0 ? 'free' : 'premium',
-      isLocked: !hasActiveSubscription && index > 0
-    }));
-  }, [hasActiveSubscription]);
+  useFocusEffect(
+    useCallback(() => {
+      loadProjectSubmission();
+    }, [loadProjectSubmission])
+  );
+
+  const watchedSet = React.useMemo(() => new Set(watchedVideoIds), [watchedVideoIds]);
+  const totalVideos = courseVideos.length;
+  const watchedCount = courseVideos.filter((video) => watchedSet.has(video.id) || video.isCompleted).length;
+  const progressPercent = totalVideos ? Math.round((watchedCount / totalVideos) * 100) : 0;
+  const projectRules = React.useMemo(() => resolveProjectRules(course || {}), [course]);
 
   // Show loading screen if course data is not loaded yet
   if (loading || !course) {
@@ -227,7 +306,7 @@ export default function CourseDetailsScreen() {
           <View style={styles.backButton} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>جاري تحميل تفاصيل الكورس...</Text>
+          <Text style={styles.loadingText}>Loading course details...</Text>
         </View>
       </SafeAreaView>
     );
@@ -305,6 +384,55 @@ export default function CourseDetailsScreen() {
     }
   };
 
+  const closeVideo = () => {
+    if (selectedVideo?.id) {
+      markVideoWatched(selectedVideo.id);
+    }
+    setShowVideoModal(false);
+    setIsVideoLoading(false);
+  };
+
+  const submitProject = async () => {
+    if (!user || !courseId) {
+      showSignInAlert('courses');
+      return;
+    }
+    const name = fullName.trim().replace(/\s+/g, ' ');
+    if (name.split(' ').filter(Boolean).length < 2) {
+      Alert.alert('الاسم', 'اكتب اسمك ثنائي: الاسم الأول واسم العائلة.');
+      return;
+    }
+    try {
+      setSubmittingProject(true);
+      const response = await makeAuthenticatedRequest(
+        `${API_BASE_URL}/api/course-projects/${String(courseId)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: name,
+            githubUrl: cleanProjectUrl(githubUrl),
+            liveUrl: cleanProjectUrl(liveUrl),
+            videoUrl: cleanProjectUrl(videoUrl),
+            extraUrl: cleanProjectUrl(extraUrl),
+          }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        Alert.alert('Could not submit', data?.message || 'Check the required links and try again.');
+        return;
+      }
+      setProjectSubmission(data?.data?.submission || { status: 'pending', githubUrl, liveUrl });
+      setShowProjectForm(false);
+      Alert.alert('Submitted', 'Your project is waiting for review. The certificate opens only after approval.');
+    } catch {
+      Alert.alert('Error', 'Could not submit the project.');
+    } finally {
+      setSubmittingProject(false);
+    }
+  };
+
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => ({
       ...prev,
@@ -315,19 +443,6 @@ export default function CourseDetailsScreen() {
   const handleEnroll = () => {
     setIsEnrolled(true);
     // In real app, this would call API to enroll user
-  };
-
-  const handleLessonPress = (lesson: CourseLesson) => {
-    if (lesson.isLocked) {
-      if (!user) {
-        showSignInAlert('lessons');
-      } else {
-        showPremiumGateAlert(subscriptionAccess, router, 'lessons');
-      }
-      return;
-    }
-    // Handle lesson opening logic here
-    console.log('Opening lesson:', lesson.title);
   };
 
   const renderStars = (rating: number) => {
@@ -449,46 +564,53 @@ export default function CourseDetailsScreen() {
             <Text style={styles.sectionTitle}>Course Description</Text>
             <Text style={styles.descriptionText}>{course.description}</Text>
 
-            {/* Learning Path */}
             <View style={styles.learningPathSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>🎯 Your Learning Journey</Text>
-                <Text style={styles.sectionSubtitle}>Interactive roadmap to mastery</Text>
+                <Text style={styles.sectionTitle}>Your Progress</Text>
+                <Text style={styles.sectionSubtitle}>Updates when you close a video</Text>
               </View>
-              
+
               <View style={styles.progressContainer}>
+                <Text style={styles.progressPercent}>{totalVideos ? `${progressPercent}%` : '—'}</Text>
                 <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: '40%' }]} />
+                  <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
                 </View>
-                <Text style={styles.progressText}>2 of 7 modules completed</Text>
+                <Text style={styles.progressText}>
+                  {totalVideos
+                    ? `${watchedCount} of ${totalVideos} videos watched`
+                    : 'No videos in this course yet'}
+                </Text>
               </View>
 
               <View style={styles.modulesGrid}>
-                {courseLessons.slice(0, 4).map((lesson, index) => (
-                  <TouchableOpacity
-                    key={lesson.id}
-                    style={[
-                      styles.moduleCard,
-                      lesson.isCompleted && styles.moduleCompleted,
-                      lesson.isLocked && styles.moduleLocked
-                    ]}
-                    onPress={() => handleLessonPress(lesson)}
-                  >
-                    <View style={styles.moduleIcon}>
-                      <Text style={styles.moduleIconText}>
-                        {lesson.isCompleted ? '✅' : lesson.isLocked ? '🔒' : '📚'}
-                      </Text>
-                    </View>
-                    <Text style={styles.moduleTitle}>{lesson.title}</Text>
-                    <Text style={styles.moduleDuration}>{lesson.duration}</Text>
-                    <View style={styles.moduleProgress}>
-                      <View style={[
-                        styles.moduleProgressBar,
-                        { width: lesson.isCompleted ? '100%' : '0%' }
-                      ]} />
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                {courseVideos.slice(0, 6).map((video) => {
+                  const done = watchedSet.has(video.id) || video.isCompleted;
+                  return (
+                    <TouchableOpacity
+                      key={video.id}
+                      style={[
+                        styles.moduleCard,
+                        done && styles.moduleCompleted,
+                        video.isLocked && styles.moduleLocked,
+                      ]}
+                      onPress={() => handleVideoPress(video)}
+                    >
+                      <View style={styles.moduleIcon}>
+                        <Text style={styles.moduleIconText}>
+                          {done ? '✅' : video.isLocked ? '🔒' : '▶'}
+                        </Text>
+                      </View>
+                      <Text style={styles.moduleTitle} numberOfLines={2}>{video.title}</Text>
+                      <Text style={styles.moduleDuration}>{video.duration}</Text>
+                      <View style={styles.moduleProgress}>
+                        <View style={[
+                          styles.moduleProgressBar,
+                          { width: done ? '100%' : '0%' },
+                        ]} />
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           </View>
@@ -498,7 +620,9 @@ export default function CourseDetailsScreen() {
           <View style={styles.tabContent}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>🎬 Course Videos</Text>
-              <Text style={styles.sectionSubtitle}>Watch and learn at your own pace</Text>
+              <Text style={styles.sectionSubtitle}>
+                {totalVideos ? `${watchedCount} of ${totalVideos} watched · ${progressPercent}%` : 'Watch and learn at your own pace'}
+              </Text>
             </View>
 
             <View style={styles.videosList}>
@@ -563,7 +687,7 @@ export default function CourseDetailsScreen() {
                             <View style={styles.videoHeadlineContent}>
                               <View style={styles.videoHeadlineHeader}>
                                 <Text style={styles.videoHeadlineTitle} numberOfLines={2}>{video.title}</Text>
-                                {video.isCompleted && (
+                                {(watchedSet.has(video.id) || video.isCompleted) && (
                                   <View style={styles.videoHeadlineCompleted}>
                                     <Text style={styles.videoHeadlineCompletedText}>✓</Text>
                                   </View>
@@ -607,8 +731,8 @@ export default function CourseDetailsScreen() {
         {activeTab === 'challenges' && (
           <View style={styles.tabContent}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🎓 مشروع التخرج الشامل</Text>
-              <Text style={styles.sectionSubtitle}>تطبيق متكامل يجمع كل ما تعلمته</Text>
+              <Text style={styles.sectionTitle}>Final Project</Text>
+              <Text style={styles.sectionSubtitle}>Submit your work for certificate review</Text>
             </View>
 
             <View style={styles.graduationProject}>
@@ -617,80 +741,76 @@ export default function CourseDetailsScreen() {
                   <Text style={styles.projectIcon}>🚀</Text>
                 </View>
                 <View style={styles.projectInfo}>
-                  <Text style={styles.projectTitle}>تطبيق النادي المتكامل</Text>
-                  <Text style={styles.projectSubtitle}>تطبيق تعليمي شامل</Text>
+                  <Text style={styles.projectTitle}>
+                    {course.challenges?.[0]?.title || `${course.title} Project`}
+                  </Text>
+                  <Text style={styles.projectSubtitle}>Graduation project</Text>
                 </View>
               </View>
-              
+
               <Text style={styles.projectDescription}>
-                مشروع شامل يجمع كل المهارات التي تعلمتها في الكورس. ستبني تطبيق تعليمي متكامل يشمل:
+                {course.challenges?.[0]?.description || projectRules.hint}
               </Text>
-              
-              <View style={styles.projectFeatures}>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>📱</Text>
-                  <Text style={styles.featureText}>واجهة مستخدم حديثة ومتجاوبة</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>🎥</Text>
-                  <Text style={styles.featureText}>مشغل فيديو متقدم</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>🔐</Text>
-                  <Text style={styles.featureText}>نظام مصادقة آمن</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>☁️</Text>
-                  <Text style={styles.featureText}>تخزين سحابي مع Firebase</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>📊</Text>
-                  <Text style={styles.featureText}>تحليلات وتقارير متقدمة</Text>
-                </View>
-                <View style={styles.featureItem}>
-                  <Text style={styles.featureIcon}>🔔</Text>
-                  <Text style={styles.featureText}>إشعارات ذكية</Text>
-                </View>
-              </View>
-              
-              <View style={styles.projectTimeline}>
-                <Text style={styles.timelineTitle}>خطة المشروع:</Text>
-                <View style={styles.timelineItem}>
-                  <Text style={styles.timelineWeek}>الأسبوع 1-2</Text>
-                  <Text style={styles.timelineTask}>إعداد المشروع والهيكل الأساسي</Text>
-                </View>
-                <View style={styles.timelineItem}>
-                  <Text style={styles.timelineWeek}>الأسبوع 3-4</Text>
-                  <Text style={styles.timelineTask}>تطوير الواجهات والمكونات</Text>
-                </View>
-                <View style={styles.timelineItem}>
-                  <Text style={styles.timelineWeek}>الأسبوع 5-6</Text>
-                  <Text style={styles.timelineTask}>ربط البيانات والخدمات</Text>
-                </View>
-                <View style={styles.timelineItem}>
-                  <Text style={styles.timelineWeek}>الأسبوع 7-8</Text>
-                  <Text style={styles.timelineTask}>الاختبار والتحسين</Text>
-                </View>
-              </View>
-              
+
               <View style={styles.projectMeta}>
                 <View style={styles.projectMetaItem}>
-                  <Text style={styles.projectMetaIcon}>⏱️</Text>
-                  <Text style={styles.projectMetaText}>8 أسابيع</Text>
+                  <Text style={styles.projectMetaIcon}>📂</Text>
+                  <Text style={styles.projectMetaText}>
+                    {projectRules.githubRequired ? `${projectRules.labels.github} required` : `${projectRules.labels.github} optional`}
+                  </Text>
                 </View>
                 <View style={styles.projectMetaItem}>
-                  <Text style={styles.projectMetaIcon}>🏆</Text>
-                  <Text style={styles.projectMetaText}>1000 نقطة</Text>
+                  <Text style={styles.projectMetaIcon}>🔗</Text>
+                  <Text style={styles.projectMetaText}>
+                    {projectRules.liveRequired ? `${projectRules.labels.live} required` : `${projectRules.labels.live} optional`}
+                  </Text>
                 </View>
                 <View style={styles.projectMetaItem}>
-                  <Text style={styles.projectMetaIcon}>📜</Text>
-                  <Text style={styles.projectMetaText}>شهادة إنجاز</Text>
+                  <Text style={styles.projectMetaIcon}>🎬</Text>
+                  <Text style={styles.projectMetaText}>
+                    {projectRules.videoRequired ? 'Video required' : 'Video optional'}
+                  </Text>
                 </View>
               </View>
-              
-              <TouchableOpacity style={styles.projectButton}>
-                <Text style={styles.projectButtonText}>بدء المشروع</Text>
-              </TouchableOpacity>
+
+              {projectSubmission?.status === 'pending' ? (
+                <Text style={styles.projectStatus}>Submitted · waiting for review</Text>
+              ) : null}
+              {projectSubmission?.status === 'rejected' ? (
+                <Text style={styles.projectStatusRejected}>
+                  Rejected{projectSubmission.adminNote ? ` · ${projectSubmission.adminNote}` : ''}. You can resubmit.
+                </Text>
+              ) : null}
+              {projectSubmission?.status === 'approved' ? (
+                <Text style={styles.projectStatusApproved}>Approved · your certificate is ready</Text>
+              ) : null}
+
+              {projectSubmission?.status === 'approved' ? (
+                <TouchableOpacity
+                  style={styles.projectButton}
+                  onPress={() => setShowCertificate(true)}
+                >
+                  <Text style={styles.projectButtonText}>View Certificate</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={styles.projectButton}
+                    onPress={() => {
+                      if (!user) {
+                        showSignInAlert('courses');
+                        return;
+                      }
+                      setShowProjectForm(true);
+                    }}
+                  >
+                    <Text style={styles.projectButtonText}>بدء تسليم المشروع</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.projectHint}>
+                    إذا عديت نسبة 90% من المشروع هيتم الموافقة واستلام الشهادة.
+                  </Text>
+                </>
+              )}
             </View>
           </View>
         )}
@@ -779,11 +899,122 @@ export default function CourseDetailsScreen() {
 
       </ScrollView>
 
+      <Modal
+        visible={showProjectForm}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowProjectForm(false)}
+      >
+        <View style={styles.projectFormOverlay}>
+          <ScrollView style={{ maxHeight: '90%' }} contentContainerStyle={styles.projectFormCard}>
+            <Text style={styles.projectFormTitle}>تسليم المشروع</Text>
+            <Text style={styles.projectFormHint}>{projectRules.hint}</Text>
+            <Text style={styles.projectFormLabel}>الاسم الثنائي (هيتكتب على الشهادة)</Text>
+            <TextInput
+              style={styles.projectFormInput}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="مثال: أحمد محمد"
+              placeholderTextColor="#666"
+              maxLength={80}
+              autoCapitalize="words"
+            />
+            <Text style={styles.projectFormLabel}>
+              {projectRules.labels.github} {projectRules.githubRequired ? '(required)' : '(optional)'}
+            </Text>
+            <TextInput
+              style={styles.projectFormInput}
+              value={githubUrl}
+              onChangeText={setGithubUrl}
+              placeholder="https://github.com/..."
+              placeholderTextColor="#666"
+              autoCapitalize="none"
+            />
+            <Text style={styles.projectFormLabel}>
+              {projectRules.labels.live} {projectRules.liveRequired ? '(required)' : '(optional)'}
+            </Text>
+            <TextInput
+              style={styles.projectFormInput}
+              value={liveUrl}
+              onChangeText={setLiveUrl}
+              placeholder="https://..."
+              placeholderTextColor="#666"
+              autoCapitalize="none"
+            />
+            <Text style={styles.projectFormLabel}>
+              {projectRules.labels.video} {projectRules.videoRequired ? '(required)' : '(optional)'}
+            </Text>
+            <TextInput
+              style={styles.projectFormInput}
+              value={videoUrl}
+              onChangeText={setVideoUrl}
+              placeholder="https://youtube.com/... or Drive"
+              placeholderTextColor="#666"
+              autoCapitalize="none"
+            />
+            {projectRules.extraRequired || projectRules.kind === 'design' || projectRules.kind === 'data' ? (
+              <>
+                <Text style={styles.projectFormLabel}>
+                  {projectRules.labels.extra} {projectRules.extraRequired ? '(required)' : '(optional)'}
+                </Text>
+                <TextInput
+                  style={styles.projectFormInput}
+                  value={extraUrl}
+                  onChangeText={setExtraUrl}
+                  placeholder="https://..."
+                  placeholderTextColor="#666"
+                  autoCapitalize="none"
+                />
+              </>
+            ) : null}
+            <TouchableOpacity
+              style={[styles.projectButton, submittingProject && { opacity: 0.6 }]}
+              onPress={submitProject}
+              disabled={submittingProject}
+            >
+              <Text style={styles.projectButtonText}>
+                {submittingProject ? 'Submitting...' : 'إرسال للمراجعة'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowProjectForm(false)}>
+              <Text style={styles.projectFormCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showCertificate}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowCertificate(false)}
+      >
+        <View style={styles.certOverlay}>
+          <View style={styles.certCard}>
+            <Text style={styles.certBrand}>ELNADY</Text>
+            <Text style={styles.certKicker}>Certificate of Completion</Text>
+            <Text style={styles.certName}>
+              {projectSubmission?.certificate?.studentName || projectSubmission?.fullName || fullName || user?.name || 'Student'}
+            </Text>
+            <Text style={styles.certCopy}>has successfully completed</Text>
+            <Text style={styles.certCourse}>{course.title}</Text>
+            <Text style={styles.certDate}>
+              {new Date(projectSubmission?.certificate?.issuedAt || Date.now()).toLocaleDateString()}
+              {projectSubmission?.certificate?.code ? `  ·  #${projectSubmission.certificate.code}` : ''}
+            </Text>
+            <TouchableOpacity style={styles.projectButton} onPress={() => setShowCertificate(false)}>
+              <Text style={styles.projectButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Video Modal */}
       <Modal
         visible={showVideoModal}
         animationType="slide"
         presentationStyle="fullScreen"
+        onRequestClose={closeVideo}
       >
         <View style={styles.videoModal}>
           <LinearGradient
@@ -793,10 +1024,7 @@ export default function CourseDetailsScreen() {
             <View style={styles.videoHeader}>
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => {
-                  setShowVideoModal(false);
-                  setIsVideoLoading(false);
-                }}
+                onPress={closeVideo}
               >
                 <Text style={styles.closeIcon}>✕</Text>
               </TouchableOpacity>
@@ -828,7 +1056,7 @@ export default function CourseDetailsScreen() {
                         setIsVideoLoading(false);
                         Alert.alert(
                           'خطأ في الفيديو',
-                          `فشل تحميل الفيديو.\n\nالرابط: ${selectedVideo.url}`
+                          `Couldn't load this video.\n\nURL: ${selectedVideo.url}`
                         );
                         console.log('Course WebView error:', error);
                       }}
@@ -851,7 +1079,7 @@ export default function CourseDetailsScreen() {
                         setIsVideoLoading(false);
                         Alert.alert(
                           'خطأ في الفيديو',
-                          `فشل تحميل الفيديو.\n\nالرابط: ${selectedVideo.url}`
+                          `Couldn't load this video.\n\nURL: ${selectedVideo.url}`
                         );
                         console.log('Course video error:', error);
                       }}
@@ -863,13 +1091,13 @@ export default function CourseDetailsScreen() {
                   {isVideoLoading ? (
                     <View style={styles.videoLoading}>
                       <ActivityIndicator color="#E50914" size="large" />
-                      <Text style={styles.videoLoadingText}>جاري تحميل الفيديو...</Text>
+                      <Text style={styles.videoLoadingText}>Loading video...</Text>
                     </View>
                   ) : null}
                 </>
               ) : (
                 <View style={styles.videoLoadingInline}>
-                  <Text style={styles.videoLoadingText}>لا يوجد رابط فيديو لهذا الدرس</Text>
+                  <Text style={styles.videoLoadingText}>No video URL for this lesson</Text>
                 </View>
               )}
             </View>
@@ -1358,6 +1586,129 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
   },
+  projectHint: {
+    color: '#CCCCCC',
+    fontSize: 13,
+    lineHeight: 20,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  projectStatus: {
+    color: '#F59E0B',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  projectStatusRejected: {
+    color: '#F87171',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  projectStatusApproved: {
+    color: '#4ADE80',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  projectFormOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  projectFormCard: {
+    backgroundColor: '#111',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  projectFormTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  projectFormHint: {
+    color: '#aaa',
+    fontSize: 13,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  projectFormLabel: {
+    color: '#ccc',
+    fontSize: 13,
+    marginBottom: 6,
+  },
+  projectFormInput: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 10,
+    color: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  projectFormCancel: {
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 12,
+    fontSize: 14,
+  },
+  certOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  certCard: {
+    backgroundColor: '#0b0b0b',
+    borderRadius: 18,
+    padding: 28,
+    borderWidth: 2,
+    borderColor: '#E50914',
+    alignItems: 'center',
+  },
+  certBrand: {
+    color: '#E50914',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 3,
+    marginBottom: 8,
+  },
+  certKicker: {
+    color: '#aaa',
+    fontSize: 13,
+    marginBottom: 18,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  certName: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  certCopy: {
+    color: '#999',
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  certCourse: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  certDate: {
+    color: '#888',
+    fontSize: 12,
+    marginBottom: 22,
+  },
   projectButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
@@ -1377,6 +1728,13 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     marginBottom: 25,
+  },
+  progressPercent: {
+    color: '#E50914',
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
   },
   progressBar: {
     height: 8,

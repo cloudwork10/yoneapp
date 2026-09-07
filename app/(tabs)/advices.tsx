@@ -1,12 +1,14 @@
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Dimensions,
     ImageBackground,
+    Pressable,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -25,6 +27,12 @@ import {
 import { useUser } from '../../contexts/UserContext';
 import { showSignInAlert } from '../../hooks/useAuthGuard';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
+import {
+  DEFAULT_ADVICE_CATEGORIES,
+  adviceCategoryMeta,
+  fetchPublicAdviceCategories,
+  mergeAdviceCategories,
+} from '../../utils/adviceCategories';
 
 const { width, height } = Dimensions.get('window');
 
@@ -45,21 +53,44 @@ interface Advice {
 export default function AdvicesScreen() {
   const { user } = useUser();
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [categories, setCategories] = useState([
+    { id: 'all', name: 'All', icon: '🌟', color: '#E50914' },
+    ...DEFAULT_ADVICE_CATEGORIES.map((item, index) => adviceCategoryMeta(item.id, index, item.name)),
+  ]);
   const [activeAudioId, setActiveAudioId] = useState<string | null>(null);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const [subscriptionAccess, setSubscriptionAccess] = useState<any>(null);
+  const [audioVolume, setAudioVolume] = useState(1);
+  const [audioRate, setAudioRate] = useState(1);
+  const seekTrackWidth = useRef(1);
   const [audioStates, setAudioStates] = useState<{[key: string]: {
     isPlaying: boolean;
     position: number;
     duration: number;
     sound: Audio.Sound | null;
   }}>({});
+  const audioStatesRef = useRef(audioStates);
+  audioStatesRef.current = audioStates;
+
+  const formatClock = (ms: number) => {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, '0')}`;
+  };
+
+  const PLAYBACK_RATES = [1, 1.5, 2];
 
   // Fetch advices from API
   const fetchAdvices = async () => {
     try {
       setLoading(true);
       setError('');
+      const remoteCategories = await fetchPublicAdviceCategories().catch(() => null);
+      if (remoteCategories) {
+        setCategories([
+          { id: 'all', name: 'All', icon: '🌟', color: '#E50914' },
+          ...remoteCategories.map((item, index) => adviceCategoryMeta(item.id, index, item.name)),
+        ]);
+      }
       
       // Clear existing data first to force refresh
       console.log('💡 Clearing existing advices data...');
@@ -128,6 +159,15 @@ export default function AdvicesScreen() {
         })));
         
         setAdvices(transformedAdvices);
+        const remoteCategories = await fetchPublicAdviceCategories().catch(() => null);
+        const fromAdvices = [...new Set(transformedAdvices.map((a: any) => a.category).filter(Boolean))]
+          .map((id) => ({ id, name: id }));
+        const nextCategories = remoteCategories
+          ?? mergeAdviceCategories(DEFAULT_ADVICE_CATEGORIES, fromAdvices);
+        setCategories([
+          { id: 'all', name: 'All', icon: '🌟', color: '#E50914' },
+          ...nextCategories.map((item, index) => adviceCategoryMeta(item.id, index, item.name)),
+        ]);
         console.log('💡 Advices state updated, count:', transformedAdvices.length);
         console.log('💡 New advices data:', transformedAdvices.map((a: any) => ({ 
           id: a.id, 
@@ -177,6 +217,31 @@ export default function AdvicesScreen() {
     }
   };
 
+  const stopAllAudios = async () => {
+    try {
+      const states = audioStatesRef.current;
+      await Promise.all(
+        Object.values(states).map(async (audioState) => {
+          if (!audioState.sound) return;
+          try {
+            await audioState.sound.stopAsync();
+          } catch {
+            // already stopped
+          }
+          try {
+            await audioState.sound.unloadAsync();
+          } catch {
+            // already unloaded
+          }
+        })
+      );
+      setAudioStates({});
+      setActiveAudioId(null);
+    } catch (error) {
+      console.error('Error stopping all audios:', error);
+    }
+  };
+
   // Initialize audio mode
   useEffect(() => {
     const setupAudio = async () => {
@@ -190,37 +255,32 @@ export default function AdvicesScreen() {
         console.error('Error setting up audio mode:', error);
       }
     };
-    
+
     setupAudio();
-    
+
     return () => {
-      // Cleanup all audio when component unmounts
-      Object.values(audioStates).forEach(audioState => {
-        if (audioState.sound) {
-          audioState.sound.unloadAsync().catch(console.error);
-        }
+      Object.values(audioStatesRef.current).forEach((audioState) => {
+        audioState.sound?.stopAsync().catch(() => {});
+        audioState.sound?.unloadAsync().catch(() => {});
       });
     };
   }, []);
 
-  // Fetch advices when screen comes into focus
+  // Fetch advices when screen comes into focus; stop audio when leaving
   useFocusEffect(
     useCallback(() => {
-      console.log('💡 Advices screen focused, refreshing data...');
       fetchAdvices();
       checkSubscription();
+      return () => {
+        Object.values(audioStatesRef.current).forEach((audioState) => {
+          audioState.sound?.stopAsync().catch(() => {});
+          audioState.sound?.unloadAsync().catch(() => {});
+        });
+        setAudioStates({});
+        setActiveAudioId(null);
+      };
     }, [])
   );
-
-  const categories = [
-    { id: 'all', name: 'All', icon: '🌟', color: '#E50914' },
-    { id: 'career-shift', name: 'Career Change', icon: '🚀', color: '#FF6B35' },
-    { id: 'kids', name: 'Kids & Family', icon: '👶', color: '#4ECDC4' },
-    { id: 'motivation', name: 'Motivation', icon: '💪', color: '#45B7D1' },
-    { id: 'success', name: 'Success Tips', icon: '🏆', color: '#96CEB4' },
-    { id: 'programming', name: 'Programming', icon: '💻', color: '#9B59B6' },
-    { id: 'business', name: 'Business', icon: '💼', color: '#F39C12' },
-  ];
 
   const [advices, setAdvices] = useState<Advice[]>([]);
   const [loading, setLoading] = useState(false);
@@ -266,76 +326,75 @@ export default function AdvicesScreen() {
 
   const playAudio = async (audioUrl: string, adviceId: string) => {
     try {
-      // Stop all other audios first
-      await stopAllAudios();
-
-      // Check if this audio is already loaded
-      if (audioStates[adviceId]?.sound) {
-        // Resume existing audio
-        await audioStates[adviceId].sound!.playAsync();
-        setAudioStates(prev => ({
-          ...prev,
-          [adviceId]: {
-            ...prev[adviceId],
-            isPlaying: true
+      const existing = audioStatesRef.current[adviceId]?.sound;
+      if (existing) {
+        const status = await existing.getStatusAsync();
+        if (status.isLoaded) {
+          await existing.setVolumeAsync(audioVolume);
+          await existing.setRateAsync(audioRate, true);
+          if (!status.isPlaying) {
+            await existing.playAsync();
           }
-        }));
-        setActiveAudioId(adviceId);
-        return;
+          setAudioStates((prev) => ({
+            ...prev,
+            [adviceId]: { ...prev[adviceId], isPlaying: true },
+          }));
+          setActiveAudioId(adviceId);
+          return;
+        }
       }
 
-      // Load new audio
+      for (const [id, audioState] of Object.entries(audioStatesRef.current)) {
+        if (id !== adviceId && audioState.sound) {
+          await audioState.sound.unloadAsync();
+        }
+      }
+      setAudioStates((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((id) => {
+          if (id !== adviceId) delete next[id];
+        });
+        return next;
+      });
+
       const { sound } = await Audio.Sound.createAsync(
         { uri: audioUrl },
-        { 
-          shouldPlay: true, 
-          isLooping: false
+        {
+          shouldPlay: true,
+          isLooping: false,
+          volume: audioVolume,
+          rate: audioRate,
+          shouldCorrectPitch: true,
         }
       );
 
-      // Set up status update
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded) {
-          setAudioStates(prev => ({
+          setAudioStates((prev) => ({
             ...prev,
             [adviceId]: {
               ...prev[adviceId],
+              sound,
               isPlaying: status.isPlaying || false,
               position: status.positionMillis || 0,
-              duration: status.durationMillis || 0
-            }
+              duration: status.durationMillis || 0,
+            },
           }));
         }
       });
 
-      // Update state
-      setAudioStates(prev => ({
+      setAudioStates((prev) => ({
         ...prev,
         [adviceId]: {
           isPlaying: true,
           position: 0,
           duration: 0,
-          sound: sound
-        }
+          sound,
+        },
       }));
       setActiveAudioId(adviceId);
-
     } catch (error) {
       console.error('Error playing audio:', error);
-    }
-  };
-
-  const stopAllAudios = async () => {
-    try {
-      for (const [adviceId, audioState] of Object.entries(audioStates)) {
-        if (audioState.sound) {
-          await audioState.sound.unloadAsync();
-        }
-      }
-      setAudioStates({});
-      setActiveAudioId(null);
-    } catch (error) {
-      console.error('Error stopping all audios:', error);
     }
   };
 
@@ -353,6 +412,58 @@ export default function AdvicesScreen() {
       }
     } catch (error) {
       console.error('Error pausing audio:', error);
+    }
+  };
+
+  const seekAudio = async (adviceId: string, ratio: number) => {
+    try {
+      const sound = audioStates[adviceId]?.sound;
+      if (!sound) return;
+      const status = await sound.getStatusAsync();
+      if (!status.isLoaded || !status.durationMillis) return;
+      await sound.setPositionAsync(status.durationMillis * Math.max(0, Math.min(1, ratio)));
+    } catch (error) {
+      console.error('Error seeking audio:', error);
+    }
+  };
+
+  const cyclePlaybackRate = async (adviceId: string) => {
+    const next = PLAYBACK_RATES[(PLAYBACK_RATES.indexOf(audioRate) + 1) % PLAYBACK_RATES.length];
+    setAudioRate(next);
+    try {
+      const sound = audioStates[adviceId]?.sound;
+      if (sound) {
+        await sound.setRateAsync(next, true);
+      }
+    } catch (error) {
+      console.error('Error changing playback rate:', error);
+    }
+  };
+
+  const skipAudio = async (adviceId: string, deltaMs: number) => {
+    try {
+      const sound = audioStates[adviceId]?.sound;
+      if (!sound) return;
+      const status = await sound.getStatusAsync();
+      if (!status.isLoaded) return;
+      const duration = status.durationMillis || 0;
+      const next = Math.max(0, Math.min(duration, (status.positionMillis || 0) + deltaMs));
+      await sound.setPositionAsync(next);
+    } catch (error) {
+      console.error('Error skipping audio:', error);
+    }
+  };
+
+  const changeVolume = async (adviceId: string, delta: number) => {
+    const next = Math.round(Math.max(0, Math.min(1, audioVolume + delta)) * 100) / 100;
+    setAudioVolume(next);
+    try {
+      const sound = audioStates[adviceId]?.sound;
+      if (sound) {
+        await sound.setVolumeAsync(next);
+      }
+    } catch (error) {
+      console.error('Error changing volume:', error);
     }
   };
 
@@ -390,11 +501,15 @@ export default function AdvicesScreen() {
     };
     
     return (
-    <TouchableOpacity 
-      key={`advice-${advice.id}`} 
+    <View
+      key={`advice-${advice.id}`}
       style={[styles.adviceCard, isLocked && styles.lockedCard]}
-      onPress={handleAdvicePress}
     >
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={handleAdvicePress}
+        disabled={!isLocked}
+      >
       <ImageBackground
         source={{ uri: advice.thumbnail }}
         style={styles.adviceThumbnail}
@@ -435,72 +550,119 @@ export default function AdvicesScreen() {
            </View>
          </LinearGradient>
        </ImageBackground>
-       
-       {/* Audio Player Section */}
-       {advice.isRecorded && advice.audioUrl && (
+      </TouchableOpacity>
+
+       {advice.isRecorded && advice.audioUrl ? (
          <View style={styles.audioPlayerSection}>
-           <View style={styles.audioPlayer}>
-             <TouchableOpacity 
+           <Pressable
+             style={styles.seekTrack}
+             onLayout={(e) => {
+               seekTrackWidth.current = e.nativeEvent.layout.width;
+             }}
+             onPress={(e) => {
+               seekAudio(
+                 advice.id,
+                 e.nativeEvent.locationX / Math.max(1, seekTrackWidth.current)
+               );
+             }}
+           >
+             <View style={styles.seekTrackLine}>
+               <View
+                 style={[
+                   styles.seekFill,
+                   {
+                     width:
+                       activeAudioId === advice.id && audioStates[advice.id]?.duration > 0
+                         ? `${(audioStates[advice.id].position / audioStates[advice.id].duration) * 100}%`
+                         : '0%',
+                   },
+                 ]}
+               />
+               <View
+                 style={[
+                   styles.seekThumb,
+                   {
+                     left:
+                       activeAudioId === advice.id && audioStates[advice.id]?.duration > 0
+                         ? `${(audioStates[advice.id].position / audioStates[advice.id].duration) * 100}%`
+                         : '0%',
+                   },
+                 ]}
+               />
+             </View>
+           </Pressable>
+           <View style={styles.audioTime}>
+             <Text style={styles.audioTimeText}>
+               {activeAudioId === advice.id && audioStates[advice.id]
+                 ? formatClock(audioStates[advice.id].position)
+                 : '0:00'}
+             </Text>
+             <Text style={styles.audioTimeText}>
+               {activeAudioId === advice.id && audioStates[advice.id]?.duration > 0
+                 ? `-${formatClock(audioStates[advice.id].duration - audioStates[advice.id].position)}`
+                 : advice.duration}
+             </Text>
+           </View>
+
+           <View style={styles.audioTransport}>
+             <TouchableOpacity
+               style={styles.audioSideHit}
+               onPress={() => cyclePlaybackRate(advice.id)}
+               hitSlop={8}
+             >
+               <Text style={styles.audioRateText}>{audioRate === 1 ? '1x' : `${audioRate}x`}</Text>
+             </TouchableOpacity>
+
+             <TouchableOpacity
+               style={styles.audioSideHit}
+               onPress={() => skipAudio(advice.id, -10000)}
+               hitSlop={8}
+             >
+               <MaterialIcons name="replay-10" size={34} color="#FFFFFF" />
+             </TouchableOpacity>
+
+             <Pressable
                style={styles.audioPlayButton}
                onPress={() => {
-                 if (activeAudioId === advice.id) {
-                   if (audioStates[advice.id]?.isPlaying) {
-                     pauseAudio(advice.id);
-                   } else {
-                     playAudio(advice.audioUrl!, advice.id);
-                   }
+                 if (activeAudioId === advice.id && audioStates[advice.id]?.isPlaying) {
+                   pauseAudio(advice.id);
                  } else {
                    playAudio(advice.audioUrl!, advice.id);
                  }
                }}
              >
-               <Text style={styles.audioPlayIcon}>
-                 {activeAudioId === advice.id && audioStates[advice.id]?.isPlaying ? '⏸️' : '▶️'}
-               </Text>
-             </TouchableOpacity>
-             
-             <View style={styles.audioInfo}>
-               <View style={styles.audioProgressBar}>
-                 <View 
-                   style={[
-                     styles.audioProgress, 
-                     { 
-                       width: activeAudioId === advice.id && audioStates[advice.id]?.duration > 0 
-                         ? `${(audioStates[advice.id].position / audioStates[advice.id].duration) * 100}%` 
-                         : '0%' 
-                     }
-                   ]} 
+               <View pointerEvents="none">
+                 <Ionicons
+                   name={activeAudioId === advice.id && audioStates[advice.id]?.isPlaying ? 'pause' : 'play'}
+                   size={22}
+                   color="#FFFFFF"
+                   style={activeAudioId === advice.id && audioStates[advice.id]?.isPlaying ? undefined : { marginLeft: 2 }}
                  />
                </View>
-               <View style={styles.audioTime}>
-                 <Text style={styles.audioTimeText}>
-                   {activeAudioId === advice.id && audioStates[advice.id]
-                     ? `${Math.floor(audioStates[advice.id].position / 1000 / 60)}:${Math.floor((audioStates[advice.id].position / 1000) % 60).toString().padStart(2, '0')}`
-                     : '0:00'
-                   }
-                 </Text>
-                 <Text style={styles.audioTimeText}>
-                   {activeAudioId === advice.id && audioStates[advice.id]?.duration > 0
-                     ? `${Math.floor(audioStates[advice.id].duration / 1000 / 60)}:${Math.floor((audioStates[advice.id].duration / 1000) % 60).toString().padStart(2, '0')}`
-                     : advice.duration
-                   }
-                 </Text>
-               </View>
-             </View>
-             
-             <TouchableOpacity 
-               style={styles.audioVolumeButton}
-               onPress={() => {
-                 if (activeAudioId === advice.id) {
-                   stopAudio(advice.id);
-                 }
-               }}
+             </Pressable>
+
+             <TouchableOpacity
+               style={styles.audioSideHit}
+               onPress={() => skipAudio(advice.id, 10000)}
+               hitSlop={8}
              >
-               <Text style={styles.audioVolumeIcon}>🔊</Text>
+               <MaterialIcons name="forward-10" size={34} color="#FFFFFF" />
+             </TouchableOpacity>
+
+             <TouchableOpacity
+               style={styles.audioSideHit}
+               onPress={() => changeVolume(advice.id, audioVolume > 0 ? -1 : 1)}
+               hitSlop={8}
+             >
+               <Ionicons
+                 name={audioVolume === 0 ? 'volume-mute' : 'volume-medium'}
+                 size={22}
+                 color="#FFFFFF"
+               />
              </TouchableOpacity>
            </View>
          </View>
-       )}
+       ) : null}
       
        <View style={styles.adviceFooter}>
          <View style={styles.adviceMeta}>
@@ -516,7 +678,7 @@ export default function AdvicesScreen() {
            </TouchableOpacity>
          </View>
        </View>
-    </TouchableOpacity>
+    </View>
   );
 
 }
@@ -524,7 +686,7 @@ export default function AdvicesScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-        <FixedBackBar />
+        <FixedBackBar returnToLastTab />
         <ScrollView 
           style={styles.scrollView} 
           showsVerticalScrollIndicator={false}
@@ -731,7 +893,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   adviceCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#000000',
     borderRadius: 20,
     overflow: 'hidden',
     elevation: 8,
@@ -739,6 +901,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1a1a1a',
   },
   adviceThumbnail: {
     height: 200,
@@ -796,91 +960,79 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   audioPlayerSection: {
-    padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    backgroundColor: '#000000',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  audioPlayer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
+    borderTopColor: '#111111',
   },
   audioPlayButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: '#E50914',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  audioPlayIcon: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    marginLeft: 2,
+  seekTrack: {
+    height: 22,
+    justifyContent: 'center',
   },
-  audioInfo: {
-    flex: 1,
+  seekTrackLine: {
+    height: 4,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 2,
+    justifyContent: 'center',
   },
-  audioProgressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 3,
-    marginBottom: 10,
-    overflow: 'hidden',
-  },
-  audioProgress: {
-    height: '100%',
-    width: '30%',
+  seekFill: {
+    height: 4,
     backgroundColor: '#E50914',
-    borderRadius: 3,
-    shadowColor: '#E50914',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.5,
-    shadowRadius: 2,
+    borderRadius: 2,
+  },
+  seekThumb: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E50914',
+    marginLeft: -6,
+    top: -4,
   },
   audioTime: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 10,
   },
   audioTimeText: {
-    fontSize: 13,
-    color: '#CCCCCC',
+    fontSize: 12,
+    color: '#AAAAAA',
     fontWeight: '600',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
-  audioVolumeButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
+  audioTransport: {
+    flexDirection: 'row',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
-  audioVolumeIcon: {
-    fontSize: 18,
+  audioSideHit: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioRateText: {
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   adviceFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: '#000000',
   },
   adviceMeta: {
     flexDirection: 'row',

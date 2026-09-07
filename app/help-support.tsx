@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CONTACT_EMAIL } from '../config/legal';
+import { CONTACT_EMAIL, TELEGRAM_URL, WHATSAPP_NUMBER, whatsappWaMeNumber } from '../config/legal';
 
 export default function HelpSupportScreen() {
   const [message, setMessage] = useState('');
@@ -34,9 +34,8 @@ export default function HelpSupportScreen() {
   };
 
   const openWhatsApp = () => {
-    const phoneNumber = '+201234567890'; // Replace with actual support number
     const message = 'مرحباً، أحتاج مساعدة في تطبيق النادي';
-    const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${whatsappWaMeNumber()}?text=${encodeURIComponent(message)}`;
     
     Linking.openURL(whatsappUrl).catch(() => {
       Alert.alert('خطأ', 'لا يمكن فتح WhatsApp');
@@ -44,8 +43,7 @@ export default function HelpSupportScreen() {
   };
 
   const openTelegram = () => {
-    const telegramUrl = 'https://t.me/elnady_support';
-    Linking.openURL(telegramUrl).catch(() => {
+    Linking.openURL(TELEGRAM_URL).catch(() => {
       Alert.alert('خطأ', 'لا يمكن فتح Telegram');
     });
   };
@@ -80,7 +78,7 @@ export default function HelpSupportScreen() {
               </View>
               <View style={styles.contactInfo}>
                 <Text style={styles.contactTitle}>WhatsApp</Text>
-                <Text style={styles.contactDescription}>تواصل معنا مباشرة عبر WhatsApp</Text>
+                <Text style={styles.contactDescription}>{WHATSAPP_NUMBER}</Text>
               </View>
               <Text style={styles.contactArrow}>→</Text>
             </TouchableOpacity>

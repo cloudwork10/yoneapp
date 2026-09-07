@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../components/FixedBackBar';
-import { CONTACT_EMAIL } from '../config/legal';
+import { CONTACT_EMAIL, TELEGRAM_URL, WHATSAPP_NUMBER, whatsappWaMeNumber } from '../config/legal';
 
 export default function ContactScreen() {
   const openEmail = () => {
@@ -22,9 +22,8 @@ export default function ContactScreen() {
   };
 
   const openWhatsApp = () => {
-    const phoneNumber = '+201234567890';
     const message = 'Hello, I need help with ELNADY app';
-    const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${whatsappWaMeNumber()}?text=${encodeURIComponent(message)}`;
 
     Linking.openURL(whatsappUrl).catch(() => {
       Alert.alert('Error', 'Could not open WhatsApp');
@@ -32,16 +31,8 @@ export default function ContactScreen() {
   };
 
   const openTelegram = () => {
-    const telegramUrl = 'https://t.me/elnady_support';
-    Linking.openURL(telegramUrl).catch(() => {
+    Linking.openURL(TELEGRAM_URL).catch(() => {
       Alert.alert('Error', 'Could not open Telegram');
-    });
-  };
-
-  const openDiscord = () => {
-    const discordUrl = 'https://discord.gg/elnady';
-    Linking.openURL(discordUrl).catch(() => {
-      Alert.alert('Error', 'Could not open Discord');
     });
   };
 
@@ -75,7 +66,7 @@ export default function ContactScreen() {
               </View>
               <View style={styles.contactInfo}>
                 <Text style={styles.contactTitle}>WhatsApp</Text>
-                <Text style={styles.contactDescription}>Chat with us directly</Text>
+                <Text style={styles.contactDescription}>{WHATSAPP_NUMBER}</Text>
               </View>
               <Text style={styles.contactArrow}>→</Text>
             </TouchableOpacity>
@@ -87,17 +78,6 @@ export default function ContactScreen() {
               <View style={styles.contactInfo}>
                 <Text style={styles.contactTitle}>Telegram</Text>
                 <Text style={styles.contactDescription}>Join our support channel</Text>
-              </View>
-              <Text style={styles.contactArrow}>→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.contactItem} onPress={openDiscord}>
-              <View style={styles.contactIcon}>
-                <Text style={styles.contactEmoji}>🎮</Text>
-              </View>
-              <View style={styles.contactInfo}>
-                <Text style={styles.contactTitle}>Discord</Text>
-                <Text style={styles.contactDescription}>Join our community</Text>
               </View>
               <Text style={styles.contactArrow}>→</Text>
             </TouchableOpacity>

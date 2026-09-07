@@ -1,3 +1,4 @@
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useUser } from '@/contexts/UserContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
@@ -5,13 +6,44 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Alert, Clipboard, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Clipboard, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import NotificationService from '../services/NotificationService';
 import { getCourseAccessLabel, resolveCourseAccessType } from '../utils/contentAccess';
+import {
+  DEFAULT_COURSE_CATEGORIES,
+  courseCategoryLabel,
+  mergeCourseCategories,
+  normalizeCourseCategory,
+} from '../utils/courseCategories';
+import {
+  CV_FILTERS,
+  inferCvCategory,
+  mergeCvCategories,
+  normalizeCvCategory,
+} from '../utils/cvCategory';
+import {
+  DEFAULT_ADVICE_CATEGORIES,
+  fetchPublicAdviceCategories,
+  mergeAdviceCategories,
+  normalizeAdviceCategoryId,
+  normalizeAdviceCategoryName,
+  readLocalAdviceCategories,
+  writeLocalAdviceCategories,
+} from '../utils/adviceCategories';
+import {
+  DEFAULT_PROGRAMMING_LANGUAGES,
+  fetchPublicProgrammingLanguages,
+  mergeProgrammingLanguages,
+  normalizeProgrammingLanguageName,
+  readLocalProgrammingLanguages,
+  writeLocalProgrammingLanguages,
+} from '../utils/programmingLanguages';
+import { PROJECT_KINDS, resolveProjectRules } from '../utils/projectRules';
 import { makeAuthenticatedRequest, refreshAuthToken } from '../utils/tokenRefresh';
+import { uploadContentImage } from '../utils/uploadContentImage';
 
 type AccessType = 'free' | 'premium';
 
@@ -1003,8 +1035,33 @@ export default function ContentManagementScreen() {
       );
     }
 
-    const total = (stats.total && (stats.total as Record<string, number>)[contentType.id]) ?? 0;
-    const active = (stats.active && (stats.active as Record<string, number>)[contentType.id]) ?? 0;
+    const localItems =
+      contentType.id === 'thoughts'
+        ? thoughts
+        : contentType.id === 'courses'
+          ? courses
+          : contentType.id === 'podcasts'
+            ? podcasts
+            : contentType.id === 'articles'
+              ? articles
+              : contentType.id === 'roadmaps'
+                ? roadmaps
+                : contentType.id === 'advices'
+                  ? advices
+                  : contentType.id === 'terms'
+                    ? terms
+                    : contentType.id === 'cvTemplates'
+                      ? cvTemplates
+                      : null;
+
+    const apiTotal = (stats.total && (stats.total as Record<string, number>)[contentType.id]) ?? 0;
+    const apiActive = (stats.active && (stats.active as Record<string, number>)[contentType.id]) ?? 0;
+    const localTotal = Array.isArray(localItems) ? localItems.length : 0;
+    const localActive = Array.isArray(localItems)
+      ? localItems.filter((item: any) => item?.isActive !== false).length
+      : 0;
+    const total = Math.max(apiTotal, localTotal);
+    const active = Math.max(apiActive, localActive);
     const inactive = total - active;
     
     // Log stats for thoughts specifically
@@ -1106,7 +1163,7 @@ export default function ContentManagementScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity 
                       style={styles.deleteButton}
-                      onPress={() => handleDeleteCV(cv.id)}
+                      onPress={() => handleDeleteCV(cv._id || cv.id)}
                     >
                       <Text style={styles.deleteButtonText}>🗑️</Text>
                     </TouchableOpacity>
@@ -1448,7 +1505,8 @@ export default function ContentManagementScreen() {
                 <Text style={styles.contentMetaText}>Views: {thought.views || 0} | Likes: {thought.likes || 0}</Text>
                 <Text style={styles.contentMetaText}>Description: {thought.description?.substring(0, 100)}...</Text>
                 <Text style={styles.contentMetaText}>
-                  Status: {thought.isActive ? '✅ Active' : '❌ Inactive'} 
+                  Status: {thought.isActive ? '✅ Active' : '❌ Inactive'}
+                  {thought.comingSoon ? ' | ⏳ قريبًا' : ' | ▶ متاحة'}
                   {thought.isFeatured ? ' | 🌟 Featured' : ''}
                 </Text>
               </View>
@@ -2450,9 +2508,48 @@ export default function ContentManagementScreen() {
             <ScrollView style={styles.modalContent}>
               <CVForm 
                 cv={editingCV}
+                knownCategories={cvTemplates.map((item) => item.category)}
                 onSave={async (cvData) => {
                   try {
                     console.log('Saving CV data:', cvData);
+                    const { selectedFile, ...payload } = cvData;
+
+                    if (selectedFile?.uri || selectedFile?.file) {
+                      const pdfForm = new FormData();
+                      if (selectedFile.file) {
+                        pdfForm.append('pdf', selectedFile.file, selectedFile.name || 'cv.pdf');
+                      } else {
+                        pdfForm.append('pdf', {
+                          uri: selectedFile.uri,
+                          type: selectedFile.mimeType || 'application/pdf',
+                          name: selectedFile.name || 'cv.pdf',
+                        } as any);
+                      }
+
+                      const uploadResponse = await makeAuthenticatedRequest(
+                        `${API_BASE_URL}/api/admin/content/upload-pdf`,
+                        { method: 'POST', body: pdfForm }
+                      );
+
+                      if (!uploadResponse.ok) {
+                        console.error('PDF upload failed:', uploadResponse.status);
+                        Alert.alert('Error', 'Failed to upload PDF file');
+                        return;
+                      }
+
+                      const uploadResult = await uploadResponse.json();
+                      payload.downloadUrl = uploadResult?.data?.pdfUrl || payload.downloadUrl;
+                      payload.fileType = 'pdf';
+                    }
+
+                    if (payload.fileType === 'pdf' && !payload.downloadUrl) {
+                      Alert.alert('Error', 'Please choose a PDF file before saving');
+                      return;
+                    }
+                    if (payload.fileType === 'link' && !String(payload.downloadUrl || '').trim()) {
+                      Alert.alert('Error', 'Please enter a download URL');
+                      return;
+                    }
                     
                     let response;
                     if (editingCV) {
@@ -2463,7 +2560,7 @@ export default function ContentManagementScreen() {
                         headers: {
                           'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(cvData),
+                        body: JSON.stringify(payload),
                       });
                     } else {
                       // Add new CV
@@ -2473,7 +2570,7 @@ export default function ContentManagementScreen() {
                         headers: {
                           'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(cvData),
+                        body: JSON.stringify(payload),
                       });
                     }
 
@@ -2550,6 +2647,10 @@ export default function ContentManagementScreen() {
                   article={editingArticle}
                   onSave={async (articleData) => {
                     try {
+                      if (articleData?.image && /^(file|ph|content|assets-library):/i.test(articleData.image)) {
+                        Alert.alert('Error', 'Please choose the article image again so it can upload');
+                        return;
+                      }
                       const url = editingArticle 
                         ? `${API_BASE_URL}/api/admin/content/articles/${editingArticle._id}`
                         : `${API_BASE_URL}/api/admin/content/articles`;
@@ -2669,7 +2770,8 @@ export default function ContentManagementScreen() {
                         ]);
                       } else {
                         const errorData = await response.json().catch(() => ({}));
-                        Alert.alert('Error', errorData?.message || `Failed to save roadmap (${response.status})`);
+                        const detail = errorData?.errors?.[0]?.msg;
+                        Alert.alert('Error', detail || errorData?.message || `Failed to save roadmap (${response.status})`);
                       }
                     } catch (error) {
                       Alert.alert('Error', `Network error: ${error.message}`);
@@ -2809,6 +2911,7 @@ export default function ContentManagementScreen() {
               <ScrollView style={styles.modalContent}>
                 <CourseForm 
                   course={editingCourse}
+                  knownCategories={courses.map((item) => item.category)}
                   onSave={async (courseData) => {
                     try {
                       console.log('📚 Saving course:', JSON.stringify(courseData, null, 2));
@@ -2886,6 +2989,7 @@ export default function ContentManagementScreen() {
               <ScrollView style={styles.modalScrollView}>
                 <AdviceForm
                   advice={editingAdvice}
+                  knownCategories={advices.map((item) => item.category).filter(Boolean)}
                   onSave={async (adviceData) => {
                     try {
                       const url = editingAdvice 
@@ -2966,18 +3070,34 @@ export default function ContentManagementScreen() {
                     try {
                       console.log('💭 Saving programmer thought:', JSON.stringify(thoughtData, null, 2));
                       
-                      const response = await makeAuthenticatedRequest(
-                        editingThought 
+                      const thoughtUrl = editingThought 
                           ? `${API_BASE_URL}/api/public/programmer-thoughts/${editingThought._id}`
-                          : `${API_BASE_URL}/api/public/programmer-thoughts`,
-                        {
+                          : `${API_BASE_URL}/api/public/programmer-thoughts`;
+                      const saveThought = (payload) => makeAuthenticatedRequest(thoughtUrl, {
                           method: editingThought ? 'PUT' : 'POST',
                           headers: {
                             'Content-Type': 'application/json',
                           },
-                          body: JSON.stringify(thoughtData),
+                          body: JSON.stringify(payload),
+                        });
+
+                      let response = await saveThought(thoughtData);
+
+                      // Production API still requires videoUrl until the backend is deployed.
+                      if (!response.ok && thoughtData.comingSoon && !thoughtData.videoUrl) {
+                        const errorText = await response.text();
+                        if (errorText.includes('Video URL is required')) {
+                          response = await saveThought({
+                            ...thoughtData,
+                            videoUrl: 'https://www.youtube.com/watch?v=coming-soon',
+                            tags: [...new Set([...(thoughtData.tags || []), 'coming-soon'])],
+                          });
+                        } else {
+                          console.error('❌ Thought save error:', errorText);
+                          Alert.alert('Error', `Failed to save thought: ${response.status} - ${errorText}`);
+                          return;
                         }
-                      );
+                      }
 
                       console.log('📡 Thought save response status:', response.status);
                       
@@ -3043,6 +3163,7 @@ export default function ContentManagementScreen() {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <TermForm 
                   term={editingTerm}
+                  knownLanguages={terms.map((item) => item.language).filter(Boolean)}
                   onSave={async (termData) => {
                     try {
                       console.log('⚡ Saving programming term:', JSON.stringify(termData, null, 2));
@@ -3108,11 +3229,12 @@ export default function ContentManagementScreen() {
 }
 
 // CV Form Component
-const CVForm = ({ cv, onSave, onCancel }: { cv: any, onSave: (data: any) => void, onCancel: () => void }) => {
+const CVForm = ({ cv, onSave, onCancel, knownCategories = [] }: { cv: any, onSave: (data: any) => void, onCancel: () => void, knownCategories?: string[] }) => {
   const [formData, setFormData] = useState({
     name: cv?.name || '',
     title: cv?.title || '',
     description: cv?.description || '',
+    category: inferCvCategory(cv),
     experience: cv?.experience || '',
     education: cv?.education || '',
     skills: cv?.skills?.join(', ') || '',
@@ -3121,6 +3243,16 @@ const CVForm = ({ cv, onSave, onCancel }: { cv: any, onSave: (data: any) => void
     accessType: cv?.accessType || (cv?.price === 'Premium' ? 'premium' : 'free'),
   });
   const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [extraCategories, setExtraCategories] = useState<string[]>([]);
+  const [hiddenCategories, setHiddenCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState('');
+  const defaultCvCategories = CV_FILTERS.filter((item) => item.value !== 'All').map((item) => item.value);
+  const categoryOptions = mergeCvCategories(
+    defaultCvCategories,
+    knownCategories,
+    extraCategories,
+    [formData.category]
+  ).filter((item) => !hiddenCategories.some((hidden) => hidden.toLowerCase() === item.toLowerCase()));
 
   const pickDocument = async () => {
     try {
@@ -3146,12 +3278,29 @@ const CVForm = ({ cv, onSave, onCancel }: { cv: any, onSave: (data: any) => void
       return;
     }
 
+    if (formData.fileType === 'pdf' && !selectedFile && !formData.downloadUrl) {
+      Alert.alert('Error', 'Please choose a PDF file');
+      return;
+    }
+
+    if (formData.fileType === 'link' && !String(formData.downloadUrl || '').trim()) {
+      Alert.alert('Error', 'Please enter a download URL');
+      return;
+    }
+
+    const category = normalizeCvCategory(formData.category);
+    if (!category) {
+      Alert.alert('Error', 'Please choose or add a specialty');
+      return;
+    }
+
     const cvData = {
       ...formData,
+      category,
       skills: formData.skills.split(',').map(skill => skill.trim()).filter(skill => skill),
       accessType: formData.accessType || 'free',
       price: formData.accessType === 'premium' ? 'Premium' : 'Free',
-      selectedFile: selectedFile // Include the selected file
+      selectedFile,
     };
 
     onSave(cvData);
@@ -3192,6 +3341,86 @@ const CVForm = ({ cv, onSave, onCancel }: { cv: any, onSave: (data: any) => void
           multiline
           numberOfLines={3}
         />
+      </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.formLabel}>Specialty</Text>
+        <View style={styles.categoryContainer}>
+          {categoryOptions.map((item) => {
+            const isCustom = !defaultCvCategories.some((value) => value.toLowerCase() === item.toLowerCase());
+            return (
+              <View
+                key={item}
+                style={[
+                  styles.categoryButton,
+                  formData.category === item && styles.categoryButtonActive,
+                  { flexDirection: 'row', alignItems: 'center' },
+                ]}
+              >
+                <TouchableOpacity onPress={() => setFormData({ ...formData, category: item })}>
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      formData.category === item && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+                {isCustom ? (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert('Delete specialty', `Remove "${item}" from the list?`, [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Delete',
+                          style: 'destructive',
+                          onPress: () => {
+                            setExtraCategories((prev) =>
+                              prev.filter((value) => value.toLowerCase() !== item.toLowerCase())
+                            );
+                            setHiddenCategories((prev) => mergeCvCategories(prev, [item]));
+                            if (formData.category === item) {
+                              setFormData({ ...formData, category: defaultCvCategories[0] });
+                            }
+                          },
+                        },
+                      ]);
+                    }}
+                    style={{ marginLeft: 8 }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700' }}>✕</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+        <View style={[styles.formRow, { marginTop: 10 }]}>
+          <TextInput
+            style={[styles.formInput, { flex: 1, marginRight: 8 }]}
+            value={newCategory}
+            onChangeText={setNewCategory}
+            placeholder="Add new specialty"
+            placeholderTextColor="#666"
+            maxLength={40}
+          />
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => {
+              const next = normalizeCvCategory(newCategory);
+              if (!next) {
+                Alert.alert('Specialty', 'Write a specialty name first');
+                return;
+              }
+              setExtraCategories((prev) => mergeCvCategories(prev, [next]));
+              setFormData({ ...formData, category: next });
+              setNewCategory('');
+            }}
+          >
+            <Text style={styles.addButtonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.formGroup}>
@@ -3281,6 +3510,9 @@ const CVForm = ({ cv, onSave, onCancel }: { cv: any, onSave: (data: any) => void
               ✅ File selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
             </Text>
           )}
+          {!selectedFile && formData.downloadUrl ? (
+            <Text style={styles.fileInfo}>✅ A PDF is already attached. Choose a new file to replace it.</Text>
+          ) : null}
           <Text style={styles.uploadHint}>Upload a PDF file from your device</Text>
         </View>
       )}
@@ -3320,6 +3552,19 @@ const ArticleForm = ({ article, onSave, onCancel }: { article: any, onSave: (dat
     isFeatured: article?.isFeatured || false,
   });
   const [selectedImage, setSelectedImage] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const isLocalImageUri = (uri?: string) =>
+    !!uri && /^(file|ph|content|assets-library):/i.test(uri);
+
+  const uploadArticleImage = async (asset: any) => {
+    try {
+      return await uploadContentImage(asset);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  };
 
   const pickImage = async () => {
     try {
@@ -3331,11 +3576,19 @@ const ArticleForm = ({ article, onSave, onCancel }: { article: any, onSave: (dat
 
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0]);
-        setFormData({...formData, image: result.assets[0].uri});
+        setUploadingImage(true);
+        const imageUrl = await uploadArticleImage(result.assets[0]);
+        if (imageUrl) {
+          setFormData((prev) => ({ ...prev, image: imageUrl }));
+        } else {
+          Alert.alert('Error', 'Failed to upload image');
+        }
       }
     } catch (error) {
       console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to select image');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -3345,12 +3598,22 @@ const ArticleForm = ({ article, onSave, onCancel }: { article: any, onSave: (dat
       return;
     }
 
-    // If no image URL and no selected image, use a default placeholder
-    if (!formData.image && !selectedImage) {
-      setFormData({...formData, image: 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=Article+Image'});
+    if (uploadingImage) {
+      Alert.alert('Please wait', 'Image is still uploading');
+      return;
     }
 
-    onSave(formData);
+    if (isLocalImageUri(formData.image)) {
+      Alert.alert('Error', 'Please choose the image again so it can upload');
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      image: formData.image || 'https://via.placeholder.com/300x200/1a1a1a/4ECDC4?text=Article+Image',
+    };
+
+    onSave(payload);
   };
 
   return (
@@ -3444,14 +3707,16 @@ const ArticleForm = ({ article, onSave, onCancel }: { article: any, onSave: (dat
           onPress={pickImage}
         >
           <Text style={styles.imagePickerButtonText}>
-            {selectedImage ? '📷 Image Selected' : '📷 Choose Image from Gallery'}
+            {uploadingImage
+              ? '⏳ Uploading image...'
+              : selectedImage || (formData.image && !isLocalImageUri(formData.image))
+                ? '📷 Image Selected'
+                : '📷 Choose Image from Gallery'}
           </Text>
         </TouchableOpacity>
-        {selectedImage && (
-          <Text style={styles.imageInfo}>
-            Selected: {selectedImage.fileName || 'Image'}
-          </Text>
-        )}
+        {selectedImage && !uploadingImage && formData.image && !isLocalImageUri(formData.image) ? (
+          <Text style={styles.imageInfo}>✅ Image uploaded</Text>
+        ) : null}
         <Text style={styles.formLabel}>Or enter Image URL:</Text>
         <TextInput
           style={styles.formInput}
@@ -3534,7 +3799,7 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
         console.log('Image selected:', imageUri);
         
         // Upload image to server
-        await uploadImageToServer(imageUri);
+        await uploadImageToServer(result.assets[0]);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -3542,43 +3807,15 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
     }
   };
 
-  const uploadImageToServer = async (imageUri: string) => {
+  const uploadImageToServer = async (assetOrUri: any) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      
-      if (!token) {
-        Alert.alert('Error', 'Please login again');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'image.jpg',
-      } as any);
-
-      const response = await fetch(`${API_BASE_URL}/api/admin/content/upload-image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Don't set Content-Type for FormData - let fetch set it automatically
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Image uploaded:', result.data.imageUrl);
-        setFormData(prev => ({...prev, image: result.data.imageUrl}));
-        Alert.alert('Success', 'Image uploaded successfully!');
-      } else {
-        console.error('Failed to upload image:', response.status);
-        Alert.alert('Error', 'Failed to upload image');
-      }
+      const imageUrl = await uploadContentImage(assetOrUri);
+      console.log('Image uploaded:', imageUrl);
+      setFormData(prev => ({ ...prev, image: imageUrl }));
+      Alert.alert('Success', 'Image uploaded successfully!');
     } catch (error) {
       console.error('Error uploading image:', error);
-      Alert.alert('Error', 'Failed to upload image');
+      Alert.alert('Error', error?.message || 'Failed to upload image');
     }
   };
 
@@ -3623,17 +3860,54 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
   };
 
   const handleSave = () => {
-    if (!formData.title || !formData.description || !formData.duration) {
+    const title = String(formData.title || '').trim();
+    const description = String(formData.description || '').trim();
+    const duration = String(formData.duration || '').trim();
+    if (!title || !description || !duration) {
       Alert.alert('Error', 'Please fill in title, description, and duration');
       return;
     }
-
-    // If no image URL or if it's a local file URL, use a default placeholder
-    if (!formData.image || formData.image.startsWith('file://')) {
-      setFormData({...formData, image: 'https://via.placeholder.com/300x200/1a1a1a/9B59B6?text=Roadmap+Image'});
+    if (title.length > 100) {
+      Alert.alert('Error', 'Title must be under 100 characters');
+      return;
+    }
+    if (description.length > 1000) {
+      Alert.alert('Error', 'Description must be under 1000 characters');
+      return;
     }
 
-    onSave(formData);
+    const allowedResourceTypes = ['course', 'article', 'video', 'documentation', 'tool'];
+    const image =
+      formData.image && !/^(file|ph|content|assets-library):/i.test(formData.image)
+        ? formData.image
+        : 'https://images.unsplash.com/photo-1516321318423-f06f85e504f3?auto=format&fit=crop&w=1200&q=80';
+
+    onSave({
+      title,
+      description,
+      category: formData.category || 'Mobile',
+      difficulty: formData.difficulty || 'Beginner',
+      duration,
+      image,
+      icon: formData.icon || '🗺️',
+      color: formData.color || '#9B59B6',
+      isActive: formData.isActive !== false,
+      isFeatured: !!formData.isFeatured,
+      accessType: formData.accessType === 'premium' ? 'premium' : 'free',
+      steps: (formData.steps || [])
+        .map((step, index) => ({
+          title: String(step?.title || '').trim() || `Step ${index + 1}`,
+          description: String(step?.description || '').trim(),
+          resources: (step?.resources || [])
+            .filter((resource) => resource?.title || resource?.url)
+            .map((resource) => ({
+              title: String(resource.title || 'Resource').trim(),
+              url: String(resource.url || '').trim(),
+              type: allowedResourceTypes.includes(resource.type) ? resource.type : 'article',
+            })),
+        }))
+        .filter((step) => step.title),
+    });
   };
 
   return (
@@ -3882,7 +4156,7 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
 };
 
 // Course Form Component
-const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: any) => void, onCancel: () => void }) => {
+const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course: any, onSave: (data: any) => void, onCancel: () => void, knownCategories?: string[] }) => {
   console.log('📚 CourseForm mounted with course:', course);
   
   const [formData, setFormData] = useState({
@@ -3907,6 +4181,11 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
     image: course?.image || '',
     previewVideo: course?.previewVideo || '',
     certificateTemplate: course?.certificateTemplate || '',
+    projectKind: course?.projectKind || 'auto',
+    projectGithubRequired: course?.projectGithubRequired,
+    projectLiveRequired: course?.projectLiveRequired,
+    projectVideoRequired: course?.projectVideoRequired,
+    projectExtraRequired: course?.projectExtraRequired,
     requirements: course?.requirements || [],
     learningOutcomes: course?.learningOutcomes || [],
     sections: course?.sections || [],
@@ -3918,6 +4197,14 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
   });
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [extraCategories, setExtraCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState('');
+  const categoryOptions = mergeCourseCategories(
+    DEFAULT_COURSE_CATEGORIES,
+    knownCategories,
+    extraCategories,
+    [formData.category]
+  );
   const [newRequirement, setNewRequirement] = useState('');
   const [newOutcome, setNewOutcome] = useState('');
   const [newTag, setNewTag] = useState('');
@@ -4001,40 +4288,12 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
 
   const uploadImageToServer = async (imageUri: string) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      
-      if (!token) {
-        Alert.alert('خطأ', 'يرجى تسجيل الدخول مرة أخرى');
-        return null;
-      }
-
-      const formDataUpload = new FormData();
-      formDataUpload.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'course-thumbnail.jpg',
-      } as any);
-
-      const response = await fetch(`${API_BASE_URL}/api/admin/content/upload-image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formDataUpload,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('📷 Course image upload result:', result);
-        return result.data.imageUrl;
-      } else {
-        console.error('📷 Course image upload failed:', response.status);
-        Alert.alert('خطأ', 'فشل في رفع الصورة');
-        return null;
-      }
+      const imageUrl = await uploadContentImage(imageUri);
+      console.log('📷 Course image upload result:', imageUrl);
+      return imageUrl;
     } catch (error) {
       console.error('📷 Course image upload error:', error);
-      Alert.alert('خطأ', 'فشل في رفع الصورة');
+      Alert.alert('خطأ', error?.message || 'فشل في رفع الصورة');
       return null;
     }
   };
@@ -4268,13 +4527,70 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
       return;
     }
 
+    const category = normalizeCourseCategory(formData.category);
+    if (!category) {
+      Alert.alert('خطأ', 'يرجى اختيار أو إضافة تصنيف');
+      return;
+    }
+
     console.log('📚 Course form data before save:', JSON.stringify(formData, null, 2));
     console.log('🎯 Requirements data:', formData.requirements);
     console.log('🎯 Learning outcomes data:', formData.learningOutcomes);
     console.log('🎯 Requirements length:', formData.requirements.length);
     console.log('🎯 Learning outcomes length:', formData.learningOutcomes.length);
-    onSave(formData);
+    onSave({ ...formData, category });
   };
+
+  const addCourseCategory = () => {
+    const next = normalizeCourseCategory(newCategory);
+    if (!next) {
+      Alert.alert('Category', 'Write a category name first');
+      return;
+    }
+    setExtraCategories((prev) => mergeCourseCategories(prev, [next]));
+    setFormData({ ...formData, category: next });
+    setNewCategory('');
+  };
+
+  const renderCourseCategoryPicker = (label: string) => (
+    <View style={styles.formGroup}>
+      <Text style={styles.formLabel}>{label}</Text>
+      <View style={styles.categoryContainer}>
+        {categoryOptions.map((item) => (
+          <TouchableOpacity
+            key={item}
+            style={[
+              styles.categoryButton,
+              formData.category === item && styles.categoryButtonActive,
+            ]}
+            onPress={() => setFormData({ ...formData, category: item })}
+          >
+            <Text
+              style={[
+                styles.categoryButtonText,
+                formData.category === item && styles.categoryButtonTextActive,
+              ]}
+            >
+              {courseCategoryLabel(item)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={[styles.formRow, { marginTop: 10 }]}>
+        <TextInput
+          style={[styles.formInput, { flex: 1, marginRight: 8 }]}
+          value={newCategory}
+          onChangeText={setNewCategory}
+          placeholder="Add new category"
+          placeholderTextColor="#666"
+          maxLength={40}
+        />
+        <TouchableOpacity style={styles.addButton} onPress={addCourseCategory}>
+          <Text style={styles.addButtonText}>Add</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
@@ -4728,30 +5044,7 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
           </View>
           
           <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
-            <Text style={styles.formLabel}>التصنيف</Text>
-            <TouchableOpacity
-              style={styles.formInput}
-              onPress={() => {
-                Alert.alert(
-                  'اختر التصنيف',
-                  'اختر تصنيف الكورس',
-                  [
-                    { text: 'برمجة', onPress: () => setFormData({...formData, category: 'Programming'}) },
-                    { text: 'تصميم', onPress: () => setFormData({...formData, category: 'Design'}) },
-                    { text: 'أعمال', onPress: () => setFormData({...formData, category: 'Business'}) },
-                    { text: 'تسويق', onPress: () => setFormData({...formData, category: 'Marketing'}) },
-                    { text: 'علم البيانات', onPress: () => setFormData({...formData, category: 'Data Science'}) },
-                  ]
-                );
-              }}
-            >
-              <Text style={styles.dropdownText}>
-                {formData.category === 'Programming' ? 'برمجة' : 
-                 formData.category === 'Design' ? 'تصميم' :
-                 formData.category === 'Business' ? 'أعمال' :
-                 formData.category === 'Marketing' ? 'تسويق' : 'علم البيانات'}
-              </Text>
-            </TouchableOpacity>
+            {renderCourseCategoryPicker('التصنيف')}
           </View>
         </View>
         
@@ -4806,27 +5099,7 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
         </View>
       </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.formLabel}>Category</Text>
-        <TouchableOpacity
-          style={styles.formInput}
-          onPress={() => {
-            Alert.alert(
-              'Select Category',
-              'Choose course category',
-              [
-                { text: 'Programming', onPress: () => setFormData({...formData, category: 'Programming'}) },
-                { text: 'Design', onPress: () => setFormData({...formData, category: 'Design'}) },
-                { text: 'Business', onPress: () => setFormData({...formData, category: 'Business'}) },
-                { text: 'Marketing', onPress: () => setFormData({...formData, category: 'Marketing'}) },
-                { text: 'Data Science', onPress: () => setFormData({...formData, category: 'Data Science'}) },
-              ]
-            );
-          }}
-        >
-          <Text style={styles.dropdownText}>{formData.category}</Text>
-        </TouchableOpacity>
-      </View>
+      {renderCourseCategoryPicker('Category')}
 
       <View style={styles.formGroup}>
         <Text style={styles.formLabel}>Price ($)</Text>
@@ -5040,6 +5313,51 @@ const CourseForm = ({ course, onSave, onCancel }: { course: any, onSave: (data: 
             placeholderTextColor="#666"
           />
         </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>نوع تسليم المشروع</Text>
+          <TouchableOpacity
+            style={styles.formInput}
+            onPress={() => {
+              Alert.alert(
+                'Project type',
+                'Defaults change with the course type. You can still override each link.',
+                PROJECT_KINDS.map((kind) => ({
+                  text: kind.label,
+                  onPress: () => setFormData({ ...formData, projectKind: kind.id }),
+                }))
+              );
+            }}
+          >
+            <Text style={{ color: '#fff' }}>
+              {PROJECT_KINDS.find((kind) => kind.id === (formData.projectKind || 'auto'))?.label || 'Auto'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ color: '#888', marginTop: 6, fontSize: 12 }}>
+            {resolveProjectRules(formData).hint}
+          </Text>
+        </View>
+
+        {[
+          ['projectGithubRequired', 'githubRequired', 'GitHub'],
+          ['projectLiveRequired', 'liveRequired', 'Live / campaign'],
+          ['projectVideoRequired', 'videoRequired', 'Walkthrough video'],
+          ['projectExtraRequired', 'extraRequired', 'Figma / dashboard'],
+        ].map(([field, ruleKey, label]) => {
+          const rules = resolveProjectRules(formData);
+          const required = rules[ruleKey];
+          return (
+            <View key={field} style={styles.formGroup}>
+              <Text style={styles.formLabel}>{label}</Text>
+              <TouchableOpacity
+                style={styles.formInput}
+                onPress={() => setFormData({ ...formData, [field]: !required })}
+              >
+                <Text style={{ color: '#fff' }}>{required ? 'إجباري' : 'اختياري'}</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
 
         <View style={styles.formGroup}>
           <Text style={styles.formLabel}>اللغة</Text>
@@ -6620,42 +6938,12 @@ const styles = StyleSheet.create({
 
   const uploadImageToServer = async (imageUri: string) => {
     try {
-      // Get token manually for FormData uploads
-      const token = await AsyncStorage.getItem('token');
-      
-      if (!token) {
-        Alert.alert('خطأ', 'يرجى تسجيل الدخول مرة أخرى');
-        return null;
-      }
-
-      const formData = new FormData();
-      formData.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'podcast-thumbnail.jpg',
-      } as any);
-
-      const response = await fetch(`${API_BASE_URL}/api/admin/content/upload-image`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Don't set Content-Type for FormData - let fetch set it automatically
-        },
-        body: formData,
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('📷 Upload result:', result);
-        return result.data.imageUrl;
-      } else {
-        console.error('📷 Upload failed:', response.status);
-        Alert.alert('خطأ', 'فشل في رفع الصورة');
-        return null;
-      }
+      const imageUrl = await uploadContentImage(imageUri);
+      console.log('📷 Upload result:', imageUrl);
+      return imageUrl;
     } catch (error) {
-      console.error('📷 Upload error:', error);
-      Alert.alert('خطأ', 'فشل في رفع الصورة');
+      console.error('📷 Upload failed:', error);
+      Alert.alert('خطأ', error?.message || 'فشل في رفع الصورة');
       return null;
     }
   };
@@ -7821,7 +8109,7 @@ const styles = StyleSheet.create({
 };
 
 // Advice Form Component
-const AdviceForm = ({ advice, onSave, onCancel }) => {
+const AdviceForm = ({ advice, onSave, onCancel, knownCategories = [] }) => {
   const [formData, setFormData] = useState({
     title: advice?.title || '',
     content: advice?.content || '',
@@ -7857,6 +8145,46 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
   
   // Missing state variables for tags functionality
   const [newTag, setNewTag] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [categoryOptions, setCategoryOptions] = useState(
+    mergeAdviceCategories(
+      DEFAULT_ADVICE_CATEGORIES,
+      (knownCategories || []).map((item) => ({ id: item, name: item })),
+      advice?.category ? [{ id: advice.category, name: advice.category }] : []
+    )
+  );
+
+  const persistAdviceCategories = async (next) => {
+    const saved = await writeLocalAdviceCategories(next);
+    setCategoryOptions(saved);
+    try {
+      await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/content/advice-categories`, {
+        method: 'PUT',
+        body: JSON.stringify({ categories: saved }),
+      });
+    } catch (error) {
+      console.log('Advice categories API save skipped:', error?.message || error);
+    }
+    return saved;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const remote = await fetchPublicAdviceCategories().catch(() => null);
+      const local = await readLocalAdviceCategories();
+      const known = (knownCategories || []).map((item) => ({ id: item, name: item }));
+      const current = formData.category ? [{ id: formData.category, name: formData.category }] : [];
+      const next = remote ?? local ?? mergeAdviceCategories(DEFAULT_ADVICE_CATEGORIES, known, current);
+      const withCurrent = mergeAdviceCategories(next, current);
+      if (!cancelled) {
+        setCategoryOptions(withCurrent);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async () => {
     try {
@@ -7872,7 +8200,7 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
       const cleanFormData = {
         title: formData.title || '',
         content: formData.content || '',
-        category: formData.category || 'motivation',
+        category: formData.category || categoryOptions[0]?.id || 'motivation',
         author: formData.author || '',
         duration: formData.duration || '',
         thumbnail: formData.thumbnail || '',
@@ -7912,33 +8240,9 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
       });
 
       if (!result.canceled && result.assets[0]) {
-        const formData = new FormData();
-        formData.append('image', {
-          uri: result.assets[0].uri,
-          type: 'image/jpeg',
-          name: 'advice-thumbnail.jpg',
-        } as any);
-
-        // Get token manually for FormData uploads
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        const token = await AsyncStorage.getItem('token');
-        
-        const uploadResponse = await fetch(`${API_BASE_URL}/api/admin/content/upload-image`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            // Don't set Content-Type for FormData - let fetch set it automatically
-          },
-          body: formData,
-        });
-
-        if (uploadResponse.ok) {
-          const uploadResult = await uploadResponse.json();
-          setFormData(prev => ({...prev, thumbnail: uploadResult.data.imageUrl}));
-          Alert.alert('Success', 'Image uploaded successfully!');
-        } else {
-          Alert.alert('Error', 'Failed to upload image');
-        }
+        const imageUrl = await uploadContentImage(result.assets[0]);
+        setFormData((prev) => ({ ...prev, thumbnail: imageUrl }));
+        Alert.alert('Success', 'Image uploaded successfully!');
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -8128,23 +8432,75 @@ const AdviceForm = ({ advice, onSave, onCancel }) => {
         <View style={styles.formGroup}>
           <Text style={styles.formLabel}>الفئة *</Text>
           <View style={styles.categoryContainer}>
-            {['career-shift', 'kids', 'motivation', 'success', 'programming', 'business'].map((category) => (
-              <TouchableOpacity
-                key={category}
+            {categoryOptions.map((item) => (
+              <View
+                key={item.id}
                 style={[
                   styles.categoryButton,
-                  formData.category === category && styles.categoryButtonActive
+                  formData.category === item.id && styles.categoryButtonActive,
+                  { flexDirection: 'row', alignItems: 'center' },
                 ]}
-                onPress={() => setFormData({...formData, category})}
               >
-                <Text style={[
-                  styles.categoryButtonText,
-                  formData.category === category && styles.categoryButtonTextActive
-                ]}>
-                  {category}
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={() => setFormData({ ...formData, category: item.id })}>
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      formData.category === item.id && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    {item.name || item.id}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert('حذف الفئة', `هل تريد حذف "${item.name || item.id}"؟`, [
+                      { text: 'إلغاء', style: 'cancel' },
+                      {
+                        text: 'حذف',
+                        style: 'destructive',
+                        onPress: async () => {
+                          const next = categoryOptions.filter((category) => category.id !== item.id);
+                          await persistAdviceCategories(next);
+                          if (formData.category === item.id) {
+                            setFormData({ ...formData, category: next[0]?.id || '' });
+                          }
+                        },
+                      },
+                    ]);
+                  }}
+                  style={{ marginLeft: 8 }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
             ))}
+          </View>
+          <View style={[styles.formRow, { marginTop: 10 }]}>
+            <TextInput
+              style={[styles.formInput, { flex: 1, marginRight: 8 }]}
+              value={newCategory}
+              onChangeText={setNewCategory}
+              placeholder="أضف فئة جديدة"
+              placeholderTextColor="#666"
+              maxLength={40}
+            />
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={async () => {
+                const name = normalizeAdviceCategoryName(newCategory);
+                const id = normalizeAdviceCategoryId(name);
+                if (!id) {
+                  Alert.alert('الفئة', 'اكتب اسم الفئة أولاً');
+                  return;
+                }
+                const next = mergeAdviceCategories(categoryOptions, [{ id, name }]);
+                await persistAdviceCategories(next);
+                setFormData({ ...formData, category: id });
+                setNewCategory('');
+              }}
+            >
+              <Text style={styles.addButtonText}>إضافة</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -8952,7 +9308,7 @@ const adviceStyles = StyleSheet.create({
 });
 
 // Programming Term Form Component
-const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) => void, onCancel: () => void }) => {
+const TermForm = ({ term, onSave, onCancel, knownLanguages = [] }: { term: any, onSave: (data: any) => void, onCancel: () => void, knownLanguages?: string[] }) => {
   console.log('⚡ TermForm mounted with term:', term);
   
   const [formData, setFormData] = useState({
@@ -8971,6 +9327,46 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
   });
 
   const [newExample, setNewExample] = useState({ code: '', explanation: '' });
+  const [newLanguage, setNewLanguage] = useState('');
+  const [languageOptions, setLanguageOptions] = useState(
+    mergeProgrammingLanguages(
+      DEFAULT_PROGRAMMING_LANGUAGES,
+      (knownLanguages || []).map((item) => ({ id: item, name: item })),
+      term?.language ? [{ id: term.language, name: term.language }] : []
+    )
+  );
+
+  const persistProgrammingLanguages = async (next) => {
+    const saved = await writeLocalProgrammingLanguages(next);
+    setLanguageOptions(saved);
+    try {
+      await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/content/programming-languages`, {
+        method: 'PUT',
+        body: JSON.stringify({ languages: saved }),
+      });
+    } catch (error) {
+      console.log('Programming languages API save skipped:', error?.message || error);
+    }
+    return saved;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const remote = await fetchPublicProgrammingLanguages().catch(() => null);
+      const local = await readLocalProgrammingLanguages();
+      const known = (knownLanguages || []).map((item) => ({ id: item, name: item }));
+      const current = formData.language ? [{ id: formData.language, name: formData.language }] : [];
+      const saved = remote?.length ? remote : local?.length ? local : null;
+      const next = saved ?? mergeProgrammingLanguages(DEFAULT_PROGRAMMING_LANGUAGES, known, current);
+      if (!cancelled) {
+        setLanguageOptions(mergeProgrammingLanguages(next, current));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   
   // Audio Recording States
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -8980,6 +9376,16 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [previewPosition, setPreviewPosition] = useState(0);
+  const [previewDuration, setPreviewDuration] = useState(0);
+  const [previewRate, setPreviewRate] = useState(1);
+  const previewSeekWidth = useRef(1);
+  const PREVIEW_RATES = [1, 1.5, 2];
+
+  const formatClock = (ms: number) => {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, '0')}`;
+  };
 
   const addExample = () => {
     if (newExample.code.trim() && newExample.explanation.trim()) {
@@ -9068,7 +9474,8 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
           duration: durationString
         });
         
-        Alert.alert('نجح التسجيل!', `تم تسجيل الصوت بنجاح (${durationString})`);
+        setPreviewPosition(0);
+        setPreviewDuration(recordingDuration * 1000);
       }
       
       setRecording(null);
@@ -9080,33 +9487,80 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
 
   const playPreview = async () => {
     try {
-      if (!recordedAudioUri) return;
+      const source = recordedAudioUri || formData.audioUrl;
+      if (!source) return;
 
-      if (isPlaying && audioPreview) {
-        console.log('⏸️ Pausing audio preview...');
-        await audioPreview.pauseAsync();
-        setIsPlaying(false);
-        return;
+      if (audioPreview) {
+        const status = await audioPreview.getStatusAsync();
+        if (status.isLoaded) {
+          if (status.isPlaying) {
+            await audioPreview.pauseAsync();
+            setIsPlaying(false);
+            return;
+          }
+          await audioPreview.setRateAsync(previewRate, true);
+          await audioPreview.playAsync();
+          setIsPlaying(true);
+          return;
+        }
       }
 
-      console.log('🔊 Playing audio preview...');
       const { sound } = await Audio.Sound.createAsync(
-        { uri: recordedAudioUri },
-        { shouldPlay: true }
+        { uri: source },
+        { shouldPlay: true, rate: previewRate, shouldCorrectPitch: true }
       );
-      
+
       setAudioPreview(sound);
       setIsPlaying(true);
-      
+
       sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+        if (!status.isLoaded) return;
+        setPreviewPosition(status.positionMillis || 0);
+        setPreviewDuration(status.durationMillis || 0);
+        setIsPlaying(status.isPlaying || false);
+        if (status.didJustFinish) {
           setIsPlaying(false);
-          setAudioPreview(null);
         }
       });
     } catch (error) {
       console.error('❌ Failed to play preview:', error);
       Alert.alert('خطأ', 'فشل في تشغيل المعاينة');
+    }
+  };
+
+  const seekPreview = async (ratio: number) => {
+    try {
+      if (!audioPreview) return;
+      const status = await audioPreview.getStatusAsync();
+      if (!status.isLoaded || !status.durationMillis) return;
+      await audioPreview.setPositionAsync(status.durationMillis * Math.max(0, Math.min(1, ratio)));
+    } catch (error) {
+      console.error('Error seeking preview:', error);
+    }
+  };
+
+  const skipPreview = async (deltaMs: number) => {
+    try {
+      if (!audioPreview) return;
+      const status = await audioPreview.getStatusAsync();
+      if (!status.isLoaded) return;
+      const duration = status.durationMillis || 0;
+      const next = Math.max(0, Math.min(duration, (status.positionMillis || 0) + deltaMs));
+      await audioPreview.setPositionAsync(next);
+    } catch (error) {
+      console.error('Error skipping preview:', error);
+    }
+  };
+
+  const cyclePreviewRate = async () => {
+    const next = PREVIEW_RATES[(PREVIEW_RATES.indexOf(previewRate) + 1) % PREVIEW_RATES.length];
+    setPreviewRate(next);
+    try {
+      if (audioPreview) {
+        await audioPreview.setRateAsync(next, true);
+      }
+    } catch (error) {
+      console.error('Error changing preview rate:', error);
     }
   };
 
@@ -9193,6 +9647,9 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
             setAudioPreview(null);
             setIsPlaying(false);
             setRecordingDuration(0);
+            setPreviewPosition(0);
+            setPreviewDuration(0);
+            setFormData((prev) => ({ ...prev, audioUrl: '', duration: '' }));
             console.log('🗑️ Audio recording deleted');
           }
         }
@@ -9208,6 +9665,11 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
     
     if (!formData.definition.trim()) {
       Alert.alert('خطأ', 'يرجى إدخال تعريف المصطلح');
+      return;
+    }
+
+    if (!formData.language.trim()) {
+      Alert.alert('خطأ', 'يرجى اختيار لغة البرمجة');
       return;
     }
 
@@ -9279,42 +9741,91 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
           />
         </View>
 
-        <View style={styles.formRow}>
-          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
-            <Text style={styles.formLabel}>لغة البرمجة *</Text>
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>لغة البرمجة *</Text>
+          <View style={styles.categoryContainer}>
+            {languageOptions.map((item) => (
+              <View
+                key={item.id}
+                style={[
+                  styles.categoryButton,
+                  formData.language === item.name && styles.categoryButtonActive,
+                  { flexDirection: 'row', alignItems: 'center' },
+                ]}
+              >
+                <TouchableOpacity onPress={() => setFormData({ ...formData, language: item.name })}>
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      formData.language === item.name && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    Alert.alert('حذف اللغة', `هل تريد حذف "${item.name}"؟`, [
+                      { text: 'إلغاء', style: 'cancel' },
+                      {
+                        text: 'حذف',
+                        style: 'destructive',
+                        onPress: async () => {
+                          const next = languageOptions.filter(
+                            (language) => language.name.toLowerCase() !== item.name.toLowerCase()
+                          );
+                          await persistProgrammingLanguages(next);
+                          if (formData.language === item.name) {
+                            setFormData({ ...formData, language: next[0]?.name || '' });
+                          }
+                        },
+                      },
+                    ]);
+                  }}
+                  style={{ marginLeft: 8 }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+          <View style={[styles.formRow, { marginTop: 10 }]}>
+            <TextInput
+              style={[styles.formInput, { flex: 1, marginRight: 8 }]}
+              value={newLanguage}
+              onChangeText={setNewLanguage}
+              placeholder="أضف لغة برمجة جديدة"
+              placeholderTextColor="#666"
+              maxLength={40}
+            />
             <TouchableOpacity
-              style={styles.formInput}
-              onPress={() => {
-                Alert.alert(
-                  'اختر لغة البرمجة',
-                  'اختر اللغة المناسبة للمصطلح',
-                  [
-                    { text: 'JavaScript', onPress: () => setFormData({...formData, language: 'JavaScript'}) },
-                    { text: 'Python', onPress: () => setFormData({...formData, language: 'Python'}) },
-                    { text: 'Java', onPress: () => setFormData({...formData, language: 'Java'}) },
-                    { text: 'C++', onPress: () => setFormData({...formData, language: 'C++'}) },
-                    { text: 'C#', onPress: () => setFormData({...formData, language: 'C#'}) },
-                    { text: 'PHP', onPress: () => setFormData({...formData, language: 'PHP'}) },
-                    { text: 'Ruby', onPress: () => setFormData({...formData, language: 'Ruby'}) },
-                    { text: 'Go', onPress: () => setFormData({...formData, language: 'Go'}) },
-                  ]
-                );
+              style={styles.addButton}
+              onPress={async () => {
+                const name = normalizeProgrammingLanguageName(newLanguage);
+                if (!name) {
+                  Alert.alert('اللغة', 'اكتب اسم اللغة أولاً');
+                  return;
+                }
+                const next = mergeProgrammingLanguages(languageOptions, [{ id: name, name }]);
+                await persistProgrammingLanguages(next);
+                setFormData({ ...formData, language: name });
+                setNewLanguage('');
               }}
             >
-              <Text style={styles.dropdownText}>{formData.language}</Text>
+              <Text style={styles.addButtonText}>إضافة</Text>
             </TouchableOpacity>
           </View>
-          
-          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
-            <Text style={styles.formLabel}>التصنيف *</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.category}
-              onChangeText={(text) => setFormData({...formData, category: text})}
-              placeholder="مثال: متغيرات، دوال، هياكل البيانات..."
-              placeholderTextColor="#666"
-            />
-          </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>التصنيف *</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.category}
+            onChangeText={(text) => setFormData({...formData, category: text})}
+            placeholder="مثال: متغيرات، دوال، هياكل البيانات..."
+            placeholderTextColor="#666"
+          />
         </View>
 
         <View style={styles.formRow}>
@@ -9368,74 +9879,122 @@ const TermForm = ({ term, onSave, onCancel }: { term: any, onSave: (data: any) =
       {/* Audio Recording Section */}
       <View style={styles.formSection}>
         <Text style={styles.sectionTitle}>🎤 تسجيل الصوت</Text>
-        <Text style={styles.formSubtitle}>يمكنك تسجيل الصوت مباشرة من التطبيق بدلاً من إدخال رابط</Text>
-        
-        {!recordedAudioUri ? (
-          <View style={styles.recordingContainer}>
-            <TouchableOpacity
-              style={[
-                styles.recordButton,
-                isRecording && styles.recordButtonActive
-              ]}
-              onPress={isRecording ? stopRecording : startRecording}
-              disabled={uploadingAudio}
-            >
-              <Text style={styles.recordButtonText}>
-                {isRecording ? '⏹️ إيقاف التسجيل' : '🎤 بدء التسجيل'}
+        <Text style={termFormStyles.formSubtitle}>سجل الصوت من هنا، وبعدها شغّله من نفس شريط التشغيل</Text>
+
+        <View style={termFormStyles.recorderCard}>
+          {!recordedAudioUri && !formData.audioUrl ? (
+            <View style={termFormStyles.recorderIdle}>
+              <View style={termFormStyles.waveRow}>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((item) => (
+                  <View
+                    key={`wave-${item}`}
+                    style={[
+                      termFormStyles.waveBar,
+                      {
+                        height: isRecording ? 8 + ((recordingDuration + item) % 6) * 7 : 8,
+                        backgroundColor: isRecording ? '#E50914' : '#444444',
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={termFormStyles.recorderTimer}>
+                {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
               </Text>
-            </TouchableOpacity>
-            
-            {isRecording && (
-              <View style={styles.recordingIndicator}>
-                <View style={styles.recordingDot} />
-                <Text style={styles.recordingTime}>
-                  {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}
+              <TouchableOpacity
+                style={[termFormStyles.micButton, isRecording && termFormStyles.micButtonActive]}
+                onPress={isRecording ? stopRecording : startRecording}
+                disabled={uploadingAudio}
+              >
+                <Ionicons name={isRecording ? 'stop' : 'mic'} size={30} color="#FFFFFF" />
+              </TouchableOpacity>
+              <Text style={termFormStyles.recorderHint}>
+                {isRecording ? 'اضغط للإيقاف' : 'اضغط للتسجيل'}
+              </Text>
+            </View>
+          ) : (
+            <View>
+              <Pressable
+                style={termFormStyles.seekTrack}
+                onLayout={(e) => {
+                  previewSeekWidth.current = e.nativeEvent.layout.width;
+                }}
+                onPress={(e) => {
+                  seekPreview(e.nativeEvent.locationX / Math.max(1, previewSeekWidth.current));
+                }}
+              >
+                <View style={termFormStyles.seekTrackLine}>
+                  <View
+                    style={[
+                      termFormStyles.seekFill,
+                      {
+                        width: previewDuration > 0
+                          ? `${(previewPosition / previewDuration) * 100}%`
+                          : '0%',
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      termFormStyles.seekThumb,
+                      {
+                        left: previewDuration > 0
+                          ? `${(previewPosition / previewDuration) * 100}%`
+                          : '0%',
+                      },
+                    ]}
+                  />
+                </View>
+              </Pressable>
+              <View style={termFormStyles.audioTime}>
+                <Text style={termFormStyles.audioTimeText}>{formatClock(previewPosition)}</Text>
+                <Text style={termFormStyles.audioTimeText}>
+                  {previewDuration > 0
+                    ? `-${formatClock(previewDuration - previewPosition)}`
+                    : formData.duration || '0:00'}
                 </Text>
               </View>
-            )}
-          </View>
-        ) : (
-          <View style={styles.audioPreviewContainer}>
-            <Text style={styles.audioPreviewTitle}>📁 التسجيل الصوتي جاهز</Text>
-            <Text style={styles.audioPreviewDuration}>
-              المدة: {formData.duration}
-            </Text>
-            
-            <View style={styles.audioPreviewActions}>
-              <TouchableOpacity
-                style={styles.previewButton}
-                onPress={playPreview}
-                disabled={uploadingAudio}
-              >
-                <Text style={styles.previewButtonText}>
-                  {isPlaying ? '⏸️ إيقاف' : '▶️ تشغيل'}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.uploadButton, uploadingAudio && styles.uploadButtonDisabled]}
-                onPress={uploadAudio}
-                disabled={uploadingAudio}
-              >
-                <Text style={styles.uploadButtonText}>
-                  {uploadingAudio ? '📤 جاري الرفع...' : '📤 رفع الملف'}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.deleteAudioButton}
-                onPress={deleteRecording}
-                disabled={uploadingAudio}
-              >
-                <Text style={styles.deleteAudioButtonText}>🗑️ حذف</Text>
-              </TouchableOpacity>
+              <View style={termFormStyles.audioTransport}>
+                <TouchableOpacity style={termFormStyles.audioSideHit} onPress={cyclePreviewRate} hitSlop={8}>
+                  <Text style={termFormStyles.audioRateText}>{previewRate === 1 ? '1x' : `${previewRate}x`}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={termFormStyles.audioSideHit} onPress={() => skipPreview(-10000)} hitSlop={8}>
+                  <MaterialIcons name="replay-10" size={34} color="#FFFFFF" />
+                </TouchableOpacity>
+                <Pressable style={termFormStyles.audioPlayButton} onPress={playPreview}>
+                  <View pointerEvents="none">
+                    <Ionicons
+                      name={isPlaying ? 'pause' : 'play'}
+                      size={22}
+                      color="#FFFFFF"
+                      style={isPlaying ? undefined : { marginLeft: 2 }}
+                    />
+                  </View>
+                </Pressable>
+                <TouchableOpacity style={termFormStyles.audioSideHit} onPress={() => skipPreview(10000)} hitSlop={8}>
+                  <MaterialIcons name="forward-10" size={34} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity style={termFormStyles.audioSideHit} onPress={deleteRecording} hitSlop={8}>
+                  <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <View style={termFormStyles.recorderActions}>
+                <TouchableOpacity
+                  style={[termFormStyles.uploadChip, uploadingAudio && termFormStyles.uploadChipDisabled]}
+                  onPress={uploadAudio}
+                  disabled={uploadingAudio}
+                >
+                  <Text style={termFormStyles.uploadChipText}>
+                    {uploadingAudio ? 'جاري الرفع...' : formData.audioUrl && !recordedAudioUri ? 'تم الرفع' : 'رفع التسجيل'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={termFormStyles.rerecordChip} onPress={deleteRecording} disabled={uploadingAudio}>
+                  <Text style={termFormStyles.rerecordChipText}>إعادة التسجيل</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            
-            {uploadingAudio && (
-              <Text style={styles.uploadingText}>جاري رفع الملف الصوتي...</Text>
-            )}
-          </View>
-        )}
+          )}
+        </View>
       </View>
 
       {/* Examples Section */}
@@ -9730,6 +10289,146 @@ const termFormStyles = StyleSheet.create({
     marginBottom: 16,
     lineHeight: 20,
   },
+  recorderCard: {
+    backgroundColor: '#000000',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 16,
+    borderWidth: 1,
+    borderColor: '#222222',
+  },
+  recorderIdle: {
+    alignItems: 'center',
+  },
+  waveRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    height: 48,
+    marginBottom: 12,
+    gap: 4,
+  },
+  waveBar: {
+    width: 4,
+    borderRadius: 2,
+  },
+  recorderTimer: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginBottom: 16,
+  },
+  micButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#E50914',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micButtonActive: {
+    backgroundColor: '#FF4444',
+    transform: [{ scale: 1.05 }],
+  },
+  recorderHint: {
+    color: '#AAAAAA',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  seekTrack: {
+    height: 22,
+    justifyContent: 'center',
+  },
+  seekTrackLine: {
+    height: 4,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 2,
+    justifyContent: 'center',
+  },
+  seekFill: {
+    height: 4,
+    backgroundColor: '#E50914',
+    borderRadius: 2,
+  },
+  seekThumb: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E50914',
+    marginLeft: -6,
+    top: -4,
+  },
+  audioTime: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  audioTimeText: {
+    fontSize: 12,
+    color: '#AAAAAA',
+    fontWeight: '600',
+    letterSpacing: 0.4,
+  },
+  audioTransport: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  audioSideHit: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioRateText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  audioPlayButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#E50914',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recorderActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 16,
+  },
+  uploadChip: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  uploadChipDisabled: {
+    opacity: 0.5,
+  },
+  uploadChipText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  rerecordChip: {
+    backgroundColor: '#2a2a2a',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  rerecordChipText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   // Challenge Styles
   challengesList: {
     marginBottom: 20,
@@ -9838,6 +10537,7 @@ const ThoughtForm = ({ thought, onSave, onCancel }: { thought: any, onSave: (dat
     isActive: thought?.isActive !== undefined ? thought.isActive : true,
     isFeatured: thought?.isFeatured || false,
     isPublic: thought?.isPublic !== undefined ? thought.isPublic : true,
+    comingSoon: thought?.comingSoon || false,
     accessType: thought?.accessType || 'free',
   });
 
@@ -9927,38 +10627,16 @@ const ThoughtForm = ({ thought, onSave, onCancel }: { thought: any, onSave: (dat
     try {
       setUploadingImage(true);
       console.log('📤 Uploading image...');
-
-      const formDataUpload = new FormData();
-      formDataUpload.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: `thought-thumbnail-${Date.now()}.jpg`,
-      } as any);
-
-      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/content/upload-image`, {
-        method: 'POST',
-        body: formDataUpload,
+      const imageUrl = await uploadContentImage(imageUri);
+      console.log('✅ Image uploaded successfully:', imageUrl);
+      setFormData({
+        ...formData,
+        thumbnail: imageUrl
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Image uploaded successfully:', result);
-        
-        const imageUrl = result.data.imageUrl;
-        setFormData({
-          ...formData,
-          thumbnail: imageUrl
-        });
-        
-        Alert.alert('نجح الرفع!', 'تم رفع الصورة بنجاح');
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Image upload failed:', errorText);
-        Alert.alert('خطأ', 'فشل في رفع الصورة');
-      }
+      Alert.alert('نجح الرفع!', 'تم رفع الصورة بنجاح');
     } catch (error) {
       console.error('❌ Failed to upload image:', error);
-      Alert.alert('خطأ', 'فشل في رفع الصورة');
+      Alert.alert('خطأ', error?.message || 'فشل في رفع الصورة');
     } finally {
       setUploadingImage(false);
     }
@@ -10051,14 +10729,18 @@ const ThoughtForm = ({ thought, onSave, onCancel }: { thought: any, onSave: (dat
       return;
     }
 
-    if (!formData.videoUrl.trim()) {
-      Alert.alert('خطأ', 'يرجى إدخال رابط الفيديو');
-      return;
+    const hasVideo = !!formData.videoUrl.trim();
+    const comingSoon = formData.comingSoon || !hasVideo;
+    const tags = (formData.tags || []).filter((tag) => tag !== 'coming-soon');
+    if (comingSoon) {
+      tags.push('coming-soon');
     }
 
-    // Set default duration if empty
     const finalFormData = {
       ...formData,
+      comingSoon,
+      tags,
+      videoUrl: formData.videoUrl.trim(),
       duration: formData.duration.trim() || '15:00'
     };
 
@@ -10157,7 +10839,38 @@ const ThoughtForm = ({ thought, onSave, onCancel }: { thought: any, onSave: (dat
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={styles.formLabel}>رابط الفيديو *</Text>
+          <Text style={styles.formLabel}>حالة الحلقة</Text>
+          <View style={styles.formRow}>
+            <TouchableOpacity
+              style={[
+                styles.switch,
+                { flex: 1, marginRight: 8, alignItems: 'center' },
+                !formData.comingSoon && styles.switchActive
+              ]}
+              onPress={() => setFormData({ ...formData, comingSoon: false })}
+            >
+              <Text style={styles.switchText}>متاحة للمشاهدة</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.switch,
+                { flex: 1, marginLeft: 8, alignItems: 'center' },
+                formData.comingSoon && styles.switchActive
+              ]}
+              onPress={() => setFormData({ ...formData, comingSoon: true })}
+            >
+              <Text style={styles.switchText}>قريبًا</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={{ color: '#888', fontSize: 12, marginTop: 8, marginBottom: 4, textAlign: 'right' }}>
+            «قريبًا» تظهر في التطبيق بالترتيب بدون فيديو وبدون موعد نزول.
+          </Text>
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>
+            {formData.comingSoon ? 'رابط الفيديو (اختياري — ضيفه لما الحلقة تنزل)' : 'رابط الفيديو *'}
+          </Text>
           <View style={styles.inputWithButton}>
             <TextInput
               style={[styles.formInput, { flex: 1, marginRight: 10 }]}

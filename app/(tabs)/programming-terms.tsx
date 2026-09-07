@@ -1,11 +1,18 @@
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../../components/FixedBackBar';
 import API_BASE_URL from '../../config/api';
+import {
+  DEFAULT_PROGRAMMING_LANGUAGES,
+  fetchPublicProgrammingLanguages,
+  mergeProgrammingLanguages,
+  programmingLanguageMeta,
+} from '../../utils/programmingLanguages';
 
 interface Term {
   id: string;
@@ -38,7 +45,18 @@ export default function ProgrammingTermsScreen() {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
   const [dbTerms, setDbTerms] = useState<any[]>([]);
-  const [audioEnabled, setAudioEnabled] = useState(true); // Enable audio with local sounds
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioVolume, setAudioVolume] = useState(1);
+  const [audioRate, setAudioRate] = useState(1);
+  const seekTrackWidth = useRef(1);
+  const audioStatesRef = useRef(audioStates);
+  audioStatesRef.current = audioStates;
+  const PLAYBACK_RATES = [1, 1.5, 2];
+
+  const formatClock = (ms: number) => {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, '0')}`;
+  };
 
   // Fetch programming terms from database
   const fetchTerms = async () => {
@@ -54,9 +72,24 @@ export default function ProgrammingTermsScreen() {
         const terms = data.data.terms || [];
         console.log('⚡ Raw terms data:', terms.map((t: any) => ({ id: t._id, term: t.term, audioUrl: t.audioUrl })));
         setDbTerms(terms);
+        const remoteLanguages = await fetchPublicProgrammingLanguages().catch(() => null);
+        const fromTerms = [...new Set(terms.map((item: any) => item.language).filter(Boolean))]
+          .map((name) => ({ id: name, name }));
+        const defaultNames = new Set(
+          DEFAULT_PROGRAMMING_LANGUAGES.map((item) => item.name.toLowerCase())
+        );
+        const saved = remoteLanguages || [];
+        const catalog = mergeProgrammingLanguages(
+          saved.filter((item) => {
+            const isDefault = defaultNames.has(item.name.toLowerCase());
+            if (!isDefault) return true;
+            return fromTerms.some((term) => term.name.toLowerCase() === item.name.toLowerCase());
+          }),
+          fromTerms
+        );
         
         // Process terms and group by language
-        const processedLanguages = processTermsIntoLanguages(terms);
+        const processedLanguages = processTermsIntoLanguages(terms, catalog);
         console.log('⚡ Processed languages:', processedLanguages.map(l => ({ id: l.id, name: l.name, termsCount: l.terms.length })));
         setLanguages(processedLanguages);
       } else {
@@ -70,29 +103,20 @@ export default function ProgrammingTermsScreen() {
   };
 
   // Process database terms into language groups
-  const processTermsIntoLanguages = (terms: any[]): Language[] => {
-    const languageColors: {[key: string]: {icon: string, color: string}} = {
-      'JavaScript': { icon: '🟨', color: '#F7DF1E' },
-      'Python': { icon: '🐍', color: '#3776AB' },
-      'Java': { icon: '☕', color: '#ED8B00' },
-      'C++': { icon: '⚡', color: '#00599C' },
-      'C#': { icon: '🔷', color: '#239120' },
-      'PHP': { icon: '🐘', color: '#777BB4' },
-      'Ruby': { icon: '💎', color: '#CC342D' },
-      'Go': { icon: '🐹', color: '#00ADD8' }
-    };
-
+  const processTermsIntoLanguages = (terms: any[], catalog: { id: string; name: string }[] = []): Language[] => {
     const groupedTerms: {[key: string]: any[]} = {};
     
     // Group terms by language
     terms.forEach(term => {
       const language = term.language;
-      if (!groupedTerms[language]) {
-        groupedTerms[language] = [];
+      if (!language) return;
+      const match = Object.keys(groupedTerms).find((key) => key.toLowerCase() === String(language).toLowerCase()) || language;
+      if (!groupedTerms[match]) {
+        groupedTerms[match] = [];
       }
       
       // Convert database term to UI term format
-      groupedTerms[language].push({
+      groupedTerms[match].push({
         id: term._id,
         term: term.term,
         definition: term.definition,
@@ -102,14 +126,21 @@ export default function ProgrammingTermsScreen() {
       });
     });
 
-    // Convert to Language array
-    return Object.keys(groupedTerms).map(languageName => ({
-      id: languageName.toLowerCase().replace(/[^a-z0-9]/g, ''),
-      name: languageName,
-      icon: languageColors[languageName]?.icon || '📝',
-      color: languageColors[languageName]?.color || '#666666',
-      terms: groupedTerms[languageName]
-    }));
+    const names = catalog.map((item) => item.name);
+
+    return names.map((languageName, index) => {
+      const groupedKey = Object.keys(groupedTerms).find(
+        (key) => key.toLowerCase() === languageName.toLowerCase()
+      );
+      const meta = programmingLanguageMeta(languageName, index);
+      return {
+        id: languageName,
+        name: languageName,
+        icon: meta.icon,
+        color: meta.color,
+        terms: groupedKey ? groupedTerms[groupedKey] : [],
+      };
+    });
   };
 
   // Load terms on component mount
@@ -120,16 +151,15 @@ export default function ProgrammingTermsScreen() {
   // Refresh terms when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      console.log('⚡ Terms screen focused, refreshing data...');
-      console.log('⚡ Current languages state:', languages.length);
-      console.log('⚡ Current dbTerms state:', dbTerms.length);
       fetchTerms();
-      
-      // Force refresh after a short delay to ensure data is updated
-      setTimeout(() => {
-        console.log('⚡ Force refresh after delay...');
-        fetchTerms();
-      }, 1000);
+      return () => {
+        Object.values(audioStatesRef.current).forEach((audioState) => {
+          audioState.sound?.stopAsync().catch(() => {});
+          audioState.sound?.unloadAsync().catch(() => {});
+        });
+        setAudioStates({});
+        setActiveAudioId(null);
+      };
     }, [])
   );
 
@@ -338,25 +368,26 @@ export default function ProgrammingTermsScreen() {
     setupAudio();
     
     return () => {
-      // Cleanup all audio when component unmounts
-      Object.values(audioStates).forEach(audioState => {
-        if (audioState.sound) {
-          audioState.sound.unloadAsync().catch(console.error);
-        }
+      Object.values(audioStatesRef.current).forEach((audioState) => {
+        audioState.sound?.stopAsync().catch(() => {});
+        audioState.sound?.unloadAsync().catch(() => {});
       });
     };
   }, []);
 
   const stopAllAudios = async () => {
     try {
-      for (const [termId, audioState] of Object.entries(audioStates)) {
-        if (audioState.sound) {
-          await audioState.sound.unloadAsync();
-        }
-        if (audioState.intervalId) {
-          clearInterval(audioState.intervalId);
-        }
-      }
+      await Promise.all(
+        Object.values(audioStatesRef.current).map(async (audioState) => {
+          if (!audioState.sound) return;
+          try {
+            await audioState.sound.stopAsync();
+          } catch {}
+          try {
+            await audioState.sound.unloadAsync();
+          } catch {}
+        })
+      );
       setAudioStates({});
       setActiveAudioId(null);
     } catch (error) {
@@ -365,255 +396,144 @@ export default function ProgrammingTermsScreen() {
   };
 
   const playAudio = async (audioUrl: string, termId: string) => {
-    if (!audioEnabled) {
-      console.log('🔇 Audio is disabled');
-      return;
-    }
-    
-    try {
-      // Stop all other audios first
-      await stopAllAudios();
+    if (!audioEnabled || !audioUrl) return;
 
-      console.log('🔊 Playing audio for term:', termId);
-      console.log('🔊 Audio URL:', audioUrl);
-      
-      // Try to use real audio first, fallback to mock if it fails
-      if (audioUrl && audioUrl.trim() !== '') {
-        try {
-          const { sound } = await Audio.Sound.createAsync(
-            { uri: audioUrl },
-            { shouldPlay: true }
-          );
-          
-          // Get duration from the loaded sound
-          const status = await sound.getStatusAsync();
-          const duration = (status as any).durationMillis || 0;
-          
-          console.log('🔊 Real audio loaded, duration:', duration);
-          
-          // Update UI to show playing state
-          setAudioStates(prev => ({
+    try {
+      const existing = audioStatesRef.current[termId]?.sound;
+      if (existing) {
+        const status = await existing.getStatusAsync();
+        if (status.isLoaded) {
+          await existing.setVolumeAsync(audioVolume);
+          await existing.setRateAsync(audioRate, true);
+          if (!status.isPlaying) {
+            await existing.playAsync();
+          }
+          setAudioStates((prev) => ({
             ...prev,
-            [termId]: {
-              isPlaying: true,
-              position: 0,
-              duration: duration,
-              sound: sound
-            }
+            [termId]: { ...prev[termId], isPlaying: true },
           }));
           setActiveAudioId(termId);
-
-          // Set up progress tracking
-          sound.setOnPlaybackStatusUpdate((status) => {
-            if (status.isLoaded) {
-              setAudioStates(prev => ({
-                ...prev,
-                [termId]: {
-                  ...prev[termId],
-                  position: status.positionMillis || 0,
-                  isPlaying: status.isPlaying || false
-                }
-              }));
-              
-              if (status.didJustFinish) {
-                console.log('🔊 Audio finished for term:', termId);
-                setAudioStates(prev => ({
-                  ...prev,
-                  [termId]: {
-                    ...prev[termId],
-                    isPlaying: false
-                  }
-                }));
-                setActiveAudioId(null);
-              }
-            }
-          });
-          
-          return; // Exit early if real audio loaded successfully
-          
-        } catch (audioError) {
-          console.error('❌ Error loading real audio:', audioError);
-          console.log('🔄 Falling back to mock audio...');
+          return;
         }
       }
-      
-      // Fallback to mock audio if real audio fails or no URL provided
-      console.log('⚠️ Using mock audio system');
-      const mockDuration = 3000; // 3 seconds
-      
-      // Update UI to show playing state
-      setAudioStates(prev => ({
+
+      for (const [id, audioState] of Object.entries(audioStatesRef.current)) {
+        if (id !== termId && audioState.sound) {
+          await audioState.sound.unloadAsync();
+        }
+      }
+      setAudioStates((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((id) => {
+          if (id !== termId) delete next[id];
+        });
+        return next;
+      });
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUrl },
+        {
+          shouldPlay: true,
+          isLooping: false,
+          volume: audioVolume,
+          rate: audioRate,
+          shouldCorrectPitch: true,
+        }
+      );
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded) {
+          setAudioStates((prev) => ({
+            ...prev,
+            [termId]: {
+              ...prev[termId],
+              sound,
+              isPlaying: status.isPlaying || false,
+              position: status.positionMillis || 0,
+              duration: status.durationMillis || 0,
+            },
+          }));
+        }
+      });
+
+      setAudioStates((prev) => ({
         ...prev,
         [termId]: {
           isPlaying: true,
           position: 0,
-          duration: mockDuration,
-          sound: null
-        }
+          duration: 0,
+          sound,
+        },
       }));
       setActiveAudioId(termId);
-
-      // Simulate progress updates
-      let currentPosition = 0;
-      const progressInterval = setInterval(() => {
-        currentPosition += 100;
-        setAudioStates(prev => ({
-          ...prev,
-          [termId]: {
-            ...prev[termId],
-            position: currentPosition
-          }
-        }));
-        
-        if (currentPosition >= mockDuration) {
-          clearInterval(progressInterval);
-          setAudioStates(prev => ({
-            ...prev,
-            [termId]: {
-              ...prev[termId],
-              isPlaying: false,
-              intervalId: undefined
-            }
-          }));
-          setActiveAudioId(null);
-          console.log('🔊 Audio finished for term:', termId);
-        }
-      }, 100);
-
-      // Store interval ID for cleanup
-      setAudioStates(prev => ({
-        ...prev,
-        [termId]: {
-          ...prev[termId],
-          intervalId: progressInterval
-        }
-      }));
-
     } catch (error) {
       console.error('Error playing audio:', error);
-      setAudioStates(prev => ({
-        ...prev,
-        [termId]: {
-          ...prev[termId],
-          isPlaying: false
-        }
-      }));
-      setActiveAudioId(null);
     }
   };
 
   const pauseAudio = async (termId: string) => {
     try {
-      console.log('⏸️ Pausing audio for term:', termId);
-      
-      const audioState = audioStates[termId];
-      if (audioState?.sound) {
-        // Pause real audio
-        await audioState.sound.pauseAsync();
-      } else if (audioState?.intervalId) {
-        // Clear mock audio interval
-        clearInterval(audioState.intervalId);
+      if (audioStates[termId]?.sound) {
+        await audioStates[termId].sound!.pauseAsync();
+        setAudioStates((prev) => ({
+          ...prev,
+          [termId]: { ...prev[termId], isPlaying: false },
+        }));
       }
-      
-      setAudioStates(prev => ({
-        ...prev,
-        [termId]: {
-          ...prev[termId],
-          isPlaying: false
-        }
-      }));
     } catch (error) {
       console.error('Error pausing audio:', error);
     }
   };
 
-  const resumeAudio = async (termId: string) => {
+  const seekAudio = async (termId: string, ratio: number) => {
     try {
-      console.log('▶️ Resuming audio for term:', termId);
-      
-      const audioState = audioStates[termId];
-      if (audioState?.sound) {
-        // Resume real audio
-        await audioState.sound.playAsync();
-      } else if (audioState?.intervalId) {
-        // Resume mock audio (restart interval)
-        const remainingTime = audioState.duration - audioState.position;
-        if (remainingTime > 0) {
-          const progressInterval = setInterval(() => {
-            setAudioStates(prev => {
-              const current = prev[termId];
-              if (current) {
-                const newPosition = current.position + 100;
-                if (newPosition >= current.duration) {
-                  clearInterval(progressInterval);
-                  return {
-                    ...prev,
-                    [termId]: {
-                      ...current,
-                      isPlaying: false,
-                      intervalId: undefined
-                    }
-                  };
-                }
-                return {
-                  ...prev,
-                  [termId]: {
-                    ...current,
-                    position: newPosition
-                  }
-                };
-              }
-              return prev;
-            });
-          }, 100);
-          
-          setAudioStates(prev => ({
-            ...prev,
-            [termId]: {
-              ...prev[termId],
-              intervalId: progressInterval
-            }
-          }));
-        }
-      }
-      
-      setAudioStates(prev => ({
-        ...prev,
-        [termId]: {
-          ...prev[termId],
-          isPlaying: true
-        }
-      }));
-      setActiveAudioId(termId);
+      const sound = audioStates[termId]?.sound;
+      if (!sound) return;
+      const status = await sound.getStatusAsync();
+      if (!status.isLoaded || !status.durationMillis) return;
+      await sound.setPositionAsync(status.durationMillis * Math.max(0, Math.min(1, ratio)));
     } catch (error) {
-      console.error('Error resuming audio:', error);
+      console.error('Error seeking audio:', error);
     }
   };
 
-  const stopAudio = async (termId: string) => {
+  const cyclePlaybackRate = async (termId: string) => {
+    const next = PLAYBACK_RATES[(PLAYBACK_RATES.indexOf(audioRate) + 1) % PLAYBACK_RATES.length];
+    setAudioRate(next);
     try {
-      console.log('⏹️ Stopping audio for term:', termId);
-      
-      const audioState = audioStates[termId];
-      if (audioState?.sound) {
-        // Stop and unload real audio
-        await audioState.sound.stopAsync();
-        await audioState.sound.unloadAsync();
-      } else if (audioState?.intervalId) {
-        // Clear mock audio interval
-        clearInterval(audioState.intervalId);
-      }
-      
-      setAudioStates(prev => {
-        const newState = { ...prev };
-        delete newState[termId];
-        return newState;
-      });
-      if (activeAudioId === termId) {
-        setActiveAudioId(null);
+      const sound = audioStates[termId]?.sound;
+      if (sound) {
+        await sound.setRateAsync(next, true);
       }
     } catch (error) {
-      console.error('Error stopping audio:', error);
+      console.error('Error changing playback rate:', error);
+    }
+  };
+
+  const skipAudio = async (termId: string, deltaMs: number) => {
+    try {
+      const sound = audioStates[termId]?.sound;
+      if (!sound) return;
+      const status = await sound.getStatusAsync();
+      if (!status.isLoaded) return;
+      const duration = status.durationMillis || 0;
+      const next = Math.max(0, Math.min(duration, (status.positionMillis || 0) + deltaMs));
+      await sound.setPositionAsync(next);
+    } catch (error) {
+      console.error('Error skipping audio:', error);
+    }
+  };
+
+  const changeVolume = async (termId: string, delta: number) => {
+    const next = Math.round(Math.max(0, Math.min(1, audioVolume + delta)) * 100) / 100;
+    setAudioVolume(next);
+    try {
+      const sound = audioStates[termId]?.sound;
+      if (sound) {
+        await sound.setVolumeAsync(next);
+      }
+    } catch (error) {
+      console.error('Error changing volume:', error);
     }
   };
 
@@ -663,77 +583,125 @@ export default function ProgrammingTermsScreen() {
       </View>
       
       <Text style={styles.termDefinition}>{term.definition}</Text>
-      
-       {/* Audio Player Section */}
-       <View style={styles.audioPlayerSection}>
-         <View style={[styles.audioPlayer, !audioEnabled && styles.audioPlayerDisabled]}>
-           <TouchableOpacity 
-             style={[styles.audioPlayButton, !audioEnabled && styles.audioPlayButtonDisabled]}
-             onPress={() => {
-               if (activeAudioId === term.id) {
-                 if (audioStates[term.id]?.isPlaying) {
-                   pauseAudio(term.id);
-                 } else {
-                   resumeAudio(term.id);
-                 }
-               } else {
-                 playAudio(term.audioUrl, term.id);
-               }
-             }}
-           >
-             <Text style={styles.audioPlayIcon}>
-               {!audioEnabled ? '🔇' : (activeAudioId === term.id && audioStates[term.id]?.isPlaying ? '⏸️' : '▶️')}
-             </Text>
-           </TouchableOpacity>
-          
-          <View style={styles.audioInfo}>
-            <View style={styles.audioProgressBar}>
-              <View 
-                style={[
-                  styles.audioProgress, 
-                  { 
-                    width: activeAudioId === term.id && audioStates[term.id]?.duration > 0 
-                      ? `${(audioStates[term.id].position / audioStates[term.id].duration) * 100}%` 
-                      : '0%' 
-                  }
-                ]} 
-              />
-            </View>
-            <View style={styles.audioTime}>
-              <Text style={styles.audioTimeText}>
-                {activeAudioId === term.id && audioStates[term.id]?.position
-                  ? `${Math.floor(audioStates[term.id].position / 1000 / 60)}:${Math.floor((audioStates[term.id].position / 1000) % 60).toString().padStart(2, '0')}`
-                  : '0:00'
-                }
-              </Text>
-              <Text style={styles.audioTimeText}>
-                {activeAudioId === term.id && audioStates[term.id]?.duration > 0
-                  ? `${Math.floor(audioStates[term.id].duration / 1000 / 60)}:${Math.floor((audioStates[term.id].duration / 1000) % 60).toString().padStart(2, '0')}`
-                  : term.duration || '2:30'
-                }
-              </Text>
-            </View>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.audioStopButton}
-            onPress={() => {
-              if (activeAudioId === term.id) {
-                stopAudio(term.id);
-              }
+
+      {term.audioUrl ? (
+        <View style={styles.audioPlayerSection}>
+          <Pressable
+            style={styles.seekTrack}
+            onLayout={(e) => {
+              seekTrackWidth.current = e.nativeEvent.layout.width;
+            }}
+            onPress={(e) => {
+              seekAudio(
+                term.id,
+                e.nativeEvent.locationX / Math.max(1, seekTrackWidth.current)
+              );
             }}
           >
-            <Text style={styles.audioStopIcon}>⏹️</Text>
-          </TouchableOpacity>
+            <View style={styles.seekTrackLine}>
+              <View
+                style={[
+                  styles.seekFill,
+                  {
+                    width:
+                      activeAudioId === term.id && audioStates[term.id]?.duration > 0
+                        ? `${(audioStates[term.id].position / audioStates[term.id].duration) * 100}%`
+                        : '0%',
+                  },
+                ]}
+              />
+              <View
+                style={[
+                  styles.seekThumb,
+                  {
+                    left:
+                      activeAudioId === term.id && audioStates[term.id]?.duration > 0
+                        ? `${(audioStates[term.id].position / audioStates[term.id].duration) * 100}%`
+                        : '0%',
+                  },
+                ]}
+              />
+            </View>
+          </Pressable>
+          <View style={styles.audioTime}>
+            <Text style={styles.audioTimeText}>
+              {activeAudioId === term.id && audioStates[term.id]
+                ? formatClock(audioStates[term.id].position)
+                : '0:00'}
+            </Text>
+            <Text style={styles.audioTimeText}>
+              {activeAudioId === term.id && audioStates[term.id]?.duration > 0
+                ? `-${formatClock(audioStates[term.id].duration - audioStates[term.id].position)}`
+                : term.duration || '0:00'}
+            </Text>
+          </View>
+
+          <View style={styles.audioTransport}>
+            <TouchableOpacity
+              style={styles.audioSideHit}
+              onPress={() => cyclePlaybackRate(term.id)}
+              hitSlop={8}
+            >
+              <Text style={styles.audioRateText}>{audioRate === 1 ? '1x' : `${audioRate}x`}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.audioSideHit}
+              onPress={() => skipAudio(term.id, -10000)}
+              hitSlop={8}
+            >
+              <MaterialIcons name="replay-10" size={34} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <Pressable
+              style={styles.audioPlayButton}
+              onPress={() => {
+                if (activeAudioId === term.id && audioStates[term.id]?.isPlaying) {
+                  pauseAudio(term.id);
+                } else {
+                  playAudio(term.audioUrl, term.id);
+                }
+              }}
+            >
+              <View pointerEvents="none">
+                <Ionicons
+                  name={activeAudioId === term.id && audioStates[term.id]?.isPlaying ? 'pause' : 'play'}
+                  size={22}
+                  color="#FFFFFF"
+                  style={activeAudioId === term.id && audioStates[term.id]?.isPlaying ? undefined : { marginLeft: 2 }}
+                />
+              </View>
+            </Pressable>
+
+            <TouchableOpacity
+              style={styles.audioSideHit}
+              onPress={() => skipAudio(term.id, 10000)}
+              hitSlop={8}
+            >
+              <MaterialIcons name="forward-10" size={34} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.audioSideHit}
+              onPress={() => changeVolume(term.id, audioVolume > 0 ? -1 : 1)}
+              hitSlop={8}
+            >
+              <Ionicons
+                name={audioVolume === 0 ? 'volume-mute' : 'volume-medium'}
+                size={22}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      ) : null}
     </View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
-        <FixedBackBar />
+        <FixedBackBar returnToLastTab />
         <ScrollView style={styles.scrollView}>
           <View style={styles.header}>
             <Text style={styles.title}>Programming Terms</Text>
@@ -750,8 +718,8 @@ export default function ProgrammingTermsScreen() {
               <Text style={styles.sectionTitle}>Choose a Programming Language</Text>
               {languages.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyStateText}>📝 No programming terms found</Text>
-                  <Text style={styles.emptyStateSubtext}>Add some terms from the dashboard to see them here</Text>
+                  <Text style={styles.emptyStateText}>📝 No languages yet</Text>
+                  <Text style={styles.emptyStateSubtext}>Add a language from Content Management to see it here</Text>
                 </View>
               ) : (
                 <View style={styles.languagesGrid}>
@@ -1050,75 +1018,72 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   
-  // Audio Player Section
   audioPlayerSection: {
-    marginTop: 15,
-  },
-  audioPlayer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  audioPlayerDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    opacity: 0.6,
+    marginTop: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#222222',
   },
   audioPlayButton: {
-    backgroundColor: 'rgba(229, 9, 20, 0.2)',
-    borderRadius: 30,
-    width: 60,
-    height: 60,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#E50914',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(229, 9, 20, 0.3)',
   },
-  audioPlayButtonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+  seekTrack: {
+    height: 22,
+    justifyContent: 'center',
   },
-  audioPlayIcon: {
-    fontSize: 24,
+  seekTrackLine: {
+    height: 4,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 2,
+    justifyContent: 'center',
   },
-  audioInfo: {
-    flex: 1,
-    gap: 10,
-  },
-  audioProgressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 3,
-  },
-  audioProgress: {
-    height: '100%',
+  seekFill: {
+    height: 4,
     backgroundColor: '#E50914',
-    borderRadius: 3,
+    borderRadius: 2,
+  },
+  seekThumb: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E50914',
+    marginLeft: -6,
+    top: -4,
   },
   audioTime: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 10,
   },
   audioTimeText: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#AAAAAA',
+    fontWeight: '600',
+    letterSpacing: 0.4,
   },
-  audioStopButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
+  audioTransport: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
-  audioStopIcon: {
+  audioSideHit: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioRateText: {
+    color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '700',
   },
   // Loading States
   loadingContainer: {
