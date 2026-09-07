@@ -33,6 +33,7 @@ import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 import { recordActivityDay } from '../utils/learningProgress';
+import { goBackOr } from '../utils/navigation';
 import { resolveProjectRules } from '../utils/projectRules';
 
 const { width, height } = Dimensions.get('window');
