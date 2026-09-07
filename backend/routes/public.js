@@ -4,6 +4,8 @@ const Article = require('../models/Article');
 const Roadmap = require('../models/Roadmap');
 const CVTemplate = require('../models/CVTemplate');
 const Advice = require('../models/Advice');
+const { getStoredAdviceCategories } = require('../utils/adviceCategories');
+const { getStoredProgrammingLanguages } = require('../utils/programmingLanguages');
 const ProgrammingTerm = require('../models/ProgrammingTerm');
 const ProgrammerThought = require('../models/ProgrammerThought');
 const Course = require('../models/Course');
@@ -271,6 +273,42 @@ router.get('/cv-templates', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to fetch CV templates'
+    });
+  }
+});
+
+// @route   GET /api/public/content/advice-categories
+// @desc    Advice categories for the public advices page
+// @access  Public
+router.get('/content/advice-categories', async (req, res) => {
+  try {
+    const categories = await getStoredAdviceCategories();
+    res.json({
+      status: 'success',
+      data: { categories },
+    });
+  } catch (error) {
+    console.error('Error fetching public advice categories:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch advice categories',
+    });
+  }
+});
+
+// @route   GET /api/public/content/programming-languages
+router.get('/content/programming-languages', async (req, res) => {
+  try {
+    const languages = await getStoredProgrammingLanguages();
+    res.json({
+      status: 'success',
+      data: { languages },
+    });
+  } catch (error) {
+    console.error('Error fetching public programming languages:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch programming languages',
     });
   }
 });

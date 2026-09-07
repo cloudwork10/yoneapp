@@ -5,6 +5,7 @@ const User = require('../models/User');
 const { generateTokens, requireAuth, accountLockout } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/security');
 const { logger } = require('../middleware/security');
+const { normalizePhone, isValidPhone } = require('../utils/phone');
 
 const router = express.Router();
 
@@ -57,6 +58,13 @@ const registerValidation = [
       }
       return true;
     }),
+  body('phone')
+    .custom((value) => {
+      if (!isValidPhone(value)) {
+        throw new Error('Please enter a valid mobile number with country code');
+      }
+      return true;
+    }),
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long')
@@ -90,6 +98,7 @@ router.post('/register', registerValidation, async (req, res) => {
     }
 
     const { name, email, password } = req.body;
+    const phone = normalizePhone(req.body.phone);
 
     if (!isGmailAddress(email)) {
       return res.status(400).json({
@@ -115,10 +124,20 @@ router.post('/register', registerValidation, async (req, res) => {
       });
     }
 
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'This phone number is already used on another account',
+        code: 'PHONE_EXISTS'
+      });
+    }
+
     // Create new user
     const user = new User({
       name,
       email,
+      phone,
       password
     });
 
@@ -520,26 +539,35 @@ router.post('/forgot-password', authLimiter, [
   body('email')
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email')
+    .withMessage('Please provide a valid email'),
+  body('phone')
+    .custom((value) => {
+      if (!isValidPhone(value)) {
+        throw new Error('Please enter the mobile number on the account');
+      }
+      return true;
+    })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         status: 'error',
-        message: 'Please provide a valid email',
+        message: errors.array()[0]?.msg || 'Please provide a valid email and phone',
         errors: errors.array()
       });
     }
 
     const email = String(req.body.email || '').trim().toLowerCase();
+    const phone = normalizePhone(req.body.phone);
     const user = await User.findOne({ email });
 
-    // Always return success shape to avoid email enumeration
-    if (!user) {
-      return res.json({
-        status: 'success',
-        message: 'If an account exists for this email, a reset code has been sent.',
+    if (!user || !user.phone || user.phone !== phone) {
+      return res.status(400).json({
+        status: 'error',
+        message:
+          'Email and phone do not match. If this is an old account, sign in and add your phone from Profile.',
+        code: 'PHONE_MISMATCH',
         data: { sent: false }
       });
     }
@@ -587,6 +615,13 @@ router.post('/reset-password', authLimiter, [
     .isEmail()
     .normalizeEmail()
     .withMessage('Please provide a valid email'),
+  body('phone')
+    .custom((value) => {
+      if (!isValidPhone(value)) {
+        throw new Error('Please enter the mobile number on the account');
+      }
+      return true;
+    }),
   body('code')
     .trim()
     .isLength({ min: 6, max: 6 })
@@ -606,6 +641,7 @@ router.post('/reset-password', authLimiter, [
     }
 
     const email = String(req.body.email || '').trim().toLowerCase();
+    const phone = normalizePhone(req.body.phone);
     const code = String(req.body.code || '').trim();
     const { newPassword } = req.body;
 
@@ -616,6 +652,7 @@ router.post('/reset-password', authLimiter, [
 
     const user = await User.findOne({
       email,
+      phone,
       passwordResetToken: hashedCode,
       passwordResetExpires: { $gt: Date.now() }
     }).select('+password');

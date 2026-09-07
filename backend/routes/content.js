@@ -8,6 +8,14 @@ const Podcast = require('../models/Podcast');
 const Article = require('../models/Article');
 const Roadmap = require('../models/Roadmap');
 const Advice = require('../models/Advice');
+const {
+  getStoredAdviceCategories,
+  saveAdviceCategories,
+} = require('../utils/adviceCategories');
+const {
+  getStoredProgrammingLanguages,
+  saveProgrammingLanguages,
+} = require('../utils/programmingLanguages');
 const ProgrammingTerm = require('../models/ProgrammingTerm');
 const CVTemplate = require('../models/CVTemplate');
 // const { requireAuth  } = require('../middleware/auth');
@@ -685,6 +693,51 @@ router.get('/roadmaps',  async (req, res) => {
 
 // ==================== ADVICES ====================
 
+// @route   GET /api/admin/content/advice-categories
+//          GET /api/public/content/advice-categories
+// @desc    List advice categories for admin + public pages
+router.get('/advice-categories', async (req, res) => {
+  try {
+    const categories = await getStoredAdviceCategories();
+    res.status(200).json({
+      status: 'success',
+      data: { categories },
+    });
+  } catch (error) {
+    console.error('Get advice categories error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch advice categories',
+    });
+  }
+});
+
+// @route   PUT /api/admin/content/advice-categories
+// @desc    Replace the advice category list
+router.put('/advice-categories', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required',
+      });
+    }
+
+    const categories = await saveAdviceCategories(req.body?.categories);
+
+    res.status(200).json({
+      status: 'success',
+      data: { categories },
+    });
+  } catch (error) {
+    console.error('Save advice categories error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to save advice categories',
+    });
+  }
+});
+
 // @route   GET /api/admin/content/advices
 // @desc    Get all advices with pagination and filtering
 // @access  Admin
@@ -844,6 +897,48 @@ router.delete('/advices/:id',  async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to delete advice'
+    });
+  }
+});
+
+// @route   GET /api/admin/content/programming-languages
+//          GET /api/public/content/programming-languages
+router.get('/programming-languages', async (req, res) => {
+  try {
+    const languages = await getStoredProgrammingLanguages();
+    res.status(200).json({
+      status: 'success',
+      data: { languages },
+    });
+  } catch (error) {
+    console.error('Get programming languages error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch programming languages',
+    });
+  }
+});
+
+// @route   PUT /api/admin/content/programming-languages
+router.put('/programming-languages', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required',
+      });
+    }
+
+    const languages = await saveProgrammingLanguages(req.body?.languages);
+    res.status(200).json({
+      status: 'success',
+      data: { languages },
+    });
+  } catch (error) {
+    console.error('Save programming languages error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to save programming languages',
     });
   }
 });

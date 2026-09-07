@@ -21,7 +21,8 @@ const programmingTermSchema = new mongoose.Schema({
   language: {
     type: String,
     required: [true, 'Programming language is required'],
-    enum: ['JavaScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go']
+    trim: true,
+    maxlength: [40, 'Language cannot be more than 40 characters'],
   },
   audioUrl: {
     type: String,

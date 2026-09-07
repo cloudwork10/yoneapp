@@ -8,6 +8,7 @@ const Reel = require('../models/Reel');
 const { requireAuth, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { uploadLimiter } = require('../middleware/security');
 const { getUploadRoot } = require('../utils/uploadDirs');
+const { normalizePhone, isValidPhone } = require('../utils/phone');
 
 const router = express.Router();
 
@@ -87,8 +88,42 @@ router.post('/push-token', requireAuth, async (req, res) => {
 // @access  Private
 router.post('/heartbeat', requireAuth, async (req, res) => {
   try {
-    await User.findByIdAndUpdate(req.user.id, { lastSeenAt: new Date() });
-    res.json({ status: 'success' });
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastActive = user.learningStats?.lastActiveDate
+      ? new Date(user.learningStats.lastActiveDate)
+      : null;
+    const lastDay = lastActive
+      ? new Date(lastActive.getFullYear(), lastActive.getMonth(), lastActive.getDate())
+      : null;
+    const diffDays = lastDay
+      ? Math.round((startOfToday - lastDay) / (24 * 60 * 60 * 1000))
+      : null;
+
+    let streak = Number(user.learningStats?.currentStreak) || 0;
+    if (diffDays === 1) streak += 1;
+    else if (diffDays === 0) streak = Math.max(streak, 1);
+    else streak = 1;
+
+    user.lastSeenAt = now;
+    user.learningStats = user.learningStats || {};
+    user.learningStats.lastActiveDate = now;
+    user.learningStats.currentStreak = streak;
+    user.learningStats.longestStreak = Math.max(
+      Number(user.learningStats.longestStreak) || 0,
+      streak
+    );
+    await user.save();
+
+    res.json({
+      status: 'success',
+      data: { currentStreak: streak },
+    });
   } catch (error) {
     res.status(500).json({ status: 'error', message: 'Heartbeat failed' });
   }
@@ -170,23 +205,9 @@ router.get('/:id/profile', optionalAuth, async (req, res) => {
       }
     }
 
-    // Check if requesting user is admin
-    let user;
-    if (requestingUser) {
-      const adminUser = await User.findById(requestingUser.id);
-      const isAdmin = adminUser && adminUser.isAdmin && ['super', 'admin'].includes(adminUser.adminLevel);
-      
-      if (isAdmin || requestingUser.id.toString() === userId.toString()) {
-        // Admin can see any profile, user can see their own
-        user = await User.findById(userId).select('-password');
-      } else {
-        // Regular users can see public profiles
-        user = await User.findById(userId).select('-password -email');
-      }
-    } else {
-      // Not logged in - public profile only
-      user = await User.findById(userId).select('-password -email');
-    }
+    const user = await User.findById(userId).select(
+      'name avatar isAdmin adminLevel followers following'
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -262,9 +283,7 @@ router.get('/:id/profile', optionalAuth, async (req, res) => {
         user: {
           _id: user._id,
           name: user.name,
-          avatar: user.avatar,
-          email: requestingUser && (requestingUser.id.toString() === userId.toString() || (await User.findById(requestingUser.id))?.isAdmin) ? user.email : undefined,
-          createdAt: user.createdAt,
+          avatar: user.avatar || '',
           isAdmin: user.isAdmin,
           adminLevel: user.adminLevel
         },
@@ -327,7 +346,16 @@ router.put('/profile', [
     .optional()
     .isEmail()
     .normalizeEmail()
-    .withMessage('Please provide a valid email')
+    .withMessage('Please provide a valid email'),
+  body('phone')
+    .optional()
+    .custom((value) => {
+      if (value === undefined || value === null || value === '') return true;
+      if (!isValidPhone(value)) {
+        throw new Error('Please enter a valid mobile number with country code');
+      }
+      return true;
+    })
 ], async (req, res) => {
   try {
     // Check for validation errors
@@ -344,6 +372,26 @@ router.put('/profile', [
     const updateData = {};
 
     if (name) updateData.name = name;
+    if (req.body.phone !== undefined) {
+      const phone = normalizePhone(req.body.phone);
+      if (!phone) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Please enter a valid mobile number with country code',
+        });
+      }
+      const existingPhone = await User.findOne({
+        phone,
+        _id: { $ne: req.user.id },
+      });
+      if (existingPhone) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'This phone number is already used on another account',
+        });
+      }
+      updateData.phone = phone;
+    }
     if (email) {
       // Check if email is already taken by another user
       const existingUser = await User.findOne({ 

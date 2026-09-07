@@ -26,6 +26,13 @@ const SAMPLE_VIDEOS = [
 function sanitizeReelPublic(reelObj) {
   reelObj.title = String(reelObj.title || '').replace(/\n?\[\[YONE_LINK\|[^\]]+\]\]/g, '').trim();
   reelObj.description = String(reelObj.description || '').replace(/\n?\[\[YONE_LINK\|[^\]]+\]\]/g, '').trim();
+  if (reelObj.uploadedBy && typeof reelObj.uploadedBy === 'object') {
+    reelObj.uploadedBy = {
+      _id: reelObj.uploadedBy._id,
+      name: reelObj.uploadedBy.name,
+      avatar: reelObj.uploadedBy.avatar || '',
+    };
+  }
   return reelObj;
 }
 

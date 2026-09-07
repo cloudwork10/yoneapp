@@ -152,6 +152,18 @@ app.get('/api/security/status', (req, res) => {
 
 // Public routes (no authentication required)
 app.use('/api/public', publicSecurityMiddleware, require('./routes/public'));
+app.use(
+  '/api/public/legal-pages',
+  publicSecurityMiddleware,
+  require('./routes/legalPages').publicRouter
+);
+app.use(
+  '/api/admin/legal-pages',
+  securityMiddleware,
+  requireAuth,
+  requireAdmin,
+  require('./routes/legalPages')
+);
 
 // Routes with security middleware - RATE LIMITING COMPLETELY DISABLED
 app.use('/api/auth', securityMiddleware, require('./routes/auth'));

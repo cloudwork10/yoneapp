@@ -8,9 +8,22 @@ const { resolveProjectRules } = require('../utils/projectRules');
 
 const router = express.Router();
 
+function currentUserId(req) {
+  return req.user?.id || req.user?._id || null;
+}
+
+function cleanUrl(value) {
+  let next = String(value || '').trim();
+  next = next.replace(/^\/+(https?:\/\/)/i, '$1');
+  if (next && !/^https?:\/\//i.test(next) && /^[\w.-]+\.[a-z]{2,}/i.test(next)) {
+    next = `https://${next}`;
+  }
+  return next.trim();
+}
+
 function isHttpUrl(value) {
   try {
-    const parsed = new URL(String(value || '').trim());
+    const parsed = new URL(cleanUrl(value));
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;
@@ -18,7 +31,7 @@ function isHttpUrl(value) {
 }
 
 function readUrl(value, required, label) {
-  const trimmed = String(value || '').trim();
+  const trimmed = cleanUrl(value);
   if (!trimmed) {
     if (required) {
       const error = new Error(`${label} is required`);
@@ -154,7 +167,7 @@ router.put('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
 
     submission.status = action === 'approve' ? 'approved' : 'rejected';
     submission.adminNote = String(req.body?.adminNote || '').trim().slice(0, 500);
-    submission.reviewedBy = req.user._id;
+    submission.reviewedBy = currentUserId(req);
     submission.reviewedAt = new Date();
 
     let certificate = null;
@@ -184,7 +197,7 @@ router.put('/admin/:id', requireAuth, requireAdmin, async (req, res) => {
 router.get('/:courseId/mine', requireAuth, async (req, res) => {
   try {
     const submission = await CourseProjectSubmission.findOne({
-      user: req.user._id,
+      user: currentUserId(req),
       course: req.params.courseId,
     })
       .populate('certificate')
@@ -238,8 +251,13 @@ router.post('/:courseId', requireAuth, async (req, res) => {
     }
 
     const note = String(req.body?.note || '').trim().slice(0, 500);
+    const userId = currentUserId(req);
+    if (!userId) {
+      return res.status(401).json({ status: 'error', message: 'Authentication required' });
+    }
+
     const existing = await CourseProjectSubmission.findOne({
-      user: req.user._id,
+      user: userId,
       course: course._id,
     });
 
@@ -271,7 +289,7 @@ router.post('/:courseId', requireAuth, async (req, res) => {
     }
 
     const created = await CourseProjectSubmission.create({
-      user: req.user._id,
+      user: userId,
       course: course._id,
       fullName,
       githubUrl,
@@ -291,6 +309,9 @@ router.post('/:courseId', requireAuth, async (req, res) => {
       return res.status(400).json({ status: 'error', message: error.message });
     }
     console.error('Submit project error:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ status: 'error', message: error.message });
+    }
     res.status(500).json({ status: 'error', message: 'Server error' });
   }
 });

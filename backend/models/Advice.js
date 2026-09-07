@@ -13,8 +13,9 @@ const adviceSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['career-shift', 'kids', 'motivation', 'success', 'programming', 'business'],
-    default: 'motivation'
+    default: 'motivation',
+    trim: true,
+    maxlength: [40, 'Category cannot be more than 40 characters'],
   },
   author: {
     type: String,
