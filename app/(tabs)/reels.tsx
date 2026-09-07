@@ -179,6 +179,12 @@ export default function ReelsScreen() {
   const videoRefs = useRef<{ [key: string]: any }>({});
   const [isScreenFocused, setIsScreenFocused] = useState(true);
   const isScreenFocusedRef = useRef(true);
+  const iosReelHeight = height - 280;
+  const [androidFeedHeight, setAndroidFeedHeight] = useState(0);
+  const reelHeight =
+    Platform.OS === 'android' && androidFeedHeight > 0
+      ? androidFeedHeight
+      : iosReelHeight;
   const [showCommentsModal, setShowCommentsModal] = useState(false);
   const [activeCommentReelId, setActiveCommentReelId] = useState<string | null>(null);
   const [comments, setComments] = useState<ReelComment[]>([]);
@@ -1118,7 +1124,7 @@ export default function ReelsScreen() {
     const isLandscape = fit === 'landscape';
 
     return (
-      <View style={styles.reelContainer}>
+      <View style={[styles.reelContainer, { height: reelHeight }]}>
         <TouchableOpacity
           style={[
             styles.videoTouchable,
@@ -1469,24 +1475,36 @@ export default function ReelsScreen() {
 
       {/* Reels Feed */}
       {reels.length > 0 ? (
-        <FlatList
-          data={reels}
-          renderItem={renderReel}
-          keyExtractor={(item) => item._id}
-          pagingEnabled
-          scrollEnabled={scrubbingId === null}
-          showsVerticalScrollIndicator={false}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          snapToInterval={height - 280}
-          snapToAlignment="start"
-          decelerationRate="fast"
-          getItemLayout={(data, index) => ({
-            length: height - 280,
-            offset: (height - 280) * index,
-            index,
-          })}
-        />
+        <View
+          style={styles.feedWrap}
+          onLayout={(event) => {
+            if (Platform.OS !== 'android') return;
+            const next = Math.round(event.nativeEvent.layout.height);
+            if (next > 0 && Math.abs(next - androidFeedHeight) > 1) {
+              setAndroidFeedHeight(next);
+            }
+          }}
+        >
+          <FlatList
+            data={reels}
+            renderItem={renderReel}
+            keyExtractor={(item) => item._id}
+            extraData={reelHeight}
+            pagingEnabled
+            scrollEnabled={scrubbingId === null}
+            showsVerticalScrollIndicator={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            snapToInterval={reelHeight}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            getItemLayout={(data, index) => ({
+              length: reelHeight,
+              offset: reelHeight * index,
+              index,
+            })}
+          />
+        </View>
       ) : loading ? (
         <View style={styles.reelsSoftLoading}>
           <ActivityIndicator size="small" color="#E50914" />
@@ -1932,6 +1950,9 @@ const styles = StyleSheet.create({
   },
   categoryButtonTextActive: {
     color: '#FFFFFF',
+  },
+  feedWrap: {
+    flex: 1,
   },
   reelContainer: {
     width: width,
