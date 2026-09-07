@@ -1,7 +1,7 @@
 /** Public URLs for app store listings (GitHub Pages). */
-export const PRIVACY_POLICY_URL = 'https://cloudwork10.github.io/yoneapp/privacy.html';
-export const TERMS_URL = 'https://cloudwork10.github.io/yoneapp/terms.html';
-export const REFUND_POLICY_URL = 'https://cloudwork10.github.io/yoneapp/refund.html';
+export const PRIVACY_POLICY_URL = 'https://cloudwork10.github.io/yoneapp-legal/privacy.html';
+export const TERMS_URL = 'https://cloudwork10.github.io/yoneapp-legal/terms.html';
+export const REFUND_POLICY_URL = 'https://cloudwork10.github.io/yoneapp-legal/refund.html';
 export const CONTACT_EMAIL = 'supportyone@gmail.com';
 /** @deprecated Use CONTACT_EMAIL */
 export const SUPPORT_EMAIL = CONTACT_EMAIL;
@@ -18,7 +18,6 @@ export const MANUAL_PAYMENT_HINT =
   'حوّل على فودافون كاش أو InstaPay، بعدين ارفع سكرين التحويل تحت.';
 
 export const TELEGRAM_URL = 'https://t.me/+hMz0vFEexds2ZjY0';
-
 export const CERTIFICATE_FOUNDER_NAME = 'Abdulrahman Alaa';
 
 /** Digits for https://wa.me/ (country code 20 + number without leading 0). */
