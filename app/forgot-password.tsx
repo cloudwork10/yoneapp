@@ -13,13 +13,17 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PhoneField from '../components/PhoneField';
 import API_BASE_URL from '../config/api';
+import { isValidPhone, normalizePhone } from '../utils/phone';
 
-type Step = 'email' | 'reset';
+type Step = 'account' | 'reset';
 
 export default function ForgotPasswordScreen() {
-  const [step, setStep] = useState<Step>('email');
+  const [step, setStep] = useState<Step>('account');
   const [email, setEmail] = useState('');
+  const [phoneDial, setPhoneDial] = useState('20');
+  const [phoneLocal, setPhoneLocal] = useState('');
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -32,13 +36,20 @@ export default function ForgotPasswordScreen() {
       Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
+    if (!isValidPhone(phoneLocal, phoneDial)) {
+      Alert.alert('Error', 'Enter the mobile number on this account');
+      return;
+    }
 
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: trimmed }),
+        body: JSON.stringify({
+          email: trimmed,
+          phone: normalizePhone(phoneLocal, phoneDial),
+        }),
       });
       const data = await response.json();
 
@@ -93,6 +104,7 @@ export default function ForgotPasswordScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: trimmedEmail,
+          phone: normalizePhone(phoneLocal, phoneDial),
           code: trimmedCode,
           newPassword,
         }),
@@ -131,17 +143,12 @@ export default function ForgotPasswordScreen() {
               <Text style={styles.logo}>ELNADY</Text>
               <Text style={styles.logoArabic}>النادي</Text>
               <Text style={styles.subtitle}>
-                {step === 'email' ? 'Forgot password?' : 'Set new password'}
-              </Text>
-              <Text style={styles.hint}>
-                {step === 'email'
-                  ? 'Enter your account email to get a reset code.'
-                  : 'Enter the code and choose a new password.'}
+                {step === 'account' ? 'Forgot password?' : 'Set new password'}
               </Text>
             </View>
 
             <View style={styles.form}>
-              {step === 'email' ? (
+              {step === 'account' ? (
                 <>
                   <View style={styles.inputContainer}>
                     <Text style={styles.label}>Email</Text>
@@ -154,6 +161,16 @@ export default function ForgotPasswordScreen() {
                       keyboardType="email-address"
                       autoCapitalize="none"
                       autoCorrect={false}
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Mobile number</Text>
+                    <PhoneField
+                      dial={phoneDial}
+                      local={phoneLocal}
+                      onDialChange={setPhoneDial}
+                      onLocalChange={setPhoneLocal}
                     />
                   </View>
 
@@ -174,6 +191,17 @@ export default function ForgotPasswordScreen() {
                     <TextInput
                       style={[styles.input, styles.inputReadonly]}
                       value={email}
+                      editable={false}
+                    />
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Mobile number</Text>
+                    <PhoneField
+                      dial={phoneDial}
+                      local={phoneLocal}
+                      onDialChange={setPhoneDial}
+                      onLocalChange={setPhoneLocal}
                       editable={false}
                     />
                   </View>
@@ -263,13 +291,13 @@ export default function ForgotPasswordScreen() {
                     style={styles.secondaryButton}
                     disabled={loading}
                     onPress={() => {
-                      setStep('email');
+                      setStep('account');
                       setCode('');
                       setNewPassword('');
                       setConfirmPassword('');
                     }}
                   >
-                    <Text style={styles.secondaryButtonText}>Use a different email</Text>
+                    <Text style={styles.secondaryButtonText}>Use different details</Text>
                   </TouchableOpacity>
                 </>
               )}

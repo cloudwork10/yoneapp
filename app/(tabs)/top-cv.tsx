@@ -1,15 +1,43 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
-import { Alert, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../../components/FixedBackBar';
 import API_BASE_URL from '../../config/api';
+import { buildCvFilters, matchesCvFilter } from '../../utils/cvCategory';
+import resolveMediaUrl from '../../utils/mediaUrl';
+
+function toViewableCvUrl(raw?: string) {
+  const resolved = resolveMediaUrl(raw || '');
+  if (!resolved) return '';
+  let url = String(resolved).trim();
+  if (url.startsWith('www.')) url = `https://${url}`;
+  if (!/^https?:\/\//i.test(url)) return '';
+
+  const driveFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (driveFile) {
+    return `https://drive.google.com/file/d/${driveFile[1]}/preview`;
+  }
+  const driveId = url.match(/[?&]id=([^&]+)/);
+  if (/drive\.google\.com/i.test(url) && driveId) {
+    return `https://drive.google.com/file/d/${driveId[1]}/preview`;
+  }
+  return url;
+}
 
 export default function TopCVScreen() {
   const [selectedCV, setSelectedCV] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [cvTemplates, setCvTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  const filteredTemplates = useMemo(
+    () => cvTemplates.filter((cv) => matchesCvFilter(cv, selectedCategory)),
+    [cvTemplates, selectedCategory]
+  );
+  const filters = useMemo(() => buildCvFilters(cvTemplates), [cvTemplates]);
 
   // Fetch CV templates from API
   useEffect(() => {
@@ -22,7 +50,12 @@ export default function TopCVScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setCvTemplates(data.data.cvTemplates || []);
+        setCvTemplates(
+          (data.data.cvTemplates || []).map((cv) => ({
+            ...cv,
+            downloadUrl: resolveMediaUrl(cv.downloadUrl || ''),
+          }))
+        );
       } else if (response.status === 429 && retryCount < 3) {
         // Rate limited - retry after delay
         console.log(`Rate limited, retrying in ${(retryCount + 1) * 2} seconds...`);
@@ -50,6 +83,7 @@ export default function TopCVScreen() {
     { 
       id: 1, 
       name: 'Ahmed Hassan',
+      category: 'Frontend Developer',
       title: 'Frontend Developer CV', 
       description: 'Modern and clean design for frontend developers',
       downloads: 1250,
@@ -63,6 +97,7 @@ export default function TopCVScreen() {
     { 
       id: 2, 
       name: 'Sarah Mohamed',
+      category: 'Full Stack Developer',
       title: 'Full Stack Developer CV', 
       description: 'Comprehensive template for full stack developers',
       downloads: 980,
@@ -76,6 +111,7 @@ export default function TopCVScreen() {
     { 
       id: 3, 
       name: 'Omar Ali',
+      category: 'Mobile Developer',
       title: 'Mobile Developer CV', 
       description: 'Professional template for mobile app developers',
       downloads: 750,
@@ -89,6 +125,7 @@ export default function TopCVScreen() {
     { 
       id: 4, 
       name: 'Fatma Ibrahim',
+      category: 'Backend Developer',
       title: 'Backend Developer CV', 
       description: 'Technical and detailed template for backend developers',
       downloads: 650,
@@ -102,6 +139,7 @@ export default function TopCVScreen() {
     { 
       id: 5, 
       name: 'Mahmoud Khalil',
+      category: 'DevOps Engineer',
       title: 'DevOps Engineer CV', 
       description: 'Specialized template for DevOps professionals',
       downloads: 420,
@@ -115,6 +153,7 @@ export default function TopCVScreen() {
     { 
       id: 6, 
       name: 'Nour El-Din',
+      category: 'UI/UX Designer',
       title: 'UI/UX Designer CV', 
       description: 'Creative and visual template for designers',
       downloads: 890,
@@ -128,22 +167,33 @@ export default function TopCVScreen() {
   ];
 
   const handleDownload = async (cv) => {
-    try {
-      // If no downloadUrl, use a sample PDF URL
-      const downloadUrl = cv.downloadUrl && cv.downloadUrl.trim() !== '' 
-        ? cv.downloadUrl 
-        : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+    const url = toViewableCvUrl(cv?.downloadUrl);
+    if (!url) {
+      openModal(cv);
+      Alert.alert(
+        'No CV file',
+        'This template has no PDF attached yet. Ask an admin to edit it and upload the file.'
+      );
+      return;
+    }
 
-      const supported = await Linking.canOpenURL(downloadUrl);
-      if (supported) {
-        await Linking.openURL(downloadUrl);
-        Alert.alert('Success', `Downloading ${cv.name}'s CV...`);
-      } else {
-        Alert.alert('Error', 'Cannot open download link');
-      }
+    try {
+      await WebBrowser.openBrowserAsync(url, {
+        controlsColor: '#E50914',
+        dismissButtonStyle: 'close',
+        enableBarCollapsing: true,
+        showInRecents: true,
+        ...(Platform.OS === 'ios'
+          ? { presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN }
+          : { toolbarColor: '#111111' }),
+      });
     } catch (error) {
       console.error('Download error:', error);
-      Alert.alert('Error', 'Failed to download CV');
+      try {
+        await Linking.openURL(url);
+      } catch {
+        Alert.alert('Error', 'Failed to open CV');
+      }
     }
   };
 
@@ -167,28 +217,59 @@ export default function TopCVScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
-        <FixedBackBar />
+        <FixedBackBar returnToLastTab />
         <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
           <Text style={styles.title}>Top CV Templates</Text>
           <Text style={styles.subtitle}>Professional templates for developers</Text>
         </View>
 
-        <View style={styles.templatesContainer}>
-          {cvTemplates.map((template, index) => (
-            <TouchableOpacity 
-              key={template._id || template.id || `cv-${index}`} 
-              style={styles.templateCard}
-              onPress={() => openModal(template)}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filters}
+          contentContainerStyle={styles.filtersContent}
+        >
+          {filters.map((item) => (
+            <TouchableOpacity
+              key={item.value}
+              style={[
+                styles.filterChip,
+                selectedCategory === item.value && styles.filterChipActive,
+              ]}
+              onPress={() => setSelectedCategory(item.value)}
             >
-              <View style={styles.templateHeader}>
-                <View style={styles.nameContainer}>
-                  <Text style={styles.cvName}>{template.name}</Text>
-                  <Text style={styles.templateTitle}>{template.title}</Text>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  selectedCategory === item.value && styles.filterChipTextActive,
+                ]}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={styles.templatesContainer}>
+          {filteredTemplates.length === 0 ? (
+            <Text style={styles.emptyText}>No CVs in this specialty yet.</Text>
+          ) : null}
+          {filteredTemplates.map((template, index) => (
+            <View
+              key={template._id || template.id || `cv-${index}`}
+              style={styles.templateCard}
+            >
+              <TouchableOpacity onPress={() => openModal(template)} activeOpacity={0.85}>
+                <View style={styles.templateHeader}>
+                  <View style={styles.nameContainer}>
+                    <Text style={styles.cvName}>{template.name}</Text>
+                    <Text style={styles.templateTitle}>{template.title}</Text>
+                  </View>
                 </View>
-              </View>
-              
-              <Text style={styles.templateDescription}>{template.description}</Text>
+                
+                <Text style={styles.templateDescription}>{template.description}</Text>
+              </TouchableOpacity>
               
               <View style={styles.templateFooter}>
                 <View style={styles.statsContainer}>
@@ -197,15 +278,12 @@ export default function TopCVScreen() {
                 </View>
                 <TouchableOpacity 
                   style={styles.downloadButton}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleDownload(template);
-                  }}
+                  onPress={() => handleDownload(template)}
                 >
                   <Text style={styles.downloadText}>📥 Download</Text>
                 </TouchableOpacity>
               </View>
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
         </ScrollView>
@@ -263,7 +341,7 @@ export default function TopCVScreen() {
                     <View style={styles.skillsSection}>
                       <Text style={styles.sectionTitle}>Skills</Text>
                       <View style={styles.skillsContainer}>
-                        {selectedCV.skills.map((skill, index) => (
+                        {(selectedCV.skills || []).map((skill, index) => (
                           <View key={`skill-${index}-${skill}`} style={styles.skillTag}>
                             <Text style={styles.skillText}>{skill}</Text>
                           </View>
@@ -306,7 +384,40 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    marginBottom: 30,
+    marginBottom: 16,
+  },
+  filters: {
+    marginBottom: 20,
+    flexGrow: 0,
+  },
+  filtersContent: {
+    paddingRight: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  filterChipActive: {
+    backgroundColor: '#E50914',
+    borderColor: '#E50914',
+  },
+  filterChipText: {
+    color: '#CCCCCC',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+  },
+  emptyText: {
+    color: '#888888',
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   title: {
     fontSize: 28,
@@ -461,7 +572,8 @@ const styles = StyleSheet.create({
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    gap: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
@@ -470,11 +582,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999999',
     fontWeight: '500',
+    flexShrink: 0,
+    paddingTop: 1,
   },
   detailValue: {
+    flex: 1,
     fontSize: 14,
     color: '#FFFFFF',
     fontWeight: '600',
+    textAlign: 'right',
+    flexShrink: 1,
   },
   skillsSection: {
     marginBottom: 20,

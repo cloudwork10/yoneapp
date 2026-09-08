@@ -1,8 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { Video } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Animated,
@@ -17,10 +18,12 @@ import {
     View
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import FixedBackBar from '../components/FixedBackBar';
 import API_BASE_URL from '../config/api';
 import { isContentLocked } from '../utils/contentAccess';
+import resolveMediaUrl from '../utils/mediaUrl';
+import { getWebViewSource, isDirectVideoUrl, keepPlaybackInWebView, needsWebView } from '../utils/videoPlayback';
 import {
   fetchSubscriptionAccess,
   showPremiumGateAlert,
@@ -147,6 +150,9 @@ const episodes = [
 
 export default function ProgrammerThoughts() {
   const { user } = useUser();
+  const insets = useSafeAreaInsets();
+  const { thoughtId } = useLocalSearchParams<{ thoughtId?: string }>();
+  const openedThoughtId = useRef<string | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState(null);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
@@ -171,14 +177,26 @@ export default function ProgrammerThoughts() {
         const dbEpisodes = data.data.thoughts || [];
         
         // Convert database format to UI format
-        const formattedEpisodes = dbEpisodes.map(thought => ({
+        const formattedEpisodes = dbEpisodes.map(thought => {
+          const comingSoon = !!(
+            thought.comingSoon ||
+            (thought.tags || []).includes('coming-soon') ||
+            !String(thought.videoUrl || '').trim() ||
+            String(thought.videoUrl || '').includes('coming-soon')
+          );
+
+          return {
           id: thought._id,
           title: thought.title,
           description: thought.description,
           duration: thought.duration,
-          thumbnail: thought.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=600&fit=crop',
-          videoUrl: thought.videoUrl,
+          thumbnail: resolveMediaUrl(
+            thought.thumbnail,
+            'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=600&fit=crop'
+          ),
+          videoUrl: comingSoon ? '' : resolveMediaUrl(thought.videoUrl),
           category: thought.category,
+          accessType: thought.accessType || 'free',
           views: thought.views || 0,
           likes: thought.likes || 0,
           season: thought.season || 1,
@@ -188,9 +206,16 @@ export default function ProgrammerThoughts() {
           tags: thought.tags || [],
           transcript: thought.transcript || '',
           isActive: thought.isActive,
-          isFeatured: thought.isFeatured
-        }));
+          isFeatured: thought.isFeatured,
+          comingSoon,
+        };
+        });
         
+        formattedEpisodes.sort((a, b) => {
+          if (a.season !== b.season) return a.season - b.season;
+          return a.episodeNumber - b.episodeNumber;
+        });
+
         setEpisodes(formattedEpisodes);
         
         // Extract unique categories
@@ -264,7 +289,21 @@ export default function ProgrammerThoughts() {
     }, [])
   );
 
+  useEffect(() => {
+    if (!thoughtId || episodes.length === 0) return;
+    if (openedThoughtId.current === String(thoughtId)) return;
+    const episode = episodes.find((item) => String(item.id) === String(thoughtId));
+    if (!episode) return;
+    openedThoughtId.current = String(thoughtId);
+    openEpisode(episode, 0);
+  }, [thoughtId, episodes]);
+
   const openEpisode = (episode, index) => {
+    if (episode.comingSoon) {
+      Alert.alert('قريبًا', 'الحلقة دي لسه هتنزل.');
+      return;
+    }
+
     const isLocked = isContentLocked(episode, hasActiveSubscription);
     
     if (isLocked && !user) {
@@ -283,6 +322,7 @@ export default function ProgrammerThoughts() {
   const renderEpisodeCard = (episode, index) => {
     const cardAnim = new Animated.Value(0);
     const isLocked = isContentLocked(episode, hasActiveSubscription);
+    const isComingSoon = !!episode.comingSoon;
     
     // Start animation immediately
     setTimeout(() => {
@@ -299,7 +339,7 @@ export default function ProgrammerThoughts() {
         key={episode.id}
         style={[
           styles.episodeCard,
-          isLocked && styles.lockedCard,
+          isLocked && !isComingSoon && styles.lockedCard,
           {
             opacity: cardAnim,
             transform: [
@@ -332,24 +372,43 @@ export default function ProgrammerThoughts() {
           >
             {/* Episode Number Badge */}
             <View style={styles.episodeNumberBadge}>
-              <Text style={styles.episodeNumberText}>{index + 1}</Text>
+              <Text style={styles.episodeNumberText}>{episode.episodeNumber || index + 1}</Text>
             </View>
 
             {/* Thumbnail */}
             <View style={styles.thumbnailContainer}>
               <Image
                 source={{ uri: episode.thumbnail }}
-                style={styles.thumbnail}
+                style={[styles.thumbnail, isComingSoon && styles.comingSoonThumbnail]}
                 resizeMode="cover"
               />
-              <View style={styles.playButtonOverlay}>
-                <View style={styles.playButton}>
-                  <Text style={styles.playButtonText}>▶</Text>
+              {isComingSoon ? <View style={styles.comingSoonDim} pointerEvents="none" /> : null}
+              {isComingSoon ? (
+                <>
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.78)']}
+                    style={styles.comingSoonBottomFade}
+                    pointerEvents="none"
+                  />
+                  <View style={styles.comingSoonPillWrap}>
+                    <View style={styles.comingSoonPill}>
+                      <Ionicons name="time-outline" size={14} color="#FFFFFF" />
+                      <Text style={styles.comingSoonPillText}>قريبًا</Text>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.playButtonOverlay}>
+                  <View style={styles.playButton}>
+                    <Text style={styles.playButtonText}>▶</Text>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.durationBadge}>
-                <Text style={styles.durationText}>{episode.duration}</Text>
-              </View>
+              )}
+              {!isComingSoon && episode.duration ? (
+                <View style={styles.durationBadge}>
+                  <Text style={styles.durationText}>{episode.duration}</Text>
+                </View>
+              ) : null}
               {isLocked && (
                 <View style={styles.premiumBadge}>
                   <Text style={styles.premiumText}>🔒</Text>
@@ -367,20 +426,20 @@ export default function ProgrammerThoughts() {
                 {episode.title}
               </Text>
               
-              <Text style={styles.episodeDescription} numberOfLines={3}>
-                {episode.description}
-              </Text>
+              {episode.description && episode.description.replace(/\./g, '').trim() ? (
+                <Text style={styles.episodeDescription} numberOfLines={3}>
+                  {episode.description}
+                </Text>
+              ) : null}
 
-              {/* Stats */}
               <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statIcon}>👁️</Text>
-                  <Text style={styles.statText}>{episode.views.toLocaleString()}</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statIcon}>❤️</Text>
-                  <Text style={styles.statText}>{episode.likes}</Text>
-                </View>
+                <Text style={styles.metaChip}>حلقة {episode.episodeNumber || index + 1}</Text>
+                {!isComingSoon && episode.duration ? (
+                  <Text style={styles.metaChip}>{episode.duration}</Text>
+                ) : null}
+                <Text style={[styles.watchNow, isComingSoon && styles.watchLater]}>
+                  {isComingSoon ? 'لسه هتنزل' : 'شاهد الآن ←'}
+                </Text>
               </View>
             </View>
 
@@ -403,64 +462,60 @@ export default function ProgrammerThoughts() {
         onRequestClose={closeEpisode}
       >
         <View style={styles.modalContainer}>
-          <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={true} />
+          <StatusBar barStyle="light-content" backgroundColor="#000000" translucent={false} />
           <View style={styles.modalGradient}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
+            <View style={{ height: insets.top, backgroundColor: '#000000' }} />
+            <View style={styles.videoStage}>
+              {isDirectVideoUrl(selectedEpisode.videoUrl) && !needsWebView(selectedEpisode.videoUrl) ? (
+                <Video
+                  source={{ uri: selectedEpisode.videoUrl }}
+                  style={styles.video}
+                  useNativeControls={true}
+                  resizeMode="contain"
+                  shouldPlay={true}
+                />
+              ) : (
+                <WebView
+                  source={getWebViewSource(selectedEpisode.videoUrl) || { uri: selectedEpisode.videoUrl }}
+                  style={styles.webView}
+                  originWhitelist={['*']}
+                  allowsFullscreenVideo
+                  allowsInlineMediaPlayback
+                  mediaPlaybackRequiresUserAction={false}
+                  javaScriptEnabled
+                  domStorageEnabled
+                  setSupportMultipleWindows={false}
+                  nestedScrollEnabled
+                  onShouldStartLoadWithRequest={keepPlaybackInWebView}
+                  onOpenWindow={() => {}}
+                />
+              )}
+
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={closeEpisode}
               >
                 <Text style={styles.closeButtonText}>✕</Text>
               </TouchableOpacity>
-              <Text style={styles.modalTitle} numberOfLines={1}>
-                {selectedEpisode.title}
-              </Text>
             </View>
 
-            {/* Video Player */}
-            <View style={styles.videoContainer}>
-              {selectedEpisode.videoUrl.includes('youtube.com') || 
-               selectedEpisode.videoUrl.includes('vimeo.com') ? (
-                <WebView
-                  source={{ uri: selectedEpisode.videoUrl }}
-                  style={styles.webView}
-                  allowsFullscreenVideo={true}
-                  mediaPlaybackRequiresUserAction={false}
-                />
-              ) : (
-                <Video
-                  source={{ uri: selectedEpisode.videoUrl }}
-                  style={styles.video}
-                  useNativeControls={true}
-                  resizeMode="contain"
-                  shouldPlay={false}
-                />
-              )}
-            </View>
-
-            {/* Episode Info */}
             <View style={styles.episodeInfo}>
-              <Text style={styles.episodeInfoTitle}>
+              <Text style={styles.episodeInfoTitle} numberOfLines={2}>
                 {selectedEpisode.title}
               </Text>
-              <Text style={styles.episodeInfoDescription}>
-                {selectedEpisode.description}
-              </Text>
+              {selectedEpisode.description && selectedEpisode.description.replace(/\./g, '').trim() ? (
+                <Text style={styles.episodeInfoDescription} numberOfLines={3}>
+                  {selectedEpisode.description}
+                </Text>
+              ) : null}
               
               <View style={styles.episodeInfoStats}>
-                <View style={styles.infoStatItem}>
-                  <Text style={styles.infoStatIcon}>⏱️</Text>
-                  <Text style={styles.infoStatText}>{selectedEpisode.duration}</Text>
-                </View>
-                <View style={styles.infoStatItem}>
-                  <Text style={styles.infoStatIcon}>👁️</Text>
-                  <Text style={styles.infoStatText}>{selectedEpisode.views.toLocaleString()}</Text>
-                </View>
-                <View style={styles.infoStatItem}>
-                  <Text style={styles.infoStatIcon}>❤️</Text>
-                  <Text style={styles.infoStatText}>{selectedEpisode.likes}</Text>
-                </View>
+                <Text style={styles.metaChip}>
+                  حلقة {selectedEpisode.episodeNumber || 1}
+                </Text>
+                {selectedEpisode.duration ? (
+                  <Text style={styles.metaChip}>{selectedEpisode.duration}</Text>
+                ) : null}
               </View>
             </View>
           </View>
@@ -488,8 +543,8 @@ export default function ProgrammerThoughts() {
           ]}
         >
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>برنامج خواطر مبرمج</Text>
-            <Text style={styles.headerSubtitle}>10 حلقات من الخبرات والتجارب</Text>
+            <Text style={styles.headerTitle}>خواطر لم تمت</Text>
+            <Text style={styles.headerSubtitle}>خواطر… ودروس لا تُنسى</Text>
           </View>
         </Animated.View>
 
@@ -599,7 +654,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 15,
     left: 15,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#E50914',
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -620,6 +675,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  comingSoonThumbnail: {
+    opacity: 0.45,
+  },
+  comingSoonDim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
   playButtonOverlay: {
     position: 'absolute',
     top: 0,
@@ -630,11 +692,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
+  comingSoonBottomFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 88,
+  },
+  comingSoonPillWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 12,
+    alignItems: 'center',
+  },
+  comingSoonPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  comingSoonPillText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   playButton: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255, 107, 53, 0.9)',
+    backgroundColor: '#E50914',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -662,14 +754,16 @@ const styles = StyleSheet.create({
   },
   categoryContainer: {
     alignSelf: 'flex-start',
-    backgroundColor: '#4ECDC4',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E50914',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
     marginBottom: 10,
   },
   categoryText: {
-    color: '#FFFFFF',
+    color: '#E50914',
     fontSize: 12,
     fontWeight: 'bold',
   },
@@ -688,7 +782,30 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 20,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metaChip: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#333333',
+    overflow: 'hidden',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  watchNow: {
+    color: '#E50914',
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  watchLater: {
+    color: '#A3A3A3',
   },
   statItem: {
     flexDirection: 'row',
@@ -736,42 +853,29 @@ const styles = StyleSheet.create({
   modalGradient: {
     flex: 1,
     backgroundColor: '#000000',
+    justifyContent: 'center',
   },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#222222',
+  videoStage: {
+    flex: 1,
+    justifyContent: 'center',
     backgroundColor: '#000000',
   },
   closeButton: {
+    position: 'absolute',
+    top: 10,
+    left: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#333333',
+    backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
+    zIndex: 20,
   },
   closeButtonText: {
     color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
-  },
-  modalTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  videoContainer: {
-    flex: 1,
-    margin: 20,
-    borderRadius: 15,
-    overflow: 'hidden',
   },
   webView: {
     flex: 1,
@@ -782,9 +886,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   episodeInfo: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#333333',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 28,
+    backgroundColor: '#000000',
   },
   episodeInfoTitle: {
     color: '#FFFFFF',
@@ -800,7 +905,8 @@ const styles = StyleSheet.create({
   },
   episodeInfoStats: {
     flexDirection: 'row',
-    gap: 20,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   infoStatItem: {
     flexDirection: 'row',

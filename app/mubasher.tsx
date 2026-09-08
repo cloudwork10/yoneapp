@@ -46,6 +46,68 @@ type Cohort = {
   communityLive?: CommunityLive;
 };
 
+const DAY_EN: Record<string, string> = {
+  sunday: 'Sunday',
+  monday: 'Monday',
+  tuesday: 'Tuesday',
+  wednesday: 'Wednesday',
+  thursday: 'Thursday',
+  friday: 'Friday',
+  saturday: 'Saturday',
+  احد: 'Sunday',
+  الأحد: 'Sunday',
+  الاثنين: 'Monday',
+  الثلاثاء: 'Tuesday',
+  الاربعاء: 'Wednesday',
+  الأربعاء: 'Wednesday',
+  خميس: 'Thursday',
+  الجمعة: 'Friday',
+  السبت: 'Saturday',
+};
+
+const DAY_AR: Record<string, string> = {
+  sunday: 'الأحد',
+  monday: 'الاثنين',
+  tuesday: 'الثلاثاء',
+  wednesday: 'الأربعاء',
+  thursday: 'خميس',
+  friday: 'الجمعة',
+  saturday: 'السبت',
+  احد: 'الأحد',
+  الأحد: 'الأحد',
+  الاثنين: 'الاثنين',
+  الثلاثاء: 'الثلاثاء',
+  الاربعاء: 'الأربعاء',
+  الأربعاء: 'الأربعاء',
+  خميس: 'خميس',
+  الجمعة: 'الجمعة',
+  السبت: 'السبت',
+};
+
+function liveScheduleLabels(dayName?: string, time?: string) {
+  const dayKey = String(dayName || 'thursday').trim().toLowerCase();
+  const dayEn = DAY_EN[dayKey] || dayName || 'Thursday';
+  const dayAr = DAY_AR[dayKey] || 'خميس';
+
+  const raw = String(time || '21:00').trim();
+  const match = raw.match(/(\d{1,2}):(\d{2})/);
+  let timeEn = raw;
+  let timeAr = raw;
+  if (match) {
+    const hour24 = Number(match[1]);
+    const minutes = match[2];
+    const isPm = hour24 >= 12 || /pm|مساء/i.test(raw);
+    const hour12 = hour24 % 12 || 12;
+    timeEn = `${hour12}:${minutes} ${isPm ? 'PM' : 'AM'}`;
+    timeAr = `${hour12}:${minutes} ${isPm ? 'مساءً' : 'صباحًا'}`;
+  }
+
+  return {
+    en: `Every ${dayEn} at ${timeEn}`,
+    ar: `كل ${dayAr} الساعة ${timeAr}`,
+  };
+}
+
 async function fetchWithTimeout(url: string, options: RequestInit = {}, ms = 4500) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
@@ -132,6 +194,7 @@ export default function MubasherScreen() {
 
   const live = cohort?.communityLive;
   const isLiveNow = live?.liveState === 'live';
+  const schedule = liveScheduleLabels(live?.dayName, live?.time);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -187,11 +250,9 @@ export default function MubasherScreen() {
 
                 <View style={styles.coverBottom}>
                   <Text style={styles.coverBrand}>ELNADY</Text>
-                  <Text style={styles.coverTitle}>مباشر</Text>
-                  <Text style={styles.coverSubtitle}>
-                    {live?.title || 'Community Thursday'} · كل{' '}
-                    {live?.dayName || 'خميس'} · {live?.time || '21:00'}
-                  </Text>
+                  <Text style={styles.coverTitle}>Live - مباشر</Text>
+                  <Text style={styles.coverSubtitle}>{schedule.en}</Text>
+                  <Text style={styles.coverSubtitleAr}>{schedule.ar}</Text>
                 </View>
               </LinearGradient>
             </ImageBackground>
@@ -321,6 +382,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.75)',
     fontSize: 13,
     marginTop: 4,
+    lineHeight: 18,
+  },
+  coverSubtitleAr: {
+    color: 'rgba(255,255,255,0.68)',
+    fontSize: 13,
+    marginTop: 1,
     lineHeight: 18,
   },
   error: { color: '#E50914', fontSize: 13, marginBottom: 12 },

@@ -16,14 +16,19 @@ function extractYouTubeId(url) {
 
 function extractVimeoId(url) {
   const value = normalizeUrl(url);
-  const match = value.match(/(?:vimeo\.com|player\.vimeo\.com)\/(?:video\/)?(\d+)/i);
+  const match =
+    value.match(/player\.vimeo\.com\/video\/(\d+)/i) ||
+    value.match(/vimeo\.com\/(?:video\/)?(\d+)/i) ||
+    value.match(/vimeo\.com\/(?:channels\/[^/]+|groups\/[^/]+\/videos|ondemand\/[^/]+|album\/\d+\/video)\/(\d+)/i);
   return match?.[1] || null;
 }
 
 function extractVimeoPrivacyHash(url) {
   const value = normalizeUrl(url);
-  const match = value.match(/[?&]h=([a-zA-Z0-9]+)/i);
-  return match?.[1] || null;
+  const queryHash = value.match(/[?&]h=([a-zA-Z0-9]+)/i);
+  if (queryHash?.[1]) return queryHash[1];
+  const pathHash = value.match(/vimeo\.com\/\d+\/([a-zA-Z0-9]+)/i);
+  return pathHash?.[1] || null;
 }
 
 function extractGoogleDriveId(url) {
@@ -32,6 +37,30 @@ function extractGoogleDriveId(url) {
     value.match(/drive\.google\.com\/file\/d\/([^/]+)/i) ||
     value.match(/[?&]id=([^&]+)/i);
   return match?.[1] || null;
+}
+
+function extractTikTokId(url) {
+  const value = normalizeUrl(url);
+  const match = value.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/i) || value.match(/\/video\/(\d+)/i);
+  return match?.[1] || null;
+}
+
+function extractDailymotionId(url) {
+  const value = normalizeUrl(url);
+  const match = value.match(/dailymotion\.com\/(?:embed\/)?video\/([a-zA-Z0-9]+)/i);
+  return match?.[1] || null;
+}
+
+function extractInstagramCode(url) {
+  const value = normalizeUrl(url);
+  const match = value.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
+  return match?.[1] || null;
+}
+
+function extractFacebookVideoHref(url) {
+  const value = normalizeUrl(url);
+  if (/facebook\.com|fb\.watch/i.test(value)) return value;
+  return '';
 }
 
 /** Vimeo embed URL with branding stripped as much as the API allows. */
@@ -88,7 +117,7 @@ function buildIframeHtml(src) {
 </html>`;
 }
 
-/** True when the URL should play inside a WebView (YouTube, Vimeo, Drive, embed pages). */
+/** True when the URL should play inside a WebView (YouTube, Vimeo, Drive, social). */
 export function needsWebView(url) {
   const value = normalizeUrl(url);
   if (!value) return false;
@@ -98,6 +127,11 @@ export function needsWebView(url) {
     /vimeo\.com|player\.vimeo\.com/i.test(value) ||
     /drive\.google\.com/i.test(value) ||
     /player\.cloudinary\.com/i.test(value) ||
+    /facebook\.com|fb\.watch/i.test(value) ||
+    /instagram\.com/i.test(value) ||
+    /tiktok\.com/i.test(value) ||
+    /dailymotion\.com/i.test(value) ||
+    /twitch\.tv/i.test(value) ||
     /\/embed\//i.test(value)
   );
 }
@@ -109,7 +143,7 @@ export function convertToEmbedUrl(url) {
 
   const youtubeId = extractYouTubeId(value);
   if (youtubeId) {
-    return `https://www.youtube-nocookie.com/embed/${youtubeId}?playsinline=1&rel=0&modestbranding=1&enablejsapi=1`;
+    return `https://www.youtube-nocookie.com/embed/${youtubeId}?playsinline=1&rel=0&modestbranding=1&enablejsapi=1&autoplay=1`;
   }
 
   const vimeoEmbed = buildVimeoEmbedUrl(value);
@@ -118,6 +152,25 @@ export function convertToEmbedUrl(url) {
   const driveId = extractGoogleDriveId(value);
   if (driveId) {
     return `https://drive.google.com/file/d/${driveId}/preview`;
+  }
+
+  const tiktokId = extractTikTokId(value);
+  if (tiktokId) {
+    return `https://www.tiktok.com/embed/v2/${tiktokId}`;
+  }
+
+  const dailymotionId = extractDailymotionId(value);
+  if (dailymotionId) {
+    return `https://www.dailymotion.com/embed/video/${dailymotionId}`;
+  }
+
+  const instagramCode = extractInstagramCode(value);
+  if (instagramCode) {
+    return `https://www.instagram.com/p/${instagramCode}/embed`;
+  }
+
+  if (/facebook\.com|fb\.watch/i.test(value)) {
+    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(value)}&show_text=0&autoplay=1`;
   }
 
   if (/player\.cloudinary\.com/i.test(value)) {
@@ -131,30 +184,53 @@ export function convertToEmbedUrl(url) {
   return value;
 }
 
-/** Best WebView source — iframe HTML for YouTube/Vimeo, direct URI for Drive/others. */
+/** Best WebView source — iframe HTML for YouTube/Vimeo/social, URI for Drive/others. */
 export function getWebViewSource(url) {
   const value = normalizeUrl(url);
   if (!value) return null;
 
   const youtubeId = extractYouTubeId(value);
   if (youtubeId) {
-    const embedUrl = convertToEmbedUrl(value);
     return {
-      html: buildIframeHtml(embedUrl),
+      html: buildIframeHtml(convertToEmbedUrl(value)),
       baseUrl: 'https://www.youtube-nocookie.com',
     };
   }
 
   const vimeoId = extractVimeoId(value);
   if (vimeoId) {
-    const embedUrl = buildVimeoEmbedUrl(value);
     return {
-      html: buildIframeHtml(embedUrl),
+      html: buildIframeHtml(buildVimeoEmbedUrl(value)),
       baseUrl: 'https://player.vimeo.com',
     };
   }
 
+  if (extractTikTokId(value)) {
+    return { html: buildIframeHtml(convertToEmbedUrl(value)), baseUrl: 'https://www.tiktok.com' };
+  }
+  if (extractDailymotionId(value)) {
+    return { html: buildIframeHtml(convertToEmbedUrl(value)), baseUrl: 'https://www.dailymotion.com' };
+  }
+  if (extractInstagramCode(value)) {
+    return { html: buildIframeHtml(convertToEmbedUrl(value)), baseUrl: 'https://www.instagram.com' };
+  }
+  if (extractFacebookVideoHref(value)) {
+    return { html: buildIframeHtml(convertToEmbedUrl(value)), baseUrl: 'https://www.facebook.com' };
+  }
+
   return { uri: convertToEmbedUrl(value) };
+}
+
+/** Block YouTube/TikTok/Facebook app schemes so playback stays in the WebView. */
+export function keepPlaybackInWebView(request) {
+  const url = String(request?.url || '');
+  if (!url || url.startsWith('about:') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return true;
+  }
+  if (/^(youtube|vnd\.youtube|intent|fb|instagram|tiktok|snssdk|vimeo):/i.test(url)) {
+    return false;
+  }
+  return url.startsWith('http://') || url.startsWith('https://');
 }
 
 /** Direct stream URLs that expo-av can play natively. */

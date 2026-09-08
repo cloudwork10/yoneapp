@@ -87,7 +87,7 @@ const DISCOVER_SECTION: MenuSection = {
     {
       id: 29,
       title: 'Jobs',
-      description: 'وظائف · قدّم من جوه التطبيق',
+      description: 'Jobs · Apply from inside the app',
       icon: '💼',
       route: '/jobs',
     },
@@ -143,8 +143,8 @@ const LIBRARY_SECTION: MenuSection = {
     },
     {
       id: 3,
-      title: 'برنامج خواطر مبرمج',
-      description: '10 حلقات من التجارب البرمجية',
+      title: 'خواطر لم تمت',
+      description: 'خواطر… ودروس لا تُنسى',
       icon: '💭',
       route: '/programmer-thoughts',
     },
@@ -241,6 +241,14 @@ const ADMIN_SECTION: MenuSection = {
       description: 'دفعة · مسارات · لايف',
       icon: '🏟️',
       route: '/club-management',
+      adminOnly: true,
+    },
+    {
+      id: 28,
+      title: 'Policies Management',
+      description: 'Edit About, Privacy, Terms, Refund',
+      icon: '📜',
+      route: '/policies-management',
       adminOnly: true,
     },
     {
@@ -528,7 +536,12 @@ export default function MoreScreen() {
       return;
     }
 
-    if (route === '/dashboard' || route === '/content-management' || route === '/club-management') {
+    if (
+      route === '/dashboard' ||
+      route === '/content-management' ||
+      route === '/club-management' ||
+      route === '/policies-management'
+    ) {
       if (!isAdmin) {
         Alert.alert('Access Denied', 'You need admin privileges.');
         return;
@@ -676,9 +689,15 @@ export default function MoreScreen() {
           ))}
 
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutButtonText}>Logout</Text>
-            </TouchableOpacity>
+            {user ? (
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutButtonText}>Logout</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.logoutButton} onPress={() => router.push('/login')}>
+                <Text style={styles.logoutButtonText}>Sign In</Text>
+              </TouchableOpacity>
+            )}
             <Text style={styles.footerText}>ELNADY Learning Platform</Text>
             <Text style={styles.versionText}>Version 1.0.0</Text>
           </View>

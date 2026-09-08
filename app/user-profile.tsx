@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import { useUser } from '../contexts/UserContext';
 import resolveMediaUrl from '../utils/mediaUrl';
+import { stripReelLinkMarker } from '../utils/reelLinks';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 const { width } = Dimensions.get('window');
@@ -26,8 +27,6 @@ interface UserProfile {
   _id: string;
   name: string;
   avatar?: string;
-  email?: string;
-  createdAt: string;
   isAdmin?: boolean;
   adminLevel?: string;
 }
@@ -109,38 +108,6 @@ export default function UserProfileScreen() {
         return;
       }
 
-      // If it's own profile, fetch my-reels directly to get all videos (including pending)
-      if (isOwn && token) {
-        const myReelsResponse = await fetch(
-          `${API_BASE_URL}/api/reels/my-reels`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        if (myReelsResponse.ok) {
-          const myReelsData = await myReelsResponse.json();
-          setReels(myReelsData.data.reels || []);
-          // Set basic profile info from current user
-          if (currentUser) {
-            setProfile({
-              _id: currentUser.id,
-              name: currentUser.name,
-              email: currentUser.email,
-              createdAt: currentUser.createdAt || new Date().toISOString(),
-              isAdmin: currentUser.isAdmin,
-              adminLevel: currentUser.adminLevel,
-            });
-            setStats({
-              totalReels: myReelsData.data.reels?.length || 0,
-              totalLikes: 0,
-              totalViews: 0,
-              followersCount: 0,
-              followingCount: 0,
-            });
-          }
-          setLoading(false);
-          return;
-        }
-      }
-
       const response = await fetch(
         `${API_BASE_URL}/api/users/${userIdString}/profile`,
         { headers }
@@ -148,14 +115,50 @@ export default function UserProfileScreen() {
 
       if (response.ok) {
         const data = await response.json();
-        setProfile(data.data.user);
-        setStats(data.data.stats);
+        const remote = data.data.user || {};
+        setProfile({
+          _id: remote._id || userIdString,
+          name: remote.name || currentUser?.name || 'User',
+          avatar: remote.avatar || (isOwn ? currentUser?.avatar : '') || '',
+          isAdmin: remote.isAdmin,
+          adminLevel: remote.adminLevel,
+        });
+        setStats(data.data.stats || {
+          totalReels: 0,
+          totalLikes: 0,
+          totalViews: 0,
+          followersCount: 0,
+          followingCount: 0,
+        });
         setReels(data.data.reels || []);
         setIsFollowing(data.data.isFollowing || false);
+
+        if (isOwn && token) {
+          const myReelsResponse = await fetch(`${API_BASE_URL}/api/reels/my-reels`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (myReelsResponse.ok) {
+            const myReelsData = await myReelsResponse.json();
+            const ownReels = myReelsData.data.reels || [];
+            setReels(ownReels);
+            setStats((prev) => ({
+              ...prev,
+              totalReels: ownReels.length,
+            }));
+          }
+        }
       } else {
         const errorData = await response.json().catch(() => ({}));
         if (errorData.code === 'USER_BLOCKED') {
           setIsBlocked(true);
+        } else if (isOwn && currentUser) {
+          setProfile({
+            _id: currentUser.id,
+            name: currentUser.name,
+            avatar: currentUser.avatar || '',
+            isAdmin: currentUser.isAdmin,
+            adminLevel: currentUser.adminLevel,
+          });
         } else {
           console.error('Failed to fetch user profile:', errorData.message || response.status);
         }
@@ -332,12 +335,6 @@ export default function UserProfileScreen() {
             </View>
 
             <Text style={styles.userName}>{profile.name}</Text>
-            {profile.email && (
-              <Text style={styles.userEmail}>{profile.email}</Text>
-            )}
-            <Text style={styles.joinDate}>
-              Joined {new Date(profile.createdAt).toLocaleDateString()}
-            </Text>
           </View>
 
           {/* Follow Button */}
@@ -463,8 +460,8 @@ export default function UserProfileScreen() {
             useNativeControls
           />
           <View style={styles.modalInfo}>
-            <Text style={styles.modalTitle}>{selectedReel.title || 'No title'}</Text>
-            <Text style={styles.modalDescription}>{selectedReel.description}</Text>
+            <Text style={styles.modalTitle}>{stripReelLinkMarker(selectedReel.title) || 'No title'}</Text>
+            <Text style={styles.modalDescription}>{stripReelLinkMarker(selectedReel.description)}</Text>
           </View>
         </View>
       )}

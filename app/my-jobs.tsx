@@ -38,9 +38,9 @@ export default function MyJobsScreen() {
       const res = await makeAuthenticatedRequest(`${API_BASE_URL}/api/jobs/company/mine`);
       const data = await res.json();
       if (res.ok) setJobs(data?.data?.jobs || []);
-      else Alert.alert('خطأ', data?.message || 'تعذر تحميل وظائفك');
+      else Alert.alert('Error', data?.message || 'Could not load your jobs');
     } catch {
-      Alert.alert('خطأ', 'تعذر الاتصال بالسيرفر');
+      Alert.alert('Error', 'Could not connect to the server');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,8 +67,8 @@ export default function MyJobsScreen() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>وظائفي</Text>
-        <Text style={styles.subtitle}>شوف مين قدّم على الوظائف اللي نشرتها</Text>
+        <Text style={styles.title}>My Jobs</Text>
+        <Text style={styles.subtitle}>See who applied to the jobs you posted</Text>
 
         {loading ? (
           <ActivityIndicator color="#E50914" style={{ marginTop: 40 }} />
@@ -88,9 +88,9 @@ export default function MyJobsScreen() {
           >
             {jobs.length === 0 ? (
               <View style={styles.emptyBox}>
-                <Text style={styles.empty}>لسه ما نشرتش وظائف</Text>
+                <Text style={styles.empty}>You have not posted any jobs yet</Text>
                 <TouchableOpacity style={styles.postBtn} onPress={() => router.push('/post-job')}>
-                  <Text style={styles.postBtnText}>نشر وظيفة</Text>
+                  <Text style={styles.postBtnText}>Post a job</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -106,7 +106,7 @@ export default function MyJobsScreen() {
                     </Text>
                   </View>
                   <Text style={styles.meta}>
-                    {job.type} · {job.workMode} · {job.applicationsCount || 0} متقدم
+                    {job.type} · {job.workMode} · {job.applicationsCount || 0} applicants
                   </Text>
                   <TouchableOpacity
                     style={styles.appsBtn}
@@ -115,7 +115,7 @@ export default function MyJobsScreen() {
                     }
                   >
                     <Ionicons name="people-outline" size={18} color="#fff" />
-                    <Text style={styles.appsBtnText}>عرض المتقدمين</Text>
+                    <Text style={styles.appsBtnText}>View applicants</Text>
                   </TouchableOpacity>
                 </View>
               ))

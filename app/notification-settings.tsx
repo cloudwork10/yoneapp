@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useState } from 'react';
@@ -8,45 +9,161 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../components/FixedBackBar';
 import NotificationService from '../services/NotificationService';
+import { DEFAULT_PRAYER_CITY, fetchPrayerTimes, loadPrayerCity } from '../utils/prayerTimes';
+
+const LANG_KEY = 'yone_notification_settings_lang';
+
+const COPY = {
+  en: {
+    back: '← Back',
+    loading: 'Loading settings...',
+    title: 'Notification Settings',
+    subtitle: 'Choose which alerts you want to receive',
+    deviceId: 'Device ID',
+    contentTitle: 'New content alerts',
+    contentDesc: 'Get notified when new articles, podcasts, advice, or roadmaps are added',
+    testContent: 'Test content notification',
+    prayerTitle: 'Prayer time alerts',
+    prayerDesc: 'Daily reminders for the five prayers (Fajr, Dhuhr, Asr, Maghrib, Isha)',
+    testPrayer: 'Test prayer notification',
+    todayPrayers: "Today's prayer times",
+    prayers: [
+      { key: 'fajr', name: 'Fajr', icon: '🌅' },
+      { key: 'dhuhr', name: 'Dhuhr', icon: '☀️' },
+      { key: 'asr', name: 'Asr', icon: '🌤️' },
+      { key: 'maghrib', name: 'Maghrib', icon: '🌅' },
+      { key: 'isha', name: 'Isha', icon: '🌙' },
+    ],
+    enable: 'Enable notifications',
+    refreshPrayer: 'Refresh prayer times',
+    clearAll: 'Clear all notifications',
+    permTitle: 'Notifications are off',
+    permBody: 'Turn on notifications in app settings to receive alerts.',
+    permOk: 'OK',
+    contentOnTitle: 'Enabled',
+    contentOnBody: 'You will get alerts when new content is added.',
+    contentOffTitle: 'Disabled',
+    contentOffBody: 'New content alerts are turned off.',
+    prayerOnTitle: 'Enabled',
+    prayerOnBody: 'You will get daily prayer time reminders.',
+    prayerOffTitle: 'Disabled',
+    prayerOffBody: 'Prayer time alerts are turned off.',
+    testContentSent: 'Test content notification sent.',
+    testPrayerSent: 'Test prayer notification sent.',
+    testSentTitle: 'Sent',
+    enableOk: 'Notifications enabled.',
+    enableDenied: 'Please enable notifications from your device settings.',
+    enableDeniedTitle: 'Permission denied',
+    enableOkTitle: 'Enabled',
+    prayerUpdated: 'Prayer notification schedule updated.',
+    done: 'Done',
+    clearTitle: 'Clear notifications?',
+    clearBody: 'This will remove all scheduled notifications.',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    cleared: 'All notifications were cleared.',
+    testArticleTitle: 'Sample article',
+    testArticleAuthor: 'Editor',
+    testPrayerPushTitle: 'Dhuhr prayer time',
+    testPrayerPushBody: 'It is time for Dhuhr. May Allah bless you.',
+  },
+  ar: {
+    back: '← رجوع',
+    loading: 'جاري تحميل الإعدادات...',
+    title: 'إعدادات الإشعارات',
+    subtitle: 'تحكم في الإشعارات التي تريد استلامها',
+    deviceId: 'معرف الجهاز',
+    contentTitle: 'إشعارات المحتوى الجديد',
+    contentDesc: 'احصل على إشعار عند إضافة مقالات، بودكاست، نصائح، أو خرائط طريق جديدة',
+    testContent: 'اختبار إشعار المحتوى',
+    prayerTitle: 'إشعارات أوقات الصلاة',
+    prayerDesc: 'احصل على تذكير بأوقات الصلاة الخمس يومياً (الفجر، الظهر، العصر، المغرب، العشاء)',
+    testPrayer: 'اختبار إشعار الصلاة',
+    todayPrayers: 'أوقات الصلاة اليوم',
+    prayers: [
+      { key: 'fajr', name: 'الفجر', icon: '🌅' },
+      { key: 'dhuhr', name: 'الظهر', icon: '☀️' },
+      { key: 'asr', name: 'العصر', icon: '🌤️' },
+      { key: 'maghrib', name: 'المغرب', icon: '🌅' },
+      { key: 'isha', name: 'العشاء', icon: '🌙' },
+    ],
+    enable: 'تفعيل الإشعارات',
+    refreshPrayer: 'تحديث أوقات الصلاة',
+    clearAll: 'حذف جميع الإشعارات',
+    permTitle: 'الإشعارات غير مفعلة',
+    permBody: 'يرجى تفعيل الإشعارات من إعدادات التطبيق لاستلام التنبيهات',
+    permOk: 'موافق',
+    contentOnTitle: 'تم التفعيل',
+    contentOnBody: 'سيتم إرسال إشعارات عند إضافة محتوى جديد',
+    contentOffTitle: 'تم الإلغاء',
+    contentOffBody: 'لن يتم إرسال إشعارات المحتوى الجديد',
+    prayerOnTitle: 'تم التفعيل',
+    prayerOnBody: 'سيتم إرسال إشعارات أوقات الصلاة يومياً',
+    prayerOffTitle: 'تم الإلغاء',
+    prayerOffBody: 'لن يتم إرسال إشعارات أوقات الصلاة',
+    testContentSent: 'تم إرسال إشعار تجريبي للمحتوى',
+    testPrayerSent: 'تم إرسال إشعار تجريبي للصلاة',
+    testSentTitle: 'تم الإرسال',
+    enableOk: 'تم تفعيل الإشعارات بنجاح!',
+    enableDenied: 'يرجى تفعيل الإشعارات من إعدادات التطبيق',
+    enableDeniedTitle: 'تم الرفض',
+    enableOkTitle: 'تم التفعيل',
+    prayerUpdated: 'تم تحديث جدول إشعارات الصلاة',
+    done: 'تم',
+    clearTitle: 'تأكيد الحذف',
+    clearBody: 'هل تريد حذف جميع الإشعارات المجدولة؟',
+    cancel: 'إلغاء',
+    delete: 'حذف',
+    cleared: 'تم حذف جميع الإشعارات',
+    testArticleTitle: 'مقال تجريبي رائع',
+    testArticleAuthor: 'المطور',
+    testPrayerPushTitle: 'حان وقت صلاة الظهر',
+    testPrayerPushBody: 'السلام عليكم، حان الآن وقت صلاة الظهر. بارك الله فيك.',
+  },
+};
 
 export default function NotificationSettingsScreen() {
+  const [lang, setLang] = useState<'en' | 'ar'>('en');
   const [contentNotifications, setContentNotifications] = useState(true);
   const [prayerNotifications, setPrayerNotifications] = useState(true);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [todayPrayerTimes, setTodayPrayerTimes] = useState(DEFAULT_PRAYER_CITY.fallback);
+
+  const t = COPY[lang];
 
   useEffect(() => {
     loadSettings();
   }, []);
 
+  const switchLang = async (next: 'en' | 'ar') => {
+    setLang(next);
+    await AsyncStorage.setItem(LANG_KEY, next);
+  };
+
   const loadSettings = async () => {
     try {
-      // Register for push notifications first
+      const savedLang = await AsyncStorage.getItem(LANG_KEY);
+      const nextLang = savedLang === 'ar' ? 'ar' : 'en';
+      setLang(nextLang);
+      const copy = COPY[nextLang];
+
       const token = await NotificationService.registerForPushNotifications();
-      console.log('🔔 Push token:', token);
-      
       const settings = await NotificationService.getNotificationSettings();
       setContentNotifications(settings.contentNotifications);
       setPrayerNotifications(settings.prayerNotifications);
       setPushToken(settings.pushToken);
-      
-      // Check notification permissions
+      const city = await loadPrayerCity();
+      setTodayPrayerTimes(await fetchPrayerTimes(city));
+
       const { status } = await Notifications.getPermissionsAsync();
-      console.log('🔔 Notification permission status:', status);
-      
       if (status !== 'granted') {
-        Alert.alert(
-          '⚠️ الإشعارات غير مفعلة',
-          'يرجى تفعيل الإشعارات من إعدادات التطبيق لاستلام التنبيهات',
-          [
-            { text: 'موافق', style: 'default' }
-          ]
-        );
+        Alert.alert(copy.permTitle, copy.permBody, [{ text: copy.permOk }]);
       }
     } catch (error) {
       console.error('Error loading notification settings:', error);
@@ -58,69 +175,70 @@ export default function NotificationSettingsScreen() {
   const handleContentNotificationToggle = async (value: boolean) => {
     setContentNotifications(value);
     await NotificationService.updateNotificationSettings({
-      contentNotifications: value
+      contentNotifications: value,
     });
-    
-    if (value) {
-      Alert.alert(
-        '✅ تم التفعيل',
-        'سيتم إرسال إشعارات عند إضافة محتوى جديد'
-      );
-    } else {
-      Alert.alert(
-        '❌ تم الإلغاء',
-        'لن يتم إرسال إشعارات المحتوى الجديد'
-      );
-    }
+    Alert.alert(
+      value ? t.contentOnTitle : t.contentOffTitle,
+      value ? t.contentOnBody : t.contentOffBody
+    );
   };
 
   const handlePrayerNotificationToggle = async (value: boolean) => {
     setPrayerNotifications(value);
     await NotificationService.updateNotificationSettings({
-      prayerNotifications: value
+      prayerNotifications: value,
     });
-    
-    if (value) {
-      Alert.alert(
-        '🕌 تم التفعيل',
-        'سيتم إرسال إشعارات أوقات الصلاة يومياً'
-      );
-    } else {
-      Alert.alert(
-        '❌ تم الإلغاء',
-        'لن يتم إرسال إشعارات أوقات الصلاة'
-      );
-    }
+    Alert.alert(
+      value ? t.prayerOnTitle : t.prayerOffTitle,
+      value ? t.prayerOnBody : t.prayerOffBody
+    );
   };
 
   const testContentNotification = async () => {
     await NotificationService.sendContentNotification(
       'article',
-      'مقال تجريبي رائع',
-      'المطور'
+      t.testArticleTitle,
+      t.testArticleAuthor
     );
-    Alert.alert('✅ تم الإرسال', 'تم إرسال إشعار تجريبي للمحتوى');
+    Alert.alert(t.testSentTitle, t.testContentSent);
   };
 
   const testPrayerNotification = async () => {
     await NotificationService.sendLocalNotification({
-      title: '🕌 حان وقت صلاة الظهر',
-      body: 'السلام عليكم، حان الآن وقت صلاة الظهر. بارك الله فيك.',
+      title: t.testPrayerPushTitle,
+      body: t.testPrayerPushBody,
       data: {
         type: 'prayer',
-        prayerName: 'dhuhr'
+        prayerName: 'dhuhr',
       },
-      priority: 'max'
+      priority: 'max',
     });
-    Alert.alert('✅ تم الإرسال', 'تم إرسال إشعار تجريبي للصلاة');
+    Alert.alert(t.testSentTitle, t.testPrayerSent);
   };
+
+  const LangToggle = () => (
+    <View style={styles.langToggle}>
+      <TouchableOpacity
+        style={[styles.langBtn, lang === 'en' && styles.langBtnOn]}
+        onPress={() => switchLang('en')}
+      >
+        <Text style={[styles.langBtnText, lang === 'en' && styles.langBtnTextOn]}>EN</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.langBtn, lang === 'ar' && styles.langBtnOn]}
+        onPress={() => switchLang('ar')}
+      >
+        <Text style={[styles.langBtnText, lang === 'ar' && styles.langBtnTextOn]}>عربي</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>🔄 جاري تحميل الإعدادات...</Text>
+            <Text style={styles.loadingText}>{t.loading}</Text>
           </View>
         </LinearGradient>
       </SafeAreaView>
@@ -130,145 +248,124 @@ export default function NotificationSettingsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#000000', '#1a1a1a', '#000000']} style={styles.container}>
-        <FixedBackBar label="← رجوع" />
+        <FixedBackBar label={t.back} />
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>إعدادات الإشعارات</Text>
-            <Text style={styles.subtitle}>تحكم في الإشعارات التي تريد استلامها</Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.title}>{t.title}</Text>
+              <LangToggle />
+            </View>
+            <Text style={styles.subtitle}>{t.subtitle}</Text>
           </View>
 
-          {/* Push Token Info */}
-          {pushToken && (
+          {pushToken ? (
             <View style={styles.tokenContainer}>
-              <Text style={styles.tokenTitle}>🔑 معرف الجهاز:</Text>
-              <Text style={styles.tokenText} numberOfLines={2}>{pushToken}</Text>
+              <Text style={styles.tokenTitle}>{t.deviceId}</Text>
+              <Text style={styles.tokenText} numberOfLines={2}>
+                {pushToken}
+              </Text>
             </View>
-          )}
+          ) : null}
 
-          {/* Content Notifications Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionIcon}>📢</Text>
               <View style={styles.sectionTitleContainer}>
-                <Text style={styles.sectionTitle}>إشعارات المحتوى الجديد</Text>
-                <Text style={styles.sectionDescription}>
-                  احصل على إشعار عند إضافة مقالات، بودكاست، نصائح، أو خرائط طريق جديدة
-                </Text>
+                <Text style={styles.sectionTitle}>{t.contentTitle}</Text>
+                <Text style={styles.sectionDescription}>{t.contentDesc}</Text>
               </View>
               <Switch
                 value={contentNotifications}
                 onValueChange={handleContentNotificationToggle}
-                trackColor={{ false: '#333', true: '#4ECDC4' }}
+                trackColor={{ false: '#333', true: '#E50914' }}
                 thumbColor={contentNotifications ? '#fff' : '#999'}
                 ios_backgroundColor="#333"
               />
             </View>
-            
-            <TouchableOpacity 
-              style={styles.testButton}
-              onPress={testContentNotification}
-            >
-              <Text style={styles.testButtonText}>🧪 اختبار إشعار المحتوى</Text>
+
+            <TouchableOpacity style={styles.testButton} onPress={testContentNotification}>
+              <Text style={styles.testButtonText}>{t.testContent}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Prayer Notifications Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionIcon}>🕌</Text>
               <View style={styles.sectionTitleContainer}>
-                <Text style={styles.sectionTitle}>إشعارات أوقات الصلاة</Text>
-                <Text style={styles.sectionDescription}>
-                  احصل على تذكير بأوقات الصلاة الخمس يومياً (الفجر، الظهر، العصر، المغرب، العشاء)
-                </Text>
+                <Text style={styles.sectionTitle}>{t.prayerTitle}</Text>
+                <Text style={styles.sectionDescription}>{t.prayerDesc}</Text>
               </View>
               <Switch
                 value={prayerNotifications}
                 onValueChange={handlePrayerNotificationToggle}
-                trackColor={{ false: '#333', true: '#4ECDC4' }}
+                trackColor={{ false: '#333', true: '#E50914' }}
                 thumbColor={prayerNotifications ? '#fff' : '#999'}
                 ios_backgroundColor="#333"
               />
             </View>
-            
-            <TouchableOpacity 
-              style={styles.testButton}
-              onPress={testPrayerNotification}
-            >
-              <Text style={styles.testButtonText}>🧪 اختبار إشعار الصلاة</Text>
+
+            <TouchableOpacity style={styles.testButton} onPress={testPrayerNotification}>
+              <Text style={styles.testButtonText}>{t.testPrayer}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Prayer Times Display */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🕐 أوقات الصلاة اليوم</Text>
+            <Text style={styles.sectionTitle}>{t.todayPrayers}</Text>
             <View style={styles.prayerTimesContainer}>
-              {[
-                { name: 'الفجر', time: '04:30', icon: '🌅' },
-                { name: 'الظهر', time: '12:15', icon: '☀️' },
-                { name: 'العصر', time: '15:45', icon: '🌤️' },
-                { name: 'المغرب', time: '18:30', icon: '🌅' },
-                { name: 'العشاء', time: '20:00', icon: '🌙' },
-              ].map((prayer, index) => (
-                <View key={index} style={styles.prayerTimeItem}>
+              {t.prayers.map((prayer) => (
+                <View key={prayer.key} style={styles.prayerTimeItem}>
                   <Text style={styles.prayerIcon}>{prayer.icon}</Text>
                   <Text style={styles.prayerName}>{prayer.name}</Text>
-                  <Text style={styles.prayerTime}>{prayer.time}</Text>
+                  <Text style={styles.prayerTime}>{todayPrayerTimes[prayer.key]}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          {/* Actions */}
           <View style={styles.actionsSection}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.actionButton, styles.primaryButton]}
               onPress={async () => {
                 const { status } = await Notifications.requestPermissionsAsync();
                 if (status === 'granted') {
                   const token = await NotificationService.registerForPushNotifications();
                   setPushToken(token);
-                  Alert.alert('✅ تم التفعيل', 'تم تفعيل الإشعارات بنجاح!');
+                  Alert.alert(t.enableOkTitle, t.enableOk);
                 } else {
-                  Alert.alert('❌ تم الرفض', 'يرجى تفعيل الإشعارات من إعدادات التطبيق');
+                  Alert.alert(t.enableDeniedTitle, t.enableDenied);
                 }
               }}
             >
-              <Text style={styles.actionButtonText}>🔔 تفعيل الإشعارات</Text>
+              <Text style={styles.actionButtonText}>{t.enable}</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionButton}
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.secondaryButton]}
               onPress={async () => {
                 await NotificationService.schedulePrayerNotifications();
-                Alert.alert('✅ تم', 'تم تحديث جدول إشعارات الصلاة');
+                Alert.alert(t.done, t.prayerUpdated);
               }}
             >
-              <Text style={styles.actionButtonText}>🔄 تحديث أوقات الصلاة</Text>
+              <Text style={styles.actionButtonText}>{t.refreshPrayer}</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.actionButton, styles.dangerButton]}
-              onPress={async () => {
-                Alert.alert(
-                  'تأكيد الحذف',
-                  'هل تريد حذف جميع الإشعارات المجدولة؟',
-                  [
-                    { text: 'إلغاء', style: 'cancel' },
-                    { 
-                      text: 'حذف', 
-                      style: 'destructive',
-                      onPress: async () => {
-                        await NotificationService.cancelAllNotifications();
-                        Alert.alert('✅ تم', 'تم حذف جميع الإشعارات');
-                      }
-                    }
-                  ]
-                );
+              onPress={() => {
+                Alert.alert(t.clearTitle, t.clearBody, [
+                  { text: t.cancel, style: 'cancel' },
+                  {
+                    text: t.delete,
+                    style: 'destructive',
+                    onPress: async () => {
+                      await NotificationService.cancelAllNotifications();
+                      Alert.alert(t.done, t.cleared);
+                    },
+                  },
+                ]);
               }}
             >
-              <Text style={styles.actionButtonText}>🗑️ حذف جميع الإشعارات</Text>
+              <Text style={styles.actionButtonText}>{t.clearAll}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -294,7 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#4ECDC4',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -302,20 +399,41 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 10,
   },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 16,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 8,
   },
-  backButtonText: {
-    color: '#4ECDC4',
-    fontSize: 16,
-    fontWeight: '600',
+  langToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#111',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+    overflow: 'hidden',
+  },
+  langBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  langBtnOn: {
+    backgroundColor: '#E50914',
+  },
+  langBtnText: {
+    color: '#999',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  langBtnTextOn: {
+    color: '#fff',
   },
   title: {
-    fontSize: 28,
+    flex: 1,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
@@ -325,14 +443,14 @@ const styles = StyleSheet.create({
   tokenContainer: {
     marginHorizontal: 20,
     marginBottom: 20,
-    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+    backgroundColor: 'rgba(229, 9, 20, 0.1)',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(78, 205, 196, 0.3)',
+    borderColor: 'rgba(229, 9, 20, 0.35)',
   },
   tokenTitle: {
-    color: '#4ECDC4',
+    color: '#E50914',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
@@ -377,7 +495,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   testButton: {
-    backgroundColor: '#4ECDC4',
+    backgroundColor: '#E50914',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
@@ -385,7 +503,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   testButtonText: {
-    color: '#000',
+    color: '#fff',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -412,7 +530,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   prayerTime: {
-    color: '#4ECDC4',
+    color: '#E50914',
     fontSize: 16,
     fontWeight: '700',
     fontFamily: 'monospace',
@@ -423,27 +541,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionButton: {
-    backgroundColor: '#4ECDC4',
+    backgroundColor: '#E50914',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#4ECDC4',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
   },
   primaryButton: {
     backgroundColor: '#E50914',
-    shadowColor: '#E50914',
+  },
+  secondaryButton: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#E50914',
   },
   dangerButton: {
-    backgroundColor: '#E50914',
-    shadowColor: '#E50914',
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#7F1D1D',
   },
   actionButtonText: {
-    color: '#000',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '700',
   },

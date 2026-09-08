@@ -89,15 +89,6 @@ export default function RoadmapDetailsScreen() {
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'beginner': return '#4ECDC4';
-      case 'intermediate': return '#45B7D1';
-      case 'advanced': return '#96CEB4';
-      default: return '#9B59B6';
-    }
-  };
-
   const getResourceIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case 'course': return '🎓';
@@ -114,7 +105,7 @@ export default function RoadmapDetailsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <LinearGradient colors={['#000000', '#1a1a1a']} style={styles.container}>
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#9B59B6" />
+            <ActivityIndicator size="small" color="#E50914" />
             {/* The tab bar is hidden on pushed screens — without this a slow
                 fetch leaves the user with no way back. */}
             <TouchableOpacity
@@ -180,32 +171,7 @@ export default function RoadmapDetailsScreen() {
               }}
               style={styles.heroImage}
             resizeMode="cover"
-          >
-            <LinearGradient
-                colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
-              style={styles.heroGradient}
-              >
-                <View style={styles.heroContent}>
-                  <View style={styles.heroIcon}>
-                    <Text style={styles.heroIconText}>{roadmap.icon}</Text>
-                  </View>
-                  <Text style={styles.heroTitle}>{roadmap.title}</Text>
-                  <Text style={styles.heroDescription}>{roadmap.description}</Text>
-                  
-                  <View style={styles.heroMeta}>
-                    <View style={[styles.metaBadge, { backgroundColor: getDifficultyColor(roadmap.difficulty) }]}>
-                      <Text style={styles.metaBadgeText}>{roadmap.difficulty}</Text>
-                    </View>
-                    <View style={styles.metaBadge}>
-                      <Text style={styles.metaBadgeText}>{roadmap.duration}</Text>
-                    </View>
-                    <View style={styles.metaBadge}>
-                      <Text style={styles.metaBadgeText}>{roadmap.category}</Text>
-                    </View>
-                </View>
-              </View>
-            </LinearGradient>
-          </ImageBackground>
+          />
         </View>
 
           {/* Steps Section */}
@@ -330,7 +296,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: '#9B59B6',
+    backgroundColor: '#E50914',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -347,10 +313,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#9B59B6',
+    borderColor: '#E50914',
   },
   backButtonText: {
-    color: '#9B59B6',
+    color: '#E50914',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -390,70 +356,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
   },
-  heroGradient: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 24,
-  },
-  heroContent: {
-    alignItems: 'center',
-  },
-  heroIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  heroIconText: {
-    fontSize: 28,
-  },
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 10,
-    letterSpacing: 0.5,
-  },
-  heroDescription: {
-    fontSize: 17,
-    color: '#E0E0E0',
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 24,
-  },
-  heroMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  metaBadge: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginHorizontal: 6,
-    marginVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  metaBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
   stepsSection: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -483,10 +385,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E50914',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B6B',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -498,7 +400,7 @@ const styles = StyleSheet.create({
   stepLine: {
     width: 2,
     height: 60,
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#E50914',
     marginTop: 8,
     opacity: 0.3,
     borderRadius: 1,
@@ -575,7 +477,7 @@ const styles = StyleSheet.create({
   },
   resourceArrow: {
     fontSize: 16,
-    color: '#FF6B6B',
+    color: '#E50914',
     marginLeft: 8,
   },
   emptyState: {

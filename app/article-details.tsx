@@ -1,3 +1,4 @@
+import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -16,7 +17,22 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
 import resolveMediaUrl from '../utils/mediaUrl';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
+
+function isRtlText(text?: string) {
+  if (!text) return false;
+  const arabic = (String(text).match(/[\u0600-\u06FF]/g) || []).length;
+  const latin = (String(text).match(/[A-Za-z]/g) || []).length;
+  return arabic > latin;
+}
+
+function dirStyle(text?: string) {
+  const rtl = isRtlText(text);
+  return {
+    textAlign: rtl ? 'right' : 'left',
+    writingDirection: rtl ? 'rtl' : 'ltr',
+  } as const;
+}
 
 export default function ArticleDetailsScreen() {
   const router = useRouter();
@@ -125,14 +141,16 @@ export default function ArticleDetailsScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <ImageBackground
+          <ExpoImage
             source={{ uri: article.image || 'https://via.placeholder.com/400x300/1a1a1a/4ECDC4?text=Article+Image' }}
-            style={styles.heroBackground}
-            resizeMode="cover"
-          >
-            <LinearGradient
+            style={styles.heroPhoto}
+            contentFit="cover"
+            contentPosition={{ left: 0, top: '50%' }}
+          />
+          <LinearGradient
               colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
               style={styles.heroGradient}
+              pointerEvents="box-none"
             >
               {/* Back Button */}
               <TouchableOpacity 
@@ -144,28 +162,37 @@ export default function ArticleDetailsScreen() {
 
               {/* Article Info - Better positioned */}
               <View style={styles.articleInfoFixed}>
-                <View style={styles.articleBadge}>
+                <View style={[styles.articleBadge, isRtlText(article.title) && styles.articleBadgeRtl]}>
                   <Text style={styles.articleBadgeText}>{(article.category || 'GENERAL').toUpperCase()}</Text>
                 </View>
-                <Text style={styles.articleTitleFixed}>{article.title || 'Untitled Article'}</Text>
-                <Text style={styles.articleDescriptionFixed}>{article.description || 'No description available.'}</Text>
+                <Text style={[styles.articleTitleFixed, dirStyle(article.title)]}>
+                  {article.title || 'Untitled Article'}
+                </Text>
+                <Text style={[styles.articleDescriptionFixed, dirStyle(article.description)]}>
+                  {article.description || 'No description available.'}
+                </Text>
                 <View style={styles.articleMetaFixed}>
                   <View style={styles.metaItemFixed}>
                     <Text style={styles.metaIconFixed}>👤</Text>
-                    <Text style={styles.metaTextFixed}>{article.author || 'Unknown Author'}</Text>
+                    <Text style={styles.metaTextFixed} numberOfLines={1}>
+                      {article.author || 'Unknown Author'}
+                    </Text>
                   </View>
                   <View style={styles.metaItemFixed}>
                     <Text style={styles.metaIconFixed}>⏱️</Text>
-                    <Text style={styles.metaTextFixed}>{article.readTime || '5 min read'}</Text>
+                    <Text style={styles.metaTextFixed} numberOfLines={1}>
+                      {article.readTime || '5 min read'}
+                    </Text>
                   </View>
                   <View style={styles.metaItemFixed}>
                     <Text style={styles.metaIconFixed}>👁️</Text>
-                    <Text style={styles.metaTextFixed}>{article.views || 0} views</Text>
+                    <Text style={styles.metaTextFixed} numberOfLines={1}>
+                      {article.views || 0} views
+                    </Text>
                   </View>
                 </View>
               </View>
             </LinearGradient>
-          </ImageBackground>
         </View>
 
         {/* Article Content */}
@@ -180,10 +207,11 @@ export default function ArticleDetailsScreen() {
               if (paragraph.trim().startsWith('**') && paragraph.trim().endsWith('**')) {
                 // Bold headings
                 const heading = paragraph.replace(/\*\*/g, '').trim();
+                const rtl = isRtlText(heading);
                 return (
                   <View key={index} style={styles.headingContainer}>
-                    <Text style={styles.headingText}>{heading}</Text>
-                    <View style={styles.headingUnderline} />
+                    <Text style={[styles.headingText, rtl && dirStyle(heading)]}>{heading}</Text>
+                    <View style={[styles.headingUnderline, rtl && styles.headingUnderlineRtl]} />
                   </View>
                 );
               } else if (paragraph.trim().startsWith('**') && paragraph.includes('**')) {
@@ -191,7 +219,7 @@ export default function ArticleDetailsScreen() {
                 const parts = paragraph.split(/(\*\*.*?\*\*)/);
                 return (
                   <View key={index} style={styles.paragraphContainer}>
-                    <Text style={styles.paragraphText}>
+                    <Text style={[styles.paragraphText, dirStyle(paragraph)]}>
                       {parts.map((part, partIndex) => {
                         if (part.startsWith('**') && part.endsWith('**')) {
                           return (
@@ -207,15 +235,17 @@ export default function ArticleDetailsScreen() {
                 );
               } else if (/^\d+\./.test(paragraph.trim())) {
                 // Numbered list items
+                const itemText = paragraph.replace(/^\d+\.\s*/, '');
+                const rtl = isRtlText(itemText);
                 return (
-                  <View key={index} style={styles.listItemContainer}>
-                    <View style={styles.listItemNumber}>
+                  <View key={index} style={[styles.listItemContainer, rtl && styles.listItemContainerRtl]}>
+                    <View style={[styles.listItemNumber, rtl ? styles.listItemNumberRtl : null]}>
                       <Text style={styles.listItemNumberText}>
                         {paragraph.match(/^\d+/)?.[0] || index + 1}
                       </Text>
                     </View>
-                    <Text style={styles.listItemText}>
-                      {paragraph.replace(/^\d+\.\s*/, '')}
+                    <Text style={[styles.listItemText, dirStyle(itemText)]}>
+                      {itemText}
                     </Text>
                   </View>
                 );
@@ -223,7 +253,7 @@ export default function ArticleDetailsScreen() {
                 // Regular paragraphs
                 return (
                   <View key={index} style={styles.paragraphContainer}>
-                    <Text style={styles.paragraphText}>{paragraph.trim()}</Text>
+                    <Text style={[styles.paragraphText, dirStyle(paragraph)]}>{paragraph.trim()}</Text>
                   </View>
                 );
               }
@@ -390,13 +420,14 @@ const styles = StyleSheet.create({
   heroSection: {
     height: height * 0.6,
     position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#000000',
   },
-  heroBackground: {
-    flex: 1,
-    resizeMode: 'cover',
+  heroPhoto: {
+    ...StyleSheet.absoluteFillObject,
   },
   heroGradient: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
     padding: 20,
   },
@@ -431,6 +462,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 12,
   },
+  articleBadgeRtl: {
+    alignSelf: 'flex-end',
+  },
   articleBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
@@ -457,24 +491,28 @@ const styles = StyleSheet.create({
   },
   articleMetaFixed: {
     flexDirection: 'row',
-    gap: 25,
+    flexWrap: 'wrap',
+    gap: 8,
+    width: '100%',
   },
   metaItemFixed: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
+    maxWidth: '100%',
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 20,
   },
   metaIconFixed: {
-    fontSize: 18,
+    fontSize: 16,
   },
   metaTextFixed: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
+    flexShrink: 1,
   },
   // Content Section
   contentSection: {
@@ -517,6 +555,9 @@ const styles = StyleSheet.create({
     width: 100,
     alignSelf: 'center',
   },
+  headingUnderlineRtl: {
+    alignSelf: 'flex-end',
+  },
   paragraphContainer: {
     marginBottom: 16,
   },
@@ -535,6 +576,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: 'flex-start',
   },
+  listItemContainerRtl: {
+    flexDirection: 'row-reverse',
+  },
   listItemNumber: {
     width: 32,
     height: 32,
@@ -544,6 +588,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
     marginTop: 4,
+  },
+  listItemNumberRtl: {
+    marginRight: 0,
+    marginLeft: 16,
   },
   listItemNumberText: {
     color: '#FFFFFF',

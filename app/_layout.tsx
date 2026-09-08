@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
+import { recordActivityDay } from '../utils/learningProgress';
 import { PAID_FLOW_ENABLED } from '../utils/subscriptionAccess';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -24,6 +25,7 @@ function PresenceHeartbeat() {
     let interval: ReturnType<typeof setInterval> | null = null;
 
     const beat = () => {
+      recordActivityDay(user.id);
       NotificationService.sendHeartbeat();
     };
 
@@ -161,6 +163,7 @@ export default function RootLayout() {
             <Stack.Screen name="dashboard" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="content-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="club-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="policies-management" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="tech-news" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="mubasher" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="jobs" options={{ headerShown: false, animation: 'slide_from_right' }} />

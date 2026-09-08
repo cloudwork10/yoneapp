@@ -36,6 +36,7 @@ type Job = {
   isFeatured?: boolean;
   approvalStatus?: string;
   source?: string;
+  sourceName?: string;
   applicationsCount?: number;
   isActive?: boolean;
   rejectionReason?: string;
@@ -86,6 +87,7 @@ export default function JobsManagementScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const closeForm = () => {
     setShowForm(false);
@@ -186,6 +188,40 @@ export default function JobsManagementScreen() {
     ]);
   };
 
+  const syncFeed = async () => {
+    try {
+      setSyncing(true);
+      const res = await makeAuthenticatedRequest(`${API_BASE_URL}/api/jobs/admin/sync-feed`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFilter('approved');
+        load();
+        Alert.alert(
+          'تم السحب',
+          `جديد: ${data?.data?.created || 0} · تحديث: ${data?.data?.updated || 0}`
+        );
+      } else {
+        Alert.alert('Error', data?.message || 'فشل سحب الوظائف');
+      }
+    } catch {
+      Alert.alert('Error', 'فشل سحب الوظائف');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const toggleActive = async (job: Job) => {
+    const res = await makeAuthenticatedRequest(`${API_BASE_URL}/api/jobs/admin/${job._id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: job.isActive === false }),
+    });
+    if (res.ok) load();
+    else Alert.alert('Error', 'تعذر تغيير حالة الوظيفة');
+  };
+
   const remove = (job: Job) => {
     Alert.alert('Delete', `حذف "${job.title}"؟`, [
       { text: 'Cancel', style: 'cancel' },
@@ -272,13 +308,18 @@ export default function JobsManagementScreen() {
             <Ionicons name="chevron-back" size={20} color="#fff" />
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addBtn} onPress={openCreate}>
-            <Text style={styles.addBtnText}>+ Add Job</Text>
-          </TouchableOpacity>
+          <View style={styles.topActions}>
+            <TouchableOpacity style={styles.syncBtn} onPress={syncFeed} disabled={syncing}>
+              <Text style={styles.addBtnText}>{syncing ? 'جاري السحب…' : 'سحب من النت'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addBtn} onPress={openCreate}>
+              <Text style={styles.addBtnText}>+ Add Job</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <Text style={styles.title}>Jobs Management</Text>
-        <Text style={styles.subtitle}>موافقة / رفض وظائف الشركات + نشر مباشر</Text>
+        <Text style={styles.subtitle}>إضافة يدوي + سحب رسمي من النت + إخفاء أي وظيفة</Text>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filters}>
           {FILTERS.map((f) => (
@@ -311,7 +352,7 @@ export default function JobsManagementScreen() {
                     </Text>
                   </View>
                   <Text style={styles.meta}>
-                    {job.source} · {job.type} · {job.workMode} · {job.applicationsCount || 0} apps
+                    {job.source === 'feed' ? `نت/${job.sourceName || 'feed'}` : job.source} · {job.type} · {job.workMode} · {job.isActive === false ? 'مخفية' : 'ظاهرة'}
                   </Text>
                   {job.companyEmail ? (
                     <Text style={styles.meta}>{job.companyEmail}</Text>
@@ -339,6 +380,11 @@ export default function JobsManagementScreen() {
                     >
                       <Text style={styles.actionText}>
                         متقدمين ({job.applicationsCount || 0})
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.edit} onPress={() => toggleActive(job)}>
+                      <Text style={styles.actionText}>
+                        {job.isActive === false ? 'إظهار' : 'إخفاء'}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.edit} onPress={() => openEdit(job)}>
@@ -563,6 +609,15 @@ const styles = StyleSheet.create({
   },
   back: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   backText: { color: '#ccc', fontSize: 15 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  syncBtn: {
+    backgroundColor: '#1f1f1f',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
   addBtn: {
     backgroundColor: '#E50914',
     paddingHorizontal: 12,

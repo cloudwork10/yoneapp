@@ -1,9 +1,8 @@
+import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
-    ImageBackground,
     ScrollView,
     StyleSheet,
     Text,
@@ -16,8 +15,6 @@ import { ArticleCardSkeleton } from '../../components/SkeletonLoader';
 import ScreenTransition from '../../components/ScreenTransition';
 import API_BASE_URL from '../../config/api';
 import resolveMediaUrl from '../../utils/mediaUrl';
-
-const { width } = Dimensions.get('window');
 
 export default function ArticlesScreen() {
   const router = useRouter();
@@ -131,13 +128,15 @@ export default function ArticlesScreen() {
                 style={styles.featuredCard}
                 onPress={() => router.push(`/article-details?articleId=${articles[0]._id || articles[0].id}`)}
               >
-                <ImageBackground
-                  source={{ uri: articles[0].image }}
-                  style={styles.featuredImage}
-                  resizeMode="cover"
-                >
+                <View style={styles.featuredImage}>
+                  <ExpoImage
+                    source={{ uri: articles[0].image }}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                    contentPosition={{ left: 0, top: 0 }}
+                  />
                   <LinearGradient
-                    colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+                    colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.78)']}
                     style={styles.featuredGradient}
                   >
                     <View style={styles.featuredContent}>
@@ -158,7 +157,7 @@ export default function ArticlesScreen() {
                       </View>
                     </View>
                   </LinearGradient>
-                </ImageBackground>
+                </View>
               </TouchableOpacity>
             </View>
           )}
@@ -227,29 +226,22 @@ export default function ArticlesScreen() {
                   onPress={() => router.push(`/article-details?articleId=${article._id || article.id}`)}
                 >
                   <View style={styles.articleImageContainer}>
-                    <ImageBackground
+                    <ExpoImage
                       source={{ uri: article.image }}
-                      style={styles.articleImage}
-                      resizeMode="cover"
-                    >
-                      <LinearGradient
-                        colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
-                        style={styles.articleImageGradient}
-                      >
-                        <View style={styles.articleIcon}>
-                          <Text style={styles.articleIconText}>{article.icon}</Text>
-                        </View>
-                        <View style={styles.articleViewsContainer}>
-                          <Text style={styles.articleViewsText}>{article.views}</Text>
-                        </View>
-                      </LinearGradient>
-                    </ImageBackground>
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                      contentPosition={{ left: 0, top: 0 }}
+                    />
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.55)']}
+                      style={styles.articleImageGradient}
+                    />
                   </View>
                   
                   <View style={styles.articleContent}>
                     <View style={styles.articleHeader}>
                       <Text style={styles.articleTitle}>{article.title}</Text>
-                      <View style={[styles.articleCategoryBadge, { backgroundColor: article.color }]}>
+                      <View style={styles.articleCategoryBadge}>
                         <Text style={styles.articleCategoryText}>{article.category}</Text>
                       </View>
                     </View>
@@ -337,6 +329,7 @@ const styles = StyleSheet.create({
   },
   featuredImage: {
     flex: 1,
+    overflow: 'hidden',
   },
   featuredGradient: {
     flex: 1,
@@ -472,10 +465,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   articleImageContainer: {
-    height: 120,
-  },
-  articleImage: {
-    flex: 1,
+    height: 188,
+    overflow: 'hidden',
+    backgroundColor: '#000000',
   },
   articleImageGradient: {
     flex: 1,
@@ -526,9 +518,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#E50914',
   },
   articleCategoryText: {
-    color: '#FFFFFF',
+    color: '#E50914',
     fontSize: 10,
     fontWeight: 'bold',
     textTransform: 'capitalize',

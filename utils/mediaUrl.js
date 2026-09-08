@@ -14,6 +14,11 @@ export default function resolveMediaUrl(url, fallback = '') {
     return fallback;
   }
 
+  // Local device URIs only work on the phone that picked the file
+  if (/^(file|ph|content|assets-library):/i.test(trimmed)) {
+    return fallback;
+  }
+
   // External CDN / YouTube / etc.
   if (/^https?:\/\//i.test(trimmed) && !trimmed.includes('/uploads/')) {
     return trimmed;

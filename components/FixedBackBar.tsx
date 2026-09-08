@@ -5,15 +5,21 @@ import { goBackOr } from '../utils/navigation';
 type FixedBackBarProps = {
   label?: string;
   fallbackHref?: string;
+  returnToLastTab?: boolean;
 };
 
 export default function FixedBackBar({
   label = '← Back',
   fallbackHref = '/(tabs)/more',
+  returnToLastTab = false,
 }: FixedBackBarProps) {
   return (
     <View style={styles.bar}>
-      <TouchableOpacity style={styles.backButton} onPress={() => goBackOr(fallbackHref)} activeOpacity={0.75}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => goBackOr(fallbackHref, { returnToLastTab })}
+        activeOpacity={0.75}
+      >
         <Text style={styles.backText}>{label}</Text>
       </TouchableOpacity>
     </View>

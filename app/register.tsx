@@ -13,11 +13,15 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import PhoneField from '../components/PhoneField';
 import API_BASE_URL from '../config/api';
+import { isValidPhone, normalizePhone } from '../utils/phone';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneDial, setPhoneDial] = useState('20');
+  const [phoneLocal, setPhoneLocal] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,7 +32,7 @@ export default function RegisterScreen() {
     /^[a-z0-9._%+-]+@(gmail|googlemail)\.com$/i.test(String(value || '').trim());
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !phoneLocal || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -43,6 +47,14 @@ export default function RegisterScreen() {
       Alert.alert(
         'Gmail required',
         'لازم تستخدم إيميل Gmail حقيقي ينتهي بـ @gmail.com\nمثال: yourname@gmail.com'
+      );
+      return;
+    }
+
+    if (!isValidPhone(phoneLocal, phoneDial)) {
+      Alert.alert(
+        'Phone required',
+        'Choose your country code and enter a valid mobile number'
       );
       return;
     }
@@ -84,6 +96,7 @@ export default function RegisterScreen() {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim().toLowerCase(),
+          phone: normalizePhone(phoneLocal, phoneDial),
           password: password,
         }),
       });
@@ -159,6 +172,17 @@ export default function RegisterScreen() {
                 autoCorrect={false}
               />
               <Text style={styles.hint}>يجب استخدام إيميل Gmail حقيقي فقط</Text>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Mobile number</Text>
+              <PhoneField
+                dial={phoneDial}
+                local={phoneLocal}
+                onDialChange={setPhoneDial}
+                onLocalChange={setPhoneLocal}
+              />
+              <Text style={styles.hint}>اختار كود الدولة. هنستخدم الرقم لو نسيت الباسورد</Text>
             </View>
 
             <View style={styles.inputContainer}>

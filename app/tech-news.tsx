@@ -1,7 +1,7 @@
 import { useUser } from '@/contexts/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -223,6 +223,8 @@ function ArticleLoadingOverlay({
 export default function TechNewsScreen() {
   const { isAdmin } = useUser();
   const insets = useSafeAreaInsets();
+  const { newsId } = useLocalSearchParams<{ newsId?: string }>();
+  const openedNewsId = useRef<string | null>(null);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [region, setRegion] = useState<'world' | 'egypt' | 'arab'>('world');
   const [viewMode, setViewMode] = useState<'news' | 'stackoverflow' | 'admin'>('news');
@@ -321,6 +323,40 @@ export default function TechNewsScreen() {
     setWebLoading(true);
     setReader(item);
   };
+
+  useEffect(() => {
+    if (!newsId || openedNewsId.current === String(newsId)) return;
+
+    const openFromLink = async () => {
+      const found = news.find((item) => String(item._id) === String(newsId));
+      if (found) {
+        openedNewsId.current = String(newsId);
+        openStory(found);
+        return;
+      }
+
+      if (loading) return;
+
+      try {
+        const lists = await Promise.all(
+          ['world', 'egypt', 'arab'].map(async (nextRegion) => {
+            const res = await fetch(`${API_BASE_URL}/api/tech-news?region=${nextRegion}&limit=80`);
+            const data = await res.json().catch(() => ({}));
+            return data?.data?.news || [];
+          })
+        );
+        const match = lists.flat().find((item: NewsItem) => String(item._id) === String(newsId));
+        if (match) {
+          openedNewsId.current = String(newsId);
+          openStory(match);
+        }
+      } catch {
+        // Keep the news list usable even if the deep link item is gone.
+      }
+    };
+
+    openFromLink();
+  }, [newsId, news, loading]);
 
   const openTranslate = async (item: NewsItem) => {
     try {

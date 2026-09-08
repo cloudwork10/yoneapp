@@ -216,16 +216,16 @@ export default function PodcastsScreen() {
                 
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
-                    <Text style={styles.heroStatNumber}>200+</Text>
-                    <Text style={styles.heroStatLabel}>Podcasts</Text>
+                    <Text style={styles.heroStatNumber}>Real</Text>
+                    <Text style={styles.heroStatLabel}>Talks</Text>
                   </View>
                   <View style={styles.heroStatItem}>
-                    <Text style={styles.heroStatNumber}>25K+</Text>
-                    <Text style={styles.heroStatLabel}>Listeners</Text>
+                    <Text style={styles.heroStatNumber}>New</Text>
+                    <Text style={styles.heroStatLabel}>Weekly</Text>
                   </View>
                   <View style={styles.heroStatItem}>
-                    <Text style={styles.heroStatNumber}>4.9</Text>
-                    <Text style={styles.heroStatLabel}>Rating</Text>
+                    <Text style={styles.heroStatNumber}>Expert</Text>
+                    <Text style={styles.heroStatLabel}>Hosts</Text>
                   </View>
                 </View>
               </View>

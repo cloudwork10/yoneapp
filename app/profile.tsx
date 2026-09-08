@@ -1,8 +1,9 @@
 import { useUser } from '@/contexts/UserContext';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
+import { computeLearningStats, recordActivityDay } from '../utils/learningProgress';
 import resolveMediaUrl from '../utils/mediaUrl';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
@@ -26,9 +28,12 @@ export default function ProfileScreen() {
   const { user, logout, isAdmin, isLoading, updateUser } = useUser();
   const [userStats, setUserStats] = useState({
     coursesCompleted: 0,
-    totalHours: 0,
+    totalHours: '0h',
     currentStreak: 0,
   });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -40,37 +45,68 @@ export default function ProfileScreen() {
   const [showPasswords, setShowPasswords] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  useEffect(() => {
-    setUserStats({
-      coursesCompleted: 12,
-      totalHours: 45,
-      currentStreak: 7,
-    });
-  }, []);
+  const loadProgress = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      await recordActivityDay(user.id);
+      const [profileRes, coursesRes] = await Promise.all([
+        makeAuthenticatedRequest(`${API_BASE_URL}/api/users/profile`),
+        fetch(`${API_BASE_URL}/api/public/courses`),
+      ]);
 
-  useEffect(() => {
-    const syncProfile = async () => {
-      if (!user) return;
-      try {
-        const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/users/profile`);
-        if (!response.ok) return;
-        const data = await response.json();
+      let profileUser = user;
+      if (profileRes.ok) {
+        const data = await profileRes.json();
         const remote = data?.data?.user;
-        if (!remote) return;
-        updateUser({
-          name: remote.name || user.name,
-          email: remote.email || user.email,
-          avatar: remote.avatar || '',
-          isAdmin: remote.isAdmin ?? user.isAdmin,
-          adminLevel: remote.adminLevel || user.adminLevel,
-          createdAt: remote.createdAt || user.createdAt,
-        });
-      } catch {
-        // keep local session if sync fails
+        if (remote) {
+          profileUser = remote;
+          updateUser({
+            name: remote.name || user.name,
+            email: remote.email || user.email,
+            avatar: remote.avatar || '',
+            phone: remote.phone || '',
+            isAdmin: remote.isAdmin ?? user.isAdmin,
+            adminLevel: remote.adminLevel || user.adminLevel,
+            createdAt: remote.createdAt || user.createdAt,
+          });
+        }
       }
-    };
-    syncProfile();
+
+      let courses = [];
+      if (coursesRes.ok) {
+        const courseData = await coursesRes.json();
+        courses = courseData?.data?.courses || [];
+      }
+
+      const stats = await computeLearningStats({
+        userId: user.id,
+        profileUser,
+        courses,
+      });
+      setUserStats({
+        coursesCompleted: stats.coursesCompleted,
+        totalHours: stats.totalHoursLabel,
+        currentStreak: stats.currentStreak,
+      });
+    } catch {
+      const stats = await computeLearningStats({
+        userId: user.id,
+        profileUser: user,
+        courses: [],
+      });
+      setUserStats({
+        coursesCompleted: stats.coursesCompleted,
+        totalHours: stats.totalHoursLabel,
+        currentStreak: stats.currentStreak,
+      });
+    }
   }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProgress();
+    }, [loadProgress])
+  );
 
   const pickAndUploadAvatar = async () => {
     try {
@@ -157,6 +193,44 @@ export default function ProfileScreen() {
       );
     } finally {
       setUploadingAvatar(false);
+    }
+  };
+
+  const openEditProfile = () => {
+    setEditName(user?.name || '');
+    setShowEditModal(true);
+  };
+
+  const saveProfileName = async () => {
+    const name = editName.trim();
+    if (name.length < 2) {
+      Alert.alert('Name too short', 'Name must be at least 2 characters.');
+      return;
+    }
+    if (name.length > 50) {
+      Alert.alert('Name too long', 'Name cannot be more than 50 characters.');
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      const response = await makeAuthenticatedRequest(`${API_BASE_URL}/api/users/profile`, {
+        method: 'PUT',
+        body: JSON.stringify({ name }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        Alert.alert('Update failed', data?.message || 'Could not update your profile.');
+        return;
+      }
+      const nextName = data?.data?.user?.name || name;
+      updateUser({ name: nextName });
+      setShowEditModal(false);
+      Alert.alert('Saved', 'Your name was updated.');
+    } catch {
+      Alert.alert('Update failed', 'Network error. Please try again.');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -323,8 +397,8 @@ export default function ProfileScreen() {
 
   const stats = [
     { label: 'Courses Completed', value: userStats.coursesCompleted },
-    { label: 'Total Hours', value: `${userStats.totalHours}h` },
-    { label: 'Current Streak', value: `${userStats.currentStreak} days` },
+    { label: 'Total Hours', value: userStats.totalHours },
+    { label: 'Current Streak', value: `${userStats.currentStreak} ${userStats.currentStreak === 1 ? 'day' : 'days'}` },
   ];
 
   return (
@@ -375,7 +449,9 @@ export default function ProfileScreen() {
           </TouchableOpacity>
           <Text style={styles.avatarHint}>Tap photo to change</Text>
           
-          <Text style={styles.userName}>{user.name}</Text>
+          <TouchableOpacity onPress={openEditProfile} activeOpacity={0.8}>
+            <Text style={styles.userName}>{user.name}</Text>
+          </TouchableOpacity>
           <Text style={styles.userEmail}>{user.email}</Text>
           <Text style={styles.joinDate}>Member since {formatJoinDate(user.createdAt || '')}</Text>
           {isAdmin && (
@@ -398,7 +474,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.actionsSection}>
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={openEditProfile}>
             <Text style={styles.actionButtonText}>Edit Profile</Text>
           </TouchableOpacity>
           
@@ -422,6 +498,52 @@ export default function ProfileScreen() {
           <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
         </ScrollView>
+
+        <Modal
+          visible={showEditModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => !savingProfile && setShowEditModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Edit profile</Text>
+              <Text style={styles.modalSubtitle}>
+                Change the name shown on your profile.
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Your name"
+                placeholderTextColor="#777"
+                autoCapitalize="words"
+                editable={!savingProfile}
+                maxLength={50}
+              />
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalCancel}
+                  disabled={savingProfile}
+                  onPress={() => setShowEditModal(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalConfirm, savingProfile && styles.modalConfirmDisabled]}
+                  disabled={savingProfile}
+                  onPress={saveProfileName}
+                >
+                  {savingProfile ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.modalConfirmText}>Save</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <Modal
           visible={showPasswordModal}

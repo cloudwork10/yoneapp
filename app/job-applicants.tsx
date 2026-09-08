@@ -51,10 +51,10 @@ export default function JobApplicantsScreen() {
         setJob(data?.data?.job || null);
         setApps(data?.data?.applications || []);
       } else {
-        Alert.alert('خطأ', data?.message || 'تعذر تحميل المتقدمين');
+        Alert.alert('Error', data?.message || 'Could not load applicants');
       }
     } catch {
-      Alert.alert('خطأ', 'تعذر الاتصال بالسيرفر');
+      Alert.alert('Error', 'Could not connect to the server');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -69,20 +69,20 @@ export default function JobApplicantsScreen() {
 
   const openCv = async (url?: string) => {
     if (!url) {
-      Alert.alert('لا يوجد CV', 'المتقدم لم يرفق ملف');
+      Alert.alert('No CV', 'This applicant did not attach a file');
       return;
     }
     try {
       await Linking.openURL(url);
     } catch {
-      Alert.alert('خطأ', 'تعذر فتح الـ CV');
+      Alert.alert('Error', 'Could not open the CV');
     }
   };
 
   const formatDate = (value?: string) => {
     if (!value) return '';
     try {
-      return new Date(value).toLocaleString('ar-EG');
+      return new Date(value).toLocaleString('en-US');
     } catch {
       return value;
     }
@@ -96,13 +96,13 @@ export default function JobApplicantsScreen() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>المتقدمين</Text>
+        <Text style={styles.title}>Applicants</Text>
         {job ? (
           <Text style={styles.subtitle}>
             {job.title} · {job.companyName}
           </Text>
         ) : (
-          <Text style={styles.subtitle}>قائمة التقديمات والـ CV</Text>
+          <Text style={styles.subtitle}>Applications and CVs</Text>
         )}
 
         {loading ? (
@@ -122,7 +122,7 @@ export default function JobApplicantsScreen() {
             }
           >
             {apps.length === 0 ? (
-              <Text style={styles.empty}>لسه مفيش تقديمات على الوظيفة دي</Text>
+              <Text style={styles.empty}>No applications for this job yet</Text>
             ) : (
               apps.map((app) => (
                 <View key={app._id} style={styles.card}>
@@ -142,7 +142,7 @@ export default function JobApplicantsScreen() {
                   >
                     <Ionicons name="document-text-outline" size={18} color="#fff" />
                     <Text style={styles.cvBtnText}>
-                      {app.cvUrl ? 'فتح الـ CV (PDF)' : 'لا يوجد CV'}
+                      {app.cvUrl ? 'Open CV (PDF)' : 'No CV'}
                     </Text>
                   </TouchableOpacity>
                 </View>

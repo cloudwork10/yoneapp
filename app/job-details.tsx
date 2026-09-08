@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
+import { getCachedFeedJob } from '../utils/jobFeedClient';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 type Job = {
@@ -33,6 +34,8 @@ type Job = {
   salaryRange?: string;
   applyType?: 'internal' | 'external';
   applyUrl?: string;
+  source?: string;
+  sourceName?: string;
 };
 
 export default function JobDetailsScreen() {
@@ -58,6 +61,12 @@ export default function JobDetailsScreen() {
 
   useEffect(() => {
     const load = async () => {
+      const cached = getCachedFeedJob(id);
+      if (cached) {
+        setJob(cached);
+        setLoading(false);
+        return;
+      }
       try {
         const res = await fetch(`${API_BASE_URL}/api/jobs/${id}`);
         const data = await res.json();
@@ -95,7 +104,7 @@ export default function JobDetailsScreen() {
     if (hasApplied) return;
 
     if (!user) {
-      Alert.alert('تسجيل الدخول مطلوب', 'سجّل دخول عشان تقدّم على الوظيفة', [
+      Alert.alert('Login required', 'Sign in to apply for this job', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Login', onPress: () => router.push('/login') },
       ]);
@@ -106,7 +115,7 @@ export default function JobDetailsScreen() {
       try {
         await Linking.openURL(job.applyUrl);
       } catch {
-        Alert.alert('خطأ', 'تعذر فتح رابط التقديم');
+        Alert.alert('Error', 'Could not open the application link');
       }
       return;
     }
@@ -142,13 +151,13 @@ export default function JobDetailsScreen() {
       if (res.ok && data?.data?.cvUrl) {
         setCvUrl(data.data.cvUrl);
         setCvFileName(data.data.filename || file.name || 'cv.pdf');
-        Alert.alert('تم', 'تم رفع الـ CV بنجاح');
+        Alert.alert('Done', 'CV uploaded successfully');
       } else {
-        Alert.alert('خطأ', data?.message || 'فشل رفع الـ CV');
+        Alert.alert('Error', data?.message || 'Failed to upload CV');
       }
     } catch (e) {
       console.error('CV pick/upload error:', e);
-      Alert.alert('خطأ', 'فشل اختيار أو رفع الملف');
+      Alert.alert('Error', 'Failed to pick or upload the file');
     } finally {
       setUploadingCv(false);
     }
@@ -156,11 +165,11 @@ export default function JobDetailsScreen() {
 
   const submitApplication = async () => {
     if (!name.trim() || !email.trim()) {
-      Alert.alert('مطلوب', 'الاسم والإيميل مطلوبين');
+      Alert.alert('Required', 'Name and email are required');
       return;
     }
     if (!cvUrl.trim()) {
-      Alert.alert('مطلوب', 'ارفع الـ CV كملف PDF');
+      Alert.alert('Required', 'Upload the CV as a PDF file');
       return;
     }
 
@@ -185,18 +194,18 @@ export default function JobDetailsScreen() {
         setCvFileName('');
         setCoverNote('');
         Alert.alert(
-          'تم التقديم',
-          'تقديمك والـ CV ظاهرين لصاحب الوظيفة جوه التطبيق من «وظائفي».'
+          'Applied',
+          'Your application and CV are now visible to the employer in My Jobs.'
         );
       } else if (String(data?.message || '').toLowerCase().includes('already applied')) {
         setShowApply(false);
         setHasApplied(true);
-        Alert.alert('تم', 'انت قدّمت على الوظيفة دي قبل كده');
+        Alert.alert('Done', 'You already applied to this job');
       } else {
-        Alert.alert('خطأ', data?.message || 'فشل التقديم');
+        Alert.alert('Error', data?.message || 'Failed to apply');
       }
     } catch {
-      Alert.alert('خطأ', 'فشل التقديم');
+      Alert.alert('Error', 'Failed to apply');
     } finally {
       setSubmitting(false);
     }
@@ -217,7 +226,7 @@ export default function JobDetailsScreen() {
           <Ionicons name="chevron-back" size={20} color="#fff" />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.error}>الوظيفة غير موجودة</Text>
+        <Text style={styles.error}>Job not found</Text>
       </SafeAreaView>
     );
   }
@@ -245,14 +254,19 @@ export default function JobDetailsScreen() {
               <Text style={styles.meta}>{job.location || 'Egypt'}</Text>
             </View>
             {job.salaryRange ? <Text style={styles.salary}>{job.salaryRange}</Text> : null}
+            {job.source === 'feed' ? (
+              <Text style={styles.sourceNote}>
+                Source: {job.sourceName || 'Official site'} · Apply on the original website
+              </Text>
+            ) : null}
           </View>
 
-          <Text style={styles.section}>الوصف</Text>
+          <Text style={styles.section}>Description</Text>
           <Text style={styles.body}>{job.description}</Text>
 
           {job.requirements ? (
             <>
-              <Text style={styles.section}>المتطلبات</Text>
+              <Text style={styles.section}>Requirements</Text>
               <Text style={styles.body}>{job.requirements}</Text>
             </>
           ) : null}
@@ -263,7 +277,7 @@ export default function JobDetailsScreen() {
               style={styles.linkRow}
             >
               <Ionicons name="globe-outline" size={16} color="#E50914" />
-              <Text style={styles.linkText}>موقع الشركة</Text>
+              <Text style={styles.linkText}>Company website</Text>
             </TouchableOpacity>
           ) : null}
 
@@ -274,10 +288,10 @@ export default function JobDetailsScreen() {
           >
             <Text style={styles.applyBtnText}>
               {hasApplied
-                ? 'تم التقديم ✓'
+                ? 'Applied ✓'
                 : job.applyType === 'external'
-                  ? 'التقديم عبر الرابط'
-                  : 'قدّم الآن'}
+                  ? 'Apply via link'
+                  : 'Apply now'}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -286,15 +300,15 @@ export default function JobDetailsScreen() {
       <Modal visible={showApply} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalSafe}>
           <View style={styles.modalHead}>
-            <Text style={styles.modalTitle}>تقديم على الوظيفة</Text>
+            <Text style={styles.modalTitle}>Apply for this job</Text>
             <TouchableOpacity onPress={() => setShowApply(false)}>
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
           <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
-            <Text style={styles.label}>الاسم *</Text>
+            <Text style={styles.label}>Name *</Text>
             <TextInput style={styles.input} value={name} onChangeText={setName} placeholderTextColor="#666" />
-            <Text style={styles.label}>الإيميل *</Text>
+            <Text style={styles.label}>Email *</Text>
             <TextInput
               style={styles.input}
               value={email}
@@ -303,18 +317,18 @@ export default function JobDetailsScreen() {
               keyboardType="email-address"
               placeholderTextColor="#666"
             />
-            <Text style={styles.label}>الموبايل</Text>
+            <Text style={styles.label}>Phone</Text>
             <TextInput style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholderTextColor="#666" />
-            <Text style={styles.label}>رسالة قصيرة</Text>
+            <Text style={styles.label}>Short message</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={coverNote}
               onChangeText={setCoverNote}
               multiline
-              placeholder="ليه تناسب الوظيفة..."
+              placeholder="Why you are a good fit..."
               placeholderTextColor="#666"
             />
-            <Text style={styles.label}>الـ CV (PDF) *</Text>
+            <Text style={styles.label}>CV (PDF) *</Text>
             <TouchableOpacity
               style={styles.uploadBtn}
               onPress={pickAndUploadCv}
@@ -322,7 +336,7 @@ export default function JobDetailsScreen() {
             >
               <Ionicons name="document-attach-outline" size={18} color="#fff" />
               <Text style={styles.uploadBtnText}>
-                {uploadingCv ? 'جاري الرفع...' : cvFileName ? 'تغيير الملف' : 'رفع ملف PDF'}
+                {uploadingCv ? 'Uploading...' : cvFileName ? 'Change file' : 'Upload PDF'}
               </Text>
             </TouchableOpacity>
             {cvFileName ? (
@@ -333,7 +347,7 @@ export default function JobDetailsScreen() {
                 </Text>
               </View>
             ) : (
-              <Text style={styles.hint}>مطلوب — الملف ده بيتبعت لإيميل الشركة مع التقديم</Text>
+              <Text style={styles.hint}>Required — this file is sent to the company with your application</Text>
             )}
 
             <TouchableOpacity
@@ -341,7 +355,7 @@ export default function JobDetailsScreen() {
               onPress={submitApplication}
               disabled={submitting || uploadingCv}
             >
-              <Text style={styles.applyBtnText}>{submitting ? 'جاري الإرسال...' : 'إرسال التقديم'}</Text>
+              <Text style={styles.applyBtnText}>{submitting ? 'Submitting...' : 'Submit application'}</Text>
             </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
@@ -382,6 +396,7 @@ const styles = StyleSheet.create({
   meta: { color: '#888', fontSize: 13, textTransform: 'capitalize' },
   dot: { color: '#555', marginHorizontal: 6 },
   salary: { color: '#4ADE80', fontSize: 14, fontWeight: '700', marginTop: 10 },
+  sourceNote: { color: '#888', fontSize: 12, marginTop: 10 },
   section: {
     color: '#E50914',
     fontSize: 12,

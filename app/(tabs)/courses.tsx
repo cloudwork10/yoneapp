@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Dimensions,
     ImageBackground,
@@ -16,6 +16,12 @@ import ScreenTransition from '../../components/ScreenTransition';
 import { ArticleCardSkeleton } from '../../components/SkeletonLoader';
 import API_BASE_URL from '../../config/api';
 import { getCourseAccessLabel, resolveCourseAccessType } from '../../utils/contentAccess';
+import {
+  DEFAULT_COURSE_CATEGORIES,
+  courseCategoryLabel,
+  matchesCourseCategory,
+  mergeCourseCategories,
+} from '../../utils/courseCategories';
 import resolveMediaUrl from '../../utils/mediaUrl';
 
 const { width } = Dimensions.get('window');
@@ -47,7 +53,18 @@ export default function CoursesScreen() {
   const [error, setError] = useState<string | null>(null);
 
 
-  const categories = ['All', 'Programming', 'Design', 'Business', 'Marketing', 'Data Science'];
+  const categories = useMemo(
+    () =>
+      mergeCourseCategories(
+        ['All'],
+        DEFAULT_COURSE_CATEGORIES,
+        courses.map((course) => course.category)
+      ).map((value) => ({
+        value,
+        label: value === 'All' ? 'All' : courseCategoryLabel(value),
+      })),
+    [courses]
+  );
 
   // Update category if passed from navigation
   useEffect(() => {
@@ -213,7 +230,9 @@ export default function CoursesScreen() {
 
     // Filter by category
     if (selectedCategory !== 'All') {
-      filtered = filtered.filter(course => course.category === selectedCategory);
+      filtered = filtered.filter((course) =>
+        matchesCourseCategory(course.category, selectedCategory)
+      );
     }
 
     // Filter by search query
@@ -327,7 +346,7 @@ export default function CoursesScreen() {
             <SafeAreaView style={styles.heroSafeArea}>
               <View style={styles.heroContent}>
                 <Text style={styles.heroTitle}>Master New Skills</Text>
-                <Text style={styles.heroSubtitle}>Discover thousands of courses from industry experts</Text>
+                <Text style={styles.heroSubtitle}>New skills. Clear paths. Expert-led courses.</Text>
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
                     <Text style={styles.heroStatNumber}>{courses.length || '—'}</Text>
@@ -338,8 +357,8 @@ export default function CoursesScreen() {
                     <Text style={styles.heroStatLabel}>Students</Text>
                   </View>
                   <View style={styles.heroStatItem}>
-                    <Text style={styles.heroStatNumber}>4.8</Text>
-                    <Text style={styles.heroStatLabel}>Rating</Text>
+                    <Text style={styles.heroStatNumber}>PRO</Text>
+                    <Text style={styles.heroStatLabel}>Mentors</Text>
                   </View>
                 </View>
               </View>
@@ -375,20 +394,20 @@ export default function CoursesScreen() {
           >
             {categories.map((category) => (
               <TouchableOpacity
-                key={category}
+                key={category.value}
                 style={[
                   styles.categoryButton,
-                  selectedCategory === category && styles.categoryButtonActive
+                  selectedCategory === category.value && styles.categoryButtonActive
                 ]}
-                onPress={() => setSelectedCategory(category)}
+                onPress={() => setSelectedCategory(category.value)}
               >
                 <Text
                   style={[
                     styles.categoryButtonText,
-                    selectedCategory === category && styles.categoryButtonTextActive
+                    selectedCategory === category.value && styles.categoryButtonTextActive
                   ]}
                 >
-                  {category}
+                  {category.label}
                 </Text>
               </TouchableOpacity>
             ))}

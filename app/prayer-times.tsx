@@ -5,6 +5,15 @@ import { Alert, FlatList, Modal, ScrollView, StyleSheet, Switch, Text, Touchable
 import { SafeAreaView } from 'react-native-safe-area-context';
 import FixedBackBar from '../components/FixedBackBar';
 import NotificationService from '../services/NotificationService';
+import {
+  DEFAULT_PRAYER_CITY,
+  PRAYER_CITIES,
+  fetchPrayerTimes,
+  formatClock,
+  getZonedParts,
+  loadPrayerCity,
+  savePrayerCity,
+} from '../utils/prayerTimes';
 
 // Configure notifications.
 // SDK 54 replaced `shouldShowAlert` with `shouldShowBanner` / `shouldShowList`.
@@ -20,95 +29,31 @@ Notifications.setNotificationHandler({
 export default function PrayerTimesScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [prayerTimes, setPrayerTimes] = useState({
-    fajr: '05:15',
-    dhuhr: '12:55',
-    asr: '16:25',
-    maghrib: '19:10',
-    isha: '20:40'
-  });
+  const [prayerTimes, setPrayerTimes] = useState(DEFAULT_PRAYER_CITY.fallback);
   const [loading, setLoading] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState({
-    name: 'Cairo',
-    country: 'Egypt',
-    displayName: 'القاهرة، مصر'
-  });
+  const [selectedCountry, setSelectedCountry] = useState(DEFAULT_PRAYER_CITY);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [scheduledNotifications, setScheduledNotifications] = useState<string[]>([]);
+  const cityTimeZone = selectedCountry.tz || 'Africa/Cairo';
 
-  // Arab countries and cities with fallback prayer times
-  const arabCountries = [
-    { name: 'Cairo', country: 'Egypt', displayName: 'القاهرة، مصر', fallback: { fajr: '05:15', dhuhr: '12:55', asr: '16:25', maghrib: '19:10', isha: '20:40' } },
-    { name: 'Riyadh', country: 'Saudi Arabia', displayName: 'الرياض، السعودية', fallback: { fajr: '04:45', dhuhr: '12:15', asr: '15:45', maghrib: '18:30', isha: '20:00' } },
-    { name: 'Dubai', country: 'UAE', displayName: 'دبي، الإمارات', fallback: { fajr: '05:00', dhuhr: '12:30', asr: '16:00', maghrib: '18:45', isha: '20:15' } },
-    { name: 'Kuwait City', country: 'Kuwait', displayName: 'الكويت، الكويت', fallback: { fajr: '04:50', dhuhr: '12:20', asr: '15:50', maghrib: '18:35', isha: '20:05' } },
-    { name: 'Doha', country: 'Qatar', displayName: 'الدوحة، قطر', fallback: { fajr: '04:55', dhuhr: '12:25', asr: '15:55', maghrib: '18:40', isha: '20:10' } },
-    { name: 'Manama', country: 'Bahrain', displayName: 'المنامة، البحرين', fallback: { fajr: '04:50', dhuhr: '12:20', asr: '15:50', maghrib: '18:35', isha: '20:05' } },
-    { name: 'Amman', country: 'Jordan', displayName: 'عمان، الأردن', fallback: { fajr: '05:20', dhuhr: '12:50', asr: '16:20', maghrib: '19:05', isha: '20:35' } },
-    { name: 'Beirut', country: 'Lebanon', displayName: 'بيروت، لبنان', fallback: { fajr: '05:25', dhuhr: '12:55', asr: '16:25', maghrib: '19:10', isha: '20:40' } },
-    { name: 'Damascus', country: 'Syria', displayName: 'دمشق، سوريا', fallback: { fajr: '05:20', dhuhr: '12:50', asr: '16:20', maghrib: '19:05', isha: '20:35' } },
-    { name: 'Baghdad', country: 'Iraq', displayName: 'بغداد، العراق', fallback: { fajr: '05:00', dhuhr: '12:30', asr: '16:00', maghrib: '18:45', isha: '20:15' } },
-    { name: 'Tunis', country: 'Tunisia', displayName: 'تونس، تونس', fallback: { fajr: '05:30', dhuhr: '13:00', asr: '16:30', maghrib: '19:15', isha: '20:45' } },
-    { name: 'Algiers', country: 'Algeria', displayName: 'الجزائر، الجزائر', fallback: { fajr: '05:35', dhuhr: '13:05', asr: '16:35', maghrib: '19:20', isha: '20:50' } },
-    { name: 'Rabat', country: 'Morocco', displayName: 'الرباط، المغرب', fallback: { fajr: '05:40', dhuhr: '13:10', asr: '16:40', maghrib: '19:25', isha: '20:55' } },
-    { name: 'Tripoli', country: 'Libya', displayName: 'طرابلس، ليبيا', fallback: { fajr: '05:25', dhuhr: '12:55', asr: '16:25', maghrib: '19:10', isha: '20:40' } },
-    { name: 'Khartoum', country: 'Sudan', displayName: 'الخرطوم، السودان', fallback: { fajr: '05:10', dhuhr: '12:40', asr: '16:10', maghrib: '18:55', isha: '20:25' } },
-    { name: 'Sanaa', country: 'Yemen', displayName: 'صنعاء، اليمن', fallback: { fajr: '05:00', dhuhr: '12:30', asr: '16:00', maghrib: '18:45', isha: '20:15' } },
-    { name: 'Muscat', country: 'Oman', displayName: 'مسقط، عمان', fallback: { fajr: '05:05', dhuhr: '12:35', asr: '16:05', maghrib: '18:50', isha: '20:20' } },
-    { name: 'Jerusalem', country: 'Palestine', displayName: 'القدس، فلسطين', fallback: { fajr: '05:20', dhuhr: '12:50', asr: '16:20', maghrib: '19:05', isha: '20:35' } }
-  ];
-
-  // Function to calculate prayer times for selected city
-  const calculatePrayerTimes = async () => {
+  const calculatePrayerTimes = async (city = selectedCountry) => {
     setLoading(true);
-    try {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = today.getMonth() + 1;
-      const day = today.getDate();
-      
-      // Using Aladhan API for accurate prayer times
-      const response = await fetch(
-        `https://api.aladhan.com/v1/timingsByCity/${day}-${month}-${year}?city=${selectedCountry.name}&country=${selectedCountry.country}&method=5`
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        const timings = data.data.timings;
-        
-        setPrayerTimes({
-          fajr: timings.Fajr,
-          dhuhr: timings.Dhuhr,
-          asr: timings.Asr,
-          maghrib: timings.Maghrib,
-          isha: timings.Isha
-        });
-      } else {
-        // Use fallback times for the selected country
-        const selectedCountryData = arabCountries.find(country => 
-          country.name === selectedCountry.name && country.country === selectedCountry.country
-        );
-        if (selectedCountryData && selectedCountryData.fallback) {
-          setPrayerTimes(selectedCountryData.fallback);
-        }
-        console.log('API failed, using fallback times for', selectedCountry.displayName);
-      }
-    } catch (error) {
-      console.log('Error fetching prayer times:', error);
-      // Use fallback times for the selected country
-      const selectedCountryData = arabCountries.find(country => 
-        country.name === selectedCountry.name && country.country === selectedCountry.country
-      );
-      if (selectedCountryData && selectedCountryData.fallback) {
-        setPrayerTimes(selectedCountryData.fallback);
-      }
-    }
+    const times = await fetchPrayerTimes(city);
+    setPrayerTimes(times);
     setLoading(false);
+    return times;
   };
 
-  // Load prayer times on component mount
   useEffect(() => {
-    calculatePrayerTimes();
+    const bootstrap = async () => {
+      const city = await loadPrayerCity();
+      setSelectedCountry(city);
+      const times = await calculatePrayerTimes(city);
+      if (notificationsEnabled) {
+        await NotificationService.schedulePrayerNotifications(times, { force: true });
+      }
+    };
+    bootstrap();
   }, []);
 
   const prayerNames = {
@@ -136,23 +81,6 @@ export default function PrayerTimesScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // Schedule notifications when prayer times change (but not on every render)
-  useEffect(() => {
-    if (prayerTimes.fajr !== '05:15' && notificationsEnabled) {
-      // Only schedule when explicitly changing settings, not on refresh
-      const scheduleDelayed = setTimeout(() => {
-        schedulePrayerNotifications();
-      }, 2000); // Delay to avoid multiple calls
-      
-      return () => clearTimeout(scheduleDelayed);
-    }
-  }, [selectedCountry]); // Only when country changes, not on every prayer time update
-
-  // Reload prayer times when country changes
-  useEffect(() => {
-    calculatePrayerTimes();
-  }, [selectedCountry]);
-
   // Request notification permissions
   useEffect(() => {
     requestNotificationPermissions();
@@ -177,10 +105,8 @@ export default function PrayerTimesScreen() {
 
 
   const getCurrentPrayer = () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentTimeMinutes = currentHour * 60 + currentMinute;
+    const now = getZonedParts(new Date(), cityTimeZone);
+    const currentTimeMinutes = now.hour * 60 + now.minute;
 
     const prayers = [
       { name: 'fajr', time: prayerTimes.fajr },
@@ -210,7 +136,7 @@ export default function PrayerTimesScreen() {
       console.log('🕌 Scheduling prayer notifications from prayer-times page...');
       
       // Use the service method instead of duplicating logic
-      await NotificationService.schedulePrayerNotifications();
+      await NotificationService.schedulePrayerNotifications(prayerTimes, { force: true });
       
       // Update UI to show notifications are scheduled
       const prayers = [
@@ -243,13 +169,7 @@ export default function PrayerTimesScreen() {
     }
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('ar-EG', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
+  const formatTime = (date: Date) => formatClock(date, cityTimeZone);
 
   const currentPrayer = getCurrentPrayer();
 
@@ -281,6 +201,8 @@ export default function PrayerTimesScreen() {
             <Text style={styles.currentTime}>{formatTime(currentTime)}</Text>
             <Text style={styles.currentDate}>
               {currentTime.toLocaleDateString('ar-EG', {
+                timeZone: cityTimeZone,
+                calendar: 'gregory',
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -393,7 +315,7 @@ export default function PrayerTimesScreen() {
               </View>
 
               <FlatList
-                data={arabCountries}
+                data={PRAYER_CITIES}
                 keyExtractor={(item) => `${item.name}-${item.country}`}
                 renderItem={({ item }) => (
                   <TouchableOpacity
@@ -401,9 +323,14 @@ export default function PrayerTimesScreen() {
                       styles.countryItem,
                       selectedCountry.name === item.name && styles.selectedCountryItem
                     ]}
-                    onPress={() => {
+                    onPress={async () => {
                       setSelectedCountry(item);
                       setCountryModalVisible(false);
+                      await savePrayerCity(item);
+                      const times = await calculatePrayerTimes(item);
+                      if (notificationsEnabled) {
+                        await NotificationService.schedulePrayerNotifications(times, { force: true });
+                      }
                     }}
                   >
                     <Text style={styles.countryName}>{item.displayName}</Text>

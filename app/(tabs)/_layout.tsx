@@ -1,13 +1,19 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, useSegments } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { rememberMainTab } from '../../utils/lastMainTab';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const segments = useSegments();
+
+  useEffect(() => {
+    rememberMainTab(segments[segments.length - 1]);
+  }, [segments]);
 
   return (
     <Tabs

@@ -39,7 +39,7 @@ const SECTION_LINKS: SearchHit[] = [
   { id: 'sec-terms', title: 'Programming Terms', subtitle: 'Dictionary', type: 'Section', icon: '📖', route: '/(tabs)/programming-terms' },
   { id: 'sec-cv', title: 'Top CV', subtitle: 'CV templates', type: 'Section', icon: '📄', route: '/(tabs)/top-cv' },
   { id: 'sec-prayer', title: 'Prayer Times', subtitle: 'Daily prayers', type: 'Section', icon: '🕌', route: '/prayer-times' },
-  { id: 'sec-thoughts', title: 'Programmer Thoughts', subtitle: 'Inspiration', type: 'Section', icon: '💭', route: '/programmer-thoughts' },
+  { id: 'sec-thoughts', title: 'خواطر لم تمت', subtitle: 'Inspiration', type: 'Section', icon: '💭', route: '/programmer-thoughts' },
   { id: 'sec-profile', title: 'Profile', subtitle: 'Your account', type: 'Section', icon: '👤', route: '/profile', gated: true },
   { id: 'sec-subscribe', title: 'Subscription', subtitle: 'Premium access', type: 'Section', icon: '💎', route: '/subscription-2' },
   { id: 'sec-help', title: 'Help & Support', subtitle: 'Get help', type: 'Section', icon: '❓', route: '/help-support' },

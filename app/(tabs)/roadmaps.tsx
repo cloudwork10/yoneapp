@@ -290,47 +290,48 @@ export default function RoadmapsScreen() {
           {/* Featured Roadmap */}
           {roadmaps.length > 0 && (
             <View style={styles.featuredSection}>
-              <Text style={styles.featuredTitle}>Featured Roadmap</Text>
               <TouchableOpacity 
                 style={styles.featuredCard}
                 onPress={() => router.push(`/roadmap-details?roadmapId=${roadmaps[0]._id || roadmaps[0].id}`)}
-            >
-              <ImageBackground
-                source={{ 
-                  uri: roadmaps[0].image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
-                }}
-                style={styles.featuredImage}
-                resizeMode="cover"
               >
-                <LinearGradient
-                  colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
-                  style={styles.featuredGradient}
+                <ImageBackground
+                  source={{ 
+                    uri: roadmaps[0].image || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+                  }}
+                  style={styles.featuredImage}
+                  resizeMode="cover"
                 >
-                  <View style={styles.featuredContent}>
-                    <View style={styles.featuredBadge}>
-                      <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                  <LinearGradient
+                    colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.8)']}
+                    style={styles.featuredGradient}
+                  >
+                    <View style={styles.featuredContent}>
+                      <View style={styles.featuredBadge}>
+                        <Text style={styles.featuredBadgeText}>FEATURED</Text>
+                      </View>
+                      <Text style={styles.featuredTitleText}>{roadmaps[0].title}</Text>
+                      <Text style={styles.featuredDescription} numberOfLines={2}>
+                        {roadmaps[0].description}
+                      </Text>
+                      <View style={styles.featuredMeta}>
+                        <View style={styles.featuredMetaItem}>
+                          <Text style={styles.featuredMetaIcon}>{roadmaps[0].icon || '🗺️'}</Text>
+                          <Text style={styles.featuredMetaText}>{roadmaps[0].difficulty || 'Beginner'}</Text>
+                        </View>
+                        <View style={styles.featuredMetaItem}>
+                          <Text style={styles.featuredMetaIcon}>⏱️</Text>
+                          <Text style={styles.featuredMetaText}>{roadmaps[0].duration || '6 months'}</Text>
+                        </View>
+                        <View style={styles.featuredMetaItem}>
+                          <Text style={styles.featuredMetaIcon}>📊</Text>
+                          <Text style={styles.featuredMetaText}>{roadmaps[0].steps?.length || 0} steps</Text>
+                        </View>
+                      </View>
                     </View>
-                    <Text style={styles.featuredTitleText}>{roadmaps[0].title}</Text>
-                    <Text style={styles.featuredDescription}>{roadmaps[0].description}</Text>
-                    <View style={styles.featuredMeta}>
-                      <View style={styles.featuredMetaItem}>
-                        <Text style={styles.featuredMetaIcon}>{roadmaps[0].icon || '🗺️'}</Text>
-                        <Text style={styles.featuredMetaText}>{roadmaps[0].difficulty || 'Beginner'}</Text>
-                      </View>
-                      <View style={styles.featuredMetaItem}>
-                        <Text style={styles.featuredMetaIcon}>⏱️</Text>
-                        <Text style={styles.featuredMetaText}>{roadmaps[0].duration || '6 months'}</Text>
-                      </View>
-                      <View style={styles.featuredMetaItem}>
-                        <Text style={styles.featuredMetaIcon}>📊</Text>
-                        <Text style={styles.featuredMetaText}>{roadmaps[0].steps?.length || 0} steps</Text>
-                      </View>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </ImageBackground>
-            </TouchableOpacity>
-          </View>
+                  </LinearGradient>
+                </ImageBackground>
+              </TouchableOpacity>
+            </View>
           )}
 
           {/* Search Section */}
@@ -403,16 +404,7 @@ export default function RoadmapsScreen() {
                       }}
                       style={styles.roadmapImage}
                       resizeMode="cover"
-                    >
-                      <LinearGradient
-                        colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
-                        style={styles.roadmapImageGradient}
-                      >
-                        <View style={styles.roadmapIcon}>
-                          <Text style={styles.roadmapIconText}>{roadmap.icon || '🗺️'}</Text>
-                        </View>
-                      </LinearGradient>
-                    </ImageBackground>
+                    />
                   </View>
                   
                   <View style={styles.roadmapContent}>
@@ -501,16 +493,10 @@ const styles = StyleSheet.create({
   },
   // Featured Section
   featuredSection: {
-    marginBottom: 30,
-  },
-  featuredTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   featuredCard: {
-    height: 200,
+    height: 280,
     borderRadius: 16,
     overflow: 'hidden',
     elevation: 8,
@@ -556,7 +542,8 @@ const styles = StyleSheet.create({
   },
   featuredMeta: {
     flexDirection: 'row',
-    gap: 20,
+    flexWrap: 'wrap',
+    gap: 12,
     marginTop: 8,
   },
   featuredMetaItem: {

@@ -10,6 +10,7 @@ interface User {
   adminLevel?: 'super' | 'admin' | 'moderator';
   role: string;
   avatar?: string;
+  phone?: string;
   createdAt?: string;
 }
 
