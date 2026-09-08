@@ -3,6 +3,13 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import API_BASE_URL from '../config/api';
+import {
+  cleanPrayerTime,
+  fetchPrayerTimes,
+  loadPrayerCity,
+  parsePrayerClock,
+  shiftClock,
+} from '../utils/prayerTimes';
 
 // Configure notification behavior.
 // SDK 54 deprecated `shouldShowAlert` in favour of `shouldShowBanner` (the
@@ -208,64 +215,60 @@ class NotificationService {
   }
 
   // Prayer time notifications
-  async schedulePrayerNotifications(): Promise<void> {
+  async schedulePrayerNotifications(
+    times?: Record<string, string>,
+    options?: { force?: boolean }
+  ): Promise<Record<string, string> | null> {
     try {
       // Check if prayer notifications are enabled
       const prayerNotificationsEnabled = await AsyncStorage.getItem('prayerNotifications') !== 'false';
       if (!prayerNotificationsEnabled) {
         console.log('⏸️ Prayer notifications disabled, skipping...');
-        return;
+        return null;
       }
 
-      // Check if notifications were already scheduled today
+      const prayerTimes = this.normalizePrayerTimes(times || await this.getPrayerTimes());
+      const timesKey = JSON.stringify(prayerTimes);
       const lastScheduledDate = await AsyncStorage.getItem('lastPrayerScheduleDate');
+      const lastScheduledTimes = await AsyncStorage.getItem('lastPrayerScheduleTimes');
       const today = new Date().toDateString();
-      
-      if (lastScheduledDate === today) {
-        console.log('⏸️ Prayer notifications already scheduled for today, skipping...');
-        return;
+
+      if (!options?.force && lastScheduledDate === today && lastScheduledTimes === timesKey) {
+        console.log('⏸️ Prayer notifications already scheduled for these times, skipping...');
+        return prayerTimes;
       }
 
-      // Cancel existing prayer notifications
-      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-      const prayerNotifications = scheduledNotifications.filter(
-        notification => notification.content.data?.type === 'prayer'
-      );
-      
-      for (const notification of prayerNotifications) {
-        await Notifications.cancelScheduledNotificationAsync(notification.identifier);
-      }
+      await this.cancelPrayerNotifications();
 
-      // Get current location and calculate prayer times
-      // For now, using Cairo, Egypt times as default
-      const prayerTimes = await this.getPrayerTimes();
-      
       for (const [prayerName, time] of Object.entries(prayerTimes)) {
         await this.schedulePrayerNotification(prayerName, time);
-        // Also schedule reminder 5 minutes before
         await this.schedulePrayerReminder(prayerName, time);
       }
 
-      // Mark as scheduled for today
       await AsyncStorage.setItem('lastPrayerScheduleDate', today);
+      await AsyncStorage.setItem('lastPrayerScheduleTimes', timesKey);
 
-      console.log('✅ Prayer notifications scheduled for', today);
+      console.log('✅ Prayer notifications scheduled', prayerTimes);
+      return prayerTimes;
     } catch (error) {
       console.error('Error scheduling prayer notifications:', error);
+      return null;
     }
   }
 
+  private normalizePrayerTimes(times: Record<string, string>): Record<string, string> {
+    return {
+      fajr: cleanPrayerTime(times.fajr),
+      dhuhr: cleanPrayerTime(times.dhuhr),
+      asr: cleanPrayerTime(times.asr),
+      maghrib: cleanPrayerTime(times.maghrib),
+      isha: cleanPrayerTime(times.isha),
+    };
+  }
+
   private async schedulePrayerNotification(prayerName: string, time: string): Promise<void> {
-    const [hours, minutes] = time.split(':').map(Number);
-    
-    const now = new Date();
-    const prayerTime = new Date();
-    prayerTime.setHours(hours, minutes, 0, 0);
-    
-    // If prayer time has passed today, schedule for tomorrow
-    if (prayerTime <= now) {
-      prayerTime.setDate(prayerTime.getDate() + 1);
-    }
+    const clock = parsePrayerClock(time);
+    if (!clock) return;
 
     const prayerNames = {
       'fajr': 'الفجر',
@@ -284,34 +287,25 @@ class NotificationService {
         data: {
           type: 'prayer',
           prayerName,
-          time
+          time: clock.time
         },
         sound: 'default',
         vibrate: [0, 250, 250, 250],
         priority: 'max',
       },
-      // expo-notifications (SDK 54) requires an explicit trigger type; the old
-      // { date, repeats: true } shape throws. DAILY is what this always meant.
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: prayerTime.getHours(),
-        minute: prayerTime.getMinutes(),
+        hour: clock.hour,
+        minute: clock.minute,
       },
     });
   }
 
   // Schedule prayer reminder (5 minutes before)
   private async schedulePrayerReminder(prayerName: string, time: string): Promise<void> {
-    const [hours, minutes] = time.split(':').map(Number);
-    
-    const now = new Date();
-    const reminderTime = new Date();
-    reminderTime.setHours(hours, minutes - 5, 0, 0); // 5 minutes before
-    
-    // If reminder time has passed today, schedule for tomorrow
-    if (reminderTime <= now) {
-      reminderTime.setDate(reminderTime.getDate() + 1);
-    }
+    const clock = parsePrayerClock(time);
+    if (!clock) return;
+    const reminder = shiftClock(clock.hour, clock.minute, -5);
 
     const prayerNames = {
       'fajr': 'الفجر',
@@ -326,11 +320,11 @@ class NotificationService {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: `⏰ تذكير: صلاة ${arabicName}`,
-        body: `السلام عليكم، يحين وقت صلاة ${arabicName} خلال 5 دقائق. استعد للصلاة.`,
+        body: `السلام عليكم، يحين وقت صلاة ${arabicName} خلال 5 دقايق. استعد للصلاة.`,
         data: {
           type: 'prayer_reminder',
           prayerName,
-          time
+          time: clock.time
         },
         sound: 'default',
         vibrate: [0, 250, 250, 250],
@@ -338,42 +332,15 @@ class NotificationService {
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: reminderTime.getHours(),
-        minute: reminderTime.getMinutes(),
+        hour: reminder.hour,
+        minute: reminder.minute,
       },
     });
   }
 
   private async getPrayerTimes(): Promise<Record<string, string>> {
-    try {
-      // Get stored location or use default (Cairo)
-      const savedLocation = await AsyncStorage.getItem('userLocation');
-      const location = savedLocation ? JSON.parse(savedLocation) : { 
-        latitude: 30.0444, 
-        longitude: 31.2357, 
-        city: 'Cairo' 
-      };
-
-      // For now, using static times for Cairo
-      // In production, you would call a prayer times API
-      return {
-        fajr: '04:30',
-        dhuhr: '12:15',
-        asr: '15:45',
-        maghrib: '18:30',
-        isha: '20:00'
-      };
-    } catch (error) {
-      console.error('Error getting prayer times:', error);
-      // Fallback times
-      return {
-        fajr: '05:00',
-        dhuhr: '12:00',
-        asr: '15:30',
-        maghrib: '18:00',
-        isha: '19:30'
-      };
-    }
+    const city = await loadPrayerCity();
+    return fetchPrayerTimes(city);
   }
 
   // Get push token
@@ -440,11 +407,15 @@ class NotificationService {
       const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
       const prayerNotifications = scheduledNotifications.filter(
         notification => notification.content.data?.type === 'prayer'
+          || notification.content.data?.type === 'prayer_reminder'
       );
       
       for (const notification of prayerNotifications) {
         await Notifications.cancelScheduledNotificationAsync(notification.identifier);
       }
+
+      await AsyncStorage.removeItem('lastPrayerScheduleDate');
+      await AsyncStorage.removeItem('lastPrayerScheduleTimes');
       
       console.log('✅ Prayer notifications cancelled');
     } catch (error) {
