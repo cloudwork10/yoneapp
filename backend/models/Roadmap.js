@@ -15,7 +15,8 @@ const roadmapSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Roadmap category is required'],
-    enum: ['Frontend', 'Backend', 'Full Stack', 'Mobile', 'DevOps', 'Data Science', 'AI/ML']
+    trim: true,
+    maxlength: [40, 'Category cannot be more than 40 characters']
   },
   difficulty: {
     type: String,

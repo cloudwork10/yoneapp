@@ -34,6 +34,14 @@ import {
   writeLocalAdviceCategories,
 } from '../utils/adviceCategories';
 import {
+  DEFAULT_ROADMAP_CATEGORIES,
+  fetchPublicRoadmapCategories,
+  mergeRoadmapCategories,
+  normalizeRoadmapCategoryName,
+  readLocalRoadmapCategories,
+  writeLocalRoadmapCategories,
+} from '../utils/roadmapCategories';
+import {
   DEFAULT_PROGRAMMING_LANGUAGES,
   fetchPublicProgrammingLanguages,
   mergeProgrammingLanguages,
@@ -1835,6 +1843,8 @@ export default function ContentManagementScreen() {
           </View>
         </View>
 
+        <RoadmapCategoriesEditor />
+
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -2732,6 +2742,7 @@ export default function ContentManagementScreen() {
               <ScrollView style={styles.modalContent}>
                 <RoadmapForm 
                   roadmap={editingRoadmap}
+                  knownCategories={roadmaps.map((item) => item.category).filter(Boolean)}
                   onSave={async (roadmapData) => {
                     try {
                       const url = editingRoadmap 
@@ -3767,7 +3778,130 @@ const ArticleForm = ({ article, onSave, onCancel }: { article: any, onSave: (dat
   );
 };
 
-const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (data: any) => void, onCancel: () => void }) => {
+const RoadmapCategoriesEditor = ({
+  selected,
+  onSelect,
+  extraKnown = [],
+}: {
+  selected?: string;
+  onSelect?: (id: string) => void;
+  extraKnown?: string[];
+}) => {
+  const [categoryOptions, setCategoryOptions] = useState(DEFAULT_ROADMAP_CATEGORIES);
+  const [newCategory, setNewCategory] = useState('');
+
+  const persistRoadmapCategories = async (next) => {
+    const saved = await writeLocalRoadmapCategories(next);
+    setCategoryOptions(saved);
+    try {
+      await makeAuthenticatedRequest(`${API_BASE_URL}/api/admin/content/roadmap-categories`, {
+        method: 'PUT',
+        body: JSON.stringify({ categories: saved }),
+      });
+    } catch (error) {
+      console.log('Roadmap categories API save skipped:', error?.message || error);
+    }
+    return saved;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const remote = await fetchPublicRoadmapCategories().catch(() => null);
+      const local = await readLocalRoadmapCategories();
+      const known = (extraKnown || []).map((item) => ({ id: item, name: item }));
+      const next = mergeRoadmapCategories(
+        remote ?? local ?? DEFAULT_ROADMAP_CATEGORIES,
+        known,
+        selected ? [{ id: selected, name: selected }] : []
+      );
+      if (!cancelled) setCategoryOptions(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <View style={styles.formGroup}>
+      <Text style={styles.formLabel}>Roadmap Categories</Text>
+      <View style={styles.categoryContainer}>
+        {categoryOptions.map((item) => (
+          <View
+            key={item.id}
+            style={[
+              styles.categoryButton,
+              selected === item.id && styles.categoryButtonActive,
+              { flexDirection: 'row', alignItems: 'center' },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => onSelect?.(item.id)}
+            >
+              <Text
+                style={[
+                  styles.categoryButtonText,
+                  selected === item.id && styles.categoryButtonTextActive,
+                ]}
+              >
+                {item.icon ? `${item.icon} ` : ''}{item.name}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert('Delete category', `Remove "${item.name}"? Roadmaps in it will still show under All.`, [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                      const next = categoryOptions.filter((category) => category.id !== item.id);
+                      await persistRoadmapCategories(next);
+                      if (selected === item.id) {
+                        onSelect?.(next[0]?.id || '');
+                      }
+                    },
+                  },
+                ]);
+              }}
+              style={{ marginLeft: 8 }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700' }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+      <View style={[styles.formRow, { marginTop: 10 }]}>
+        <TextInput
+          style={[styles.formInput, { flex: 1, marginRight: 8 }]}
+          value={newCategory}
+          onChangeText={setNewCategory}
+          placeholder="Add category, e.g. Marketing"
+          placeholderTextColor="#999"
+          maxLength={40}
+        />
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={async () => {
+            const name = normalizeRoadmapCategoryName(newCategory);
+            if (!name) {
+              Alert.alert('Category', 'Write the category name first');
+              return;
+            }
+            const next = mergeRoadmapCategories(categoryOptions, [{ id: name, name }]);
+            await persistRoadmapCategories(next);
+            onSelect?.(name);
+            setNewCategory('');
+          }}
+        >
+          <Text style={styles.addButtonText}>Add</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const RoadmapForm = ({ roadmap, onSave, onCancel, knownCategories = [] }: { roadmap: any, onSave: (data: any) => void, onCancel: () => void, knownCategories?: string[] }) => {
   const [formData, setFormData] = useState({
     title: roadmap?.title || '',
     description: roadmap?.description || '',
@@ -3885,7 +4019,7 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
     onSave({
       title,
       description,
-      category: formData.category || 'Mobile',
+      category: normalizeRoadmapCategoryName(formData.category) || 'Frontend',
       difficulty: formData.difficulty || 'Beginner',
       duration,
       image,
@@ -3936,32 +4070,14 @@ const RoadmapForm = ({ roadmap, onSave, onCancel }: { roadmap: any, onSave: (dat
         />
       </View>
 
+      <RoadmapCategoriesEditor
+        selected={formData.category}
+        extraKnown={knownCategories}
+        onSelect={(id) => setFormData({ ...formData, category: id })}
+      />
+
       <View style={styles.formRow}>
-        <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-          <Text style={styles.formLabel}>Category *</Text>
-          <TouchableOpacity 
-            style={styles.selectContainer}
-            onPress={() => {
-              Alert.alert(
-                'Select Category',
-                'Choose the roadmap category',
-                [
-                  { text: 'Frontend', onPress: () => setFormData({...formData, category: 'Frontend'}) },
-                  { text: 'Backend', onPress: () => setFormData({...formData, category: 'Backend'}) },
-                  { text: 'Full Stack', onPress: () => setFormData({...formData, category: 'Full Stack'}) },
-                  { text: 'Mobile', onPress: () => setFormData({...formData, category: 'Mobile'}) },
-                  { text: 'DevOps', onPress: () => setFormData({...formData, category: 'DevOps'}) },
-                  { text: 'Data Science', onPress: () => setFormData({...formData, category: 'Data Science'}) },
-                  { text: 'AI/ML', onPress: () => setFormData({...formData, category: 'AI/ML'}) },
-                  { text: 'Cancel', style: 'cancel' }
-                ]
-              );
-            }}
-          >
-            <Text style={styles.selectText}>{formData.category}</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+        <View style={[styles.formGroup, { flex: 1 }]}>
           <Text style={styles.formLabel}>Difficulty *</Text>
           <TouchableOpacity 
             style={styles.selectContainer}

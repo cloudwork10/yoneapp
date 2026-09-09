@@ -16,6 +16,11 @@ const {
   getStoredProgrammingLanguages,
   saveProgrammingLanguages,
 } = require('../utils/programmingLanguages');
+const {
+  getStoredRoadmapCategories,
+  saveRoadmapCategories,
+  normalizeRoadmapCategoryName,
+} = require('../utils/roadmapCategories');
 const ProgrammingTerm = require('../models/ProgrammingTerm');
 const CVTemplate = require('../models/CVTemplate');
 // const { requireAuth  } = require('../middleware/auth');
@@ -24,7 +29,6 @@ const { apiLimiter } = require('../middleware/security');
 
 const router = express.Router();
 
-const ROADMAP_CATEGORIES = ['Frontend', 'Backend', 'Full Stack', 'Mobile', 'DevOps', 'Data Science', 'AI/ML'];
 const ROADMAP_DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
 const ROADMAP_RESOURCE_TYPES = ['course', 'article', 'video', 'documentation', 'tool'];
 const ROADMAP_FALLBACK_IMAGE =
@@ -56,7 +60,7 @@ function sanitizeRoadmapPayload(body = {}) {
   return {
     title: String(body.title || '').trim(),
     description: String(body.description || '').trim(),
-    category: ROADMAP_CATEGORIES.includes(body.category) ? body.category : 'Frontend',
+    category: normalizeRoadmapCategoryName(body.category) || 'Frontend',
     difficulty: ROADMAP_DIFFICULTIES.includes(body.difficulty) ? body.difficulty : 'Beginner',
     duration: String(body.duration || '').trim(),
     steps,
@@ -734,6 +738,49 @@ router.put('/advice-categories', async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Failed to save advice categories',
+    });
+  }
+});
+
+// @route   GET /api/admin/content/roadmap-categories
+//          GET /api/public/content/roadmap-categories
+router.get('/roadmap-categories', async (req, res) => {
+  try {
+    const categories = await getStoredRoadmapCategories();
+    res.status(200).json({
+      status: 'success',
+      data: { categories },
+    });
+  } catch (error) {
+    console.error('Get roadmap categories error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch roadmap categories',
+    });
+  }
+});
+
+// @route   PUT /api/admin/content/roadmap-categories
+router.put('/roadmap-categories', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required',
+      });
+    }
+
+    const categories = await saveRoadmapCategories(req.body?.categories);
+
+    res.status(200).json({
+      status: 'success',
+      data: { categories },
+    });
+  } catch (error) {
+    console.error('Save roadmap categories error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to save roadmap categories',
     });
   }
 });
@@ -1586,7 +1633,7 @@ router.get('/roadmaps',  async (req, res) => {
 router.post('/roadmaps', [
   body('title').trim().isLength({ min: 1, max: 100 }).withMessage('Title is required and must be less than 100 characters'),
   body('description').trim().isLength({ min: 1, max: 1000 }).withMessage('Description is required and must be less than 1000 characters'),
-  body('category').isIn(['Frontend', 'Backend', 'Full Stack', 'Mobile', 'DevOps', 'Data Science', 'AI/ML']).withMessage('Valid category is required'),
+  body('category').trim().isLength({ min: 1, max: 40 }).withMessage('Category is required'),
   body('difficulty').isIn(['Beginner', 'Intermediate', 'Advanced']).withMessage('Valid difficulty level is required'),
   body('duration').trim().isLength({ min: 1 }).withMessage('Duration is required'),
   body('steps').optional().isArray(),
@@ -1633,7 +1680,7 @@ router.post('/roadmaps', [
 router.put('/roadmaps/:id', [
   body('title').optional().trim().isLength({ min: 1, max: 100 }).withMessage('Title must be less than 100 characters'),
   body('description').optional().trim().isLength({ min: 1, max: 1000 }).withMessage('Description must be less than 1000 characters'),
-  body('category').optional().isIn(['Frontend', 'Backend', 'Full Stack', 'Mobile', 'DevOps', 'Data Science', 'AI/ML']).withMessage('Valid category is required'),
+  body('category').optional().trim().isLength({ min: 1, max: 40 }).withMessage('Category is required'),
   body('difficulty').optional().isIn(['Beginner', 'Intermediate', 'Advanced']).withMessage('Valid difficulty level is required'),
   body('duration').optional().trim().isLength({ min: 1 }).withMessage('Duration is required'),
   body('steps').optional().isArray(),

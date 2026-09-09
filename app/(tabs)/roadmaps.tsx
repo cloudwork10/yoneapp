@@ -17,6 +17,11 @@ import { RoadmapCardSkeleton } from '../../components/SkeletonLoader';
 import ScreenTransition from '../../components/ScreenTransition';
 import API_BASE_URL from '../../config/api';
 import resolveMediaUrl from '../../utils/mediaUrl';
+import {
+  DEFAULT_ROADMAP_CATEGORIES,
+  fetchPublicRoadmapCategories,
+  roadmapCategoryMeta,
+} from '../../utils/roadmapCategories';
 
 const { width } = Dimensions.get('window');
 
@@ -41,25 +46,33 @@ export default function RoadmapsScreen() {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
-  const categories = [
+  const [categories, setCategories] = useState([
     { id: 'All', name: 'All', icon: '🌟' },
-    { id: 'Frontend', name: 'Frontend', icon: '💻' },
-    { id: 'Backend', name: 'Backend', icon: '⚙️' },
-    { id: 'Full Stack', name: 'Full Stack', icon: '🔄' },
-    { id: 'Mobile', name: 'Mobile', icon: '📱' },
-    { id: 'DevOps', name: 'DevOps', icon: '🔧' },
-    { id: 'Data Science', name: 'Data Science', icon: '📊' },
-    { id: 'AI/ML', name: 'AI/ML', icon: '🤖' },
-  ];
+    ...DEFAULT_ROADMAP_CATEGORIES.map((item, index) =>
+      roadmapCategoryMeta(item.id, index, item.name, item.icon)
+    ),
+  ]);
 
   // Refresh roadmaps when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       console.log('🔄 Roadmaps screen focused, refreshing data...');
       fetchRoadmaps();
+      fetchCategories();
     }, [])
   );
+
+  const fetchCategories = async () => {
+    const remote = await fetchPublicRoadmapCategories().catch(() => null);
+    const list = remote?.length ? remote : DEFAULT_ROADMAP_CATEGORIES;
+    setCategories([
+      { id: 'All', name: 'All', icon: '🌟' },
+      ...list.map((item, index) => roadmapCategoryMeta(item.id, index, item.name, item.icon)),
+    ]);
+    setSelectedCategory((prev) =>
+      prev === 'All' || list.some((item) => item.id === prev || item.name === prev) ? prev : 'All'
+    );
+  };
 
   const fetchRoadmaps = async () => {
     try {
@@ -85,7 +98,7 @@ export default function RoadmapsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchRoadmaps();
+    await Promise.all([fetchRoadmaps(), fetchCategories()]);
     setRefreshing(false);
   };
 
@@ -362,14 +375,14 @@ export default function RoadmapsScreen() {
                   key={`roadmap-category-${category.id}`}
                   style={[
                     styles.categoryButton,
-                    selectedCategory === category.name && styles.categoryButtonActive
+                    selectedCategory === category.id && styles.categoryButtonActive
                   ]}
-                  onPress={() => setSelectedCategory(category.name)}
+                  onPress={() => setSelectedCategory(category.id)}
                 >
                   <Text style={styles.categoryIcon}>{category.icon}</Text>
                   <Text style={[
                     styles.categoryText,
-                    selectedCategory === category.name && styles.categoryTextActive
+                    selectedCategory === category.id && styles.categoryTextActive
                   ]}>
                     {category.name}
                   </Text>

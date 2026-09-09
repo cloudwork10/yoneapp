@@ -6,6 +6,7 @@ const CVTemplate = require('../models/CVTemplate');
 const Advice = require('../models/Advice');
 const { getStoredAdviceCategories } = require('../utils/adviceCategories');
 const { getStoredProgrammingLanguages } = require('../utils/programmingLanguages');
+const { getStoredRoadmapCategories } = require('../utils/roadmapCategories');
 const ProgrammingTerm = require('../models/ProgrammingTerm');
 const ProgrammerThought = require('../models/ProgrammerThought');
 const Course = require('../models/Course');
@@ -296,7 +297,22 @@ router.get('/content/advice-categories', async (req, res) => {
   }
 });
 
-// @route   GET /api/public/content/programming-languages
+router.get('/content/roadmap-categories', async (req, res) => {
+  try {
+    const categories = await getStoredRoadmapCategories();
+    res.json({
+      status: 'success',
+      data: { categories },
+    });
+  } catch (error) {
+    console.error('Error fetching public roadmap categories:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch roadmap categories',
+    });
+  }
+});
+
 router.get('/content/programming-languages', async (req, res) => {
   try {
     const languages = await getStoredProgrammingLanguages();
