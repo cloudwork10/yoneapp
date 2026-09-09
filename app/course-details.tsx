@@ -88,15 +88,6 @@ interface CourseLesson {
   isLocked: boolean;
 }
 
-interface CourseReview {
-  id: string;
-  userName: string;
-  rating: number;
-  comment: string;
-  date: string;
-  helpful: number;
-}
-
 export default function CourseDetailsScreen() {
   const { courseId } = useLocalSearchParams();
   const { user } = useUser();
@@ -405,33 +396,6 @@ export default function CourseDetailsScreen() {
     }
   ];
 
-  const courseReviews: CourseReview[] = [
-    {
-      id: '1',
-      userName: 'Sarah Johnson',
-      rating: 5,
-      comment: 'Excellent course! The instructor explains everything clearly and the projects are very practical.',
-      date: '2 weeks ago',
-      helpful: 24
-    },
-    {
-      id: '2',
-      userName: 'Mike Chen',
-      rating: 4,
-      comment: 'Great content, but some sections could be more detailed. Overall very helpful for beginners.',
-      date: '1 month ago',
-      helpful: 18
-    },
-    {
-      id: '3',
-      userName: 'Emily Davis',
-      rating: 5,
-      comment: 'Perfect course structure and pace. I was able to build my first app after completing this course.',
-      date: '1 month ago',
-      helpful: 31
-    }
-  ];
-
   const handleVideoPress = (video: CourseVideo) => {
     if (video.isLocked && !user) {
       showSignInAlert('videos');
@@ -512,14 +476,6 @@ export default function CourseDetailsScreen() {
     // In real app, this would call API to enroll user
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Text key={i} style={styles.star}>
-        {i < Math.floor(rating) ? '⭐' : '☆'}
-      </Text>
-    ));
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
           <StatusBar barStyle="light-content" backgroundColor="#000000" />
@@ -589,7 +545,7 @@ export default function CourseDetailsScreen() {
         {/* Tabs */}
         <View style={styles.tabsContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll}>
-            {['overview', 'videos', 'challenges', 'instructor', 'reviews'].map((tab) => (
+            {['overview', 'videos', 'challenges', 'instructor'].map((tab) => (
               <TouchableOpacity
                 key={tab}
                 style={[
@@ -921,15 +877,11 @@ export default function CourseDetailsScreen() {
                 <Text style={styles.instructorSpotlightName}>{course.instructor}</Text>
                 <View style={styles.instructorStats}>
                   <View style={styles.instructorStat}>
-                    <Text style={styles.instructorStatNumber}>{course.instructorRating || 4.9}</Text>
-                    <Text style={styles.instructorStatLabel}>Rating</Text>
-                  </View>
-                  <View style={styles.instructorStat}>
                     <Text style={styles.instructorStatNumber}>{(course.instructorStudents || 25000).toLocaleString()}</Text>
                     <Text style={styles.instructorStatLabel}>Students</Text>
                   </View>
                   <View style={styles.instructorStat}>
-                    <Text style={styles.instructorStatNumber}>8+</Text>
+                    <Text style={styles.instructorStatNumber}>{course.instructorYears || '8+'}</Text>
                     <Text style={styles.instructorStatLabel}>Years</Text>
                   </View>
                 </View>
@@ -938,51 +890,6 @@ export default function CourseDetailsScreen() {
             </View>
           </View>
         )}
-
-        {activeTab === 'reviews' && (
-          <View style={styles.tabContent}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>💬 Community Reviews</Text>
-              <View style={styles.overallRating}>
-                <Text style={styles.overallRatingNumber}>{course.rating || 4.8}</Text>
-                <View style={styles.overallRatingStars}>
-                  {renderStars(course.rating || 4.8)}
-                </View>
-                <Text style={styles.totalRatings}>({(course.totalRatings || 15420).toLocaleString()} reviews)</Text>
-              </View>
-            </View>
-
-            <View style={styles.reviewsCarousel}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewsScroll}>
-                {courseReviews.map((review) => (
-                  <View key={review.id} style={styles.reviewCard}>
-                    <View style={styles.reviewCardHeader}>
-                      <View style={styles.reviewerAvatar}>
-                        <Text style={styles.reviewerAvatarText}>
-                          {review.userName.charAt(0)}
-                        </Text>
-                      </View>
-                      <View style={styles.reviewerInfo}>
-                        <Text style={styles.reviewerName}>{review.userName}</Text>
-                        <View style={styles.reviewRating}>
-                          {renderStars(review.rating)}
-                        </View>
-                      </View>
-                    </View>
-                    <Text style={styles.reviewCardComment} numberOfLines={4}>{review.comment}</Text>
-                    <View style={styles.reviewCardFooter}>
-                      <Text style={styles.reviewCardDate}>{review.date}</Text>
-                      <TouchableOpacity style={styles.helpfulChip}>
-                        <Text style={styles.helpfulChipText}>👍 {review.helpful}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        )}
-
 
       </ScrollView>
 

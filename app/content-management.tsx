@@ -4283,6 +4283,7 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
     instructorAvatar: course?.instructorAvatar || '👨‍💻',
     instructorRating: course?.instructorRating || 4.9,
     instructorStudents: course?.instructorStudents || 25000,
+    instructorYears: course?.instructorYears || '8+',
     duration: course?.duration || '',
     level: course?.level || 'Beginner',
     category: course?.category || 'Programming',
@@ -4870,30 +4871,28 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
           />
         </View>
 
-        <View style={styles.formRow}>
-          <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
-            <Text style={styles.formLabel}>تقييم المدرب</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.instructorRating.toString()}
-              onChangeText={(text) => setFormData({...formData, instructorRating: Math.min(5, Math.max(0, parseFloat(text) || 4.9))})}
-              placeholder="4.9"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-            />
-          </View>
-          
-          <View style={[styles.formGroup, { flex: 1, marginLeft: 10 }]}>
-            <Text style={styles.formLabel}>عدد طلاب المدرب</Text>
-            <TextInput
-              style={styles.formInput}
-              value={formData.instructorStudents.toString()}
-              onChangeText={(text) => setFormData({...formData, instructorStudents: parseInt(text) || 25000})}
-              placeholder="25000"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-            />
-          </View>
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>عدد طلاب المدرب</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.instructorStudents.toString()}
+            onChangeText={(text) => setFormData({...formData, instructorStudents: parseInt(text) || 25000})}
+            placeholder="25000"
+            placeholderTextColor="#666"
+            keyboardType="numeric"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.formLabel}>سنين الخبرة</Text>
+          <TextInput
+            style={styles.formInput}
+            value={formData.instructorYears}
+            onChangeText={(text) => setFormData({ ...formData, instructorYears: text })}
+            placeholder="مثال: 8+"
+            placeholderTextColor="#666"
+            maxLength={20}
+          />
         </View>
 
         <View style={styles.formGroup}>

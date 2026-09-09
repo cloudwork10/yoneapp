@@ -36,6 +36,12 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     default: 25000
   },
+  instructorYears: {
+    type: String,
+    default: '8+',
+    trim: true,
+    maxlength: [20, 'Instructor years cannot be more than 20 characters']
+  },
   duration: {
     type: String,
     required: [true, 'Course duration is required']
