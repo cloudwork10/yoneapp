@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.elnady.app",
-      "versionCode": 8,
+      "versionCode": 9,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
