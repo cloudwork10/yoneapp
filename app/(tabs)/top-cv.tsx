@@ -166,10 +166,10 @@ export default function TopCVScreen() {
     },
   ];
 
-  const handleDownload = async (cv) => {
+  const handleViewCv = async (cv) => {
     const url = toViewableCvUrl(cv?.downloadUrl);
     if (!url) {
-      openModal(cv);
+      if (!modalVisible) openModal(cv);
       Alert.alert(
         'No CV file',
         'This template has no PDF attached yet. Ask an admin to edit it and upload the file.'
@@ -188,7 +188,7 @@ export default function TopCVScreen() {
           : { toolbarColor: '#111111' }),
       });
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('View CV error:', error);
       try {
         await Linking.openURL(url);
       } catch {
@@ -278,9 +278,9 @@ export default function TopCVScreen() {
                 </View>
                 <TouchableOpacity 
                   style={styles.downloadButton}
-                  onPress={() => handleDownload(template)}
+                  onPress={() => handleViewCv(template)}
                 >
-                  <Text style={styles.downloadText}>📥 Download</Text>
+                  <Text style={styles.downloadText}>View CV</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -353,12 +353,9 @@ export default function TopCVScreen() {
                   <View style={styles.modalFooter}>
                     <TouchableOpacity 
                       style={styles.downloadButtonLarge}
-                      onPress={() => {
-                        handleDownload(selectedCV);
-                        setModalVisible(false);
-                      }}
+                      onPress={() => handleViewCv(selectedCV)}
                     >
-                      <Text style={styles.downloadButtonText}>📥 Download CV</Text>
+                      <Text style={styles.downloadButtonText}>View CV</Text>
                     </TouchableOpacity>
                   </View>
                 </>
