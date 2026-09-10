@@ -8,7 +8,6 @@ import {
   fetchPrayerTimes,
   loadPrayerCity,
   parsePrayerClock,
-  shiftClock,
 } from '../utils/prayerTimes';
 
 // Configure notification behavior.
@@ -231,9 +230,17 @@ class NotificationService {
       const timesKey = JSON.stringify(prayerTimes);
       const lastScheduledDate = await AsyncStorage.getItem('lastPrayerScheduleDate');
       const lastScheduledTimes = await AsyncStorage.getItem('lastPrayerScheduleTimes');
+      const scheduleVersion = 'once-at-adhan-v1';
+      const lastScheduleVersion = await AsyncStorage.getItem('prayerScheduleVersion');
       const today = new Date().toDateString();
+      const versionChanged = lastScheduleVersion !== scheduleVersion;
 
-      if (!options?.force && lastScheduledDate === today && lastScheduledTimes === timesKey) {
+      if (
+        !options?.force &&
+        !versionChanged &&
+        lastScheduledDate === today &&
+        lastScheduledTimes === timesKey
+      ) {
         console.log('⏸️ Prayer notifications already scheduled for these times, skipping...');
         return prayerTimes;
       }
@@ -242,13 +249,24 @@ class NotificationService {
 
       for (const [prayerName, time] of Object.entries(prayerTimes)) {
         await this.schedulePrayerNotification(prayerName, time);
-        await this.schedulePrayerReminder(prayerName, time);
       }
 
       await AsyncStorage.setItem('lastPrayerScheduleDate', today);
       await AsyncStorage.setItem('lastPrayerScheduleTimes', timesKey);
+      await AsyncStorage.setItem('prayerScheduleVersion', scheduleVersion);
 
-      console.log('✅ Prayer notifications scheduled', prayerTimes);
+      const pingKey = 'prayerOnceVerifyPing_v1';
+      if (!(await AsyncStorage.getItem(pingKey))) {
+        await this.sendLocalNotification({
+          title: '🕌 إشعار الصلاة',
+          body: `هيوصلك إشعار واحد وقت الأذان. المغرب ${prayerTimes.maghrib} والعشاء ${prayerTimes.isha}.`,
+          data: { type: 'prayer', prayerName: 'verify' },
+          priority: 'max',
+        });
+        await AsyncStorage.setItem(pingKey, '1');
+      }
+
+      console.log('✅ Prayer notifications scheduled once at adhan', prayerTimes);
       return prayerTimes;
     } catch (error) {
       console.error('Error scheduling prayer notifications:', error);
@@ -297,43 +315,6 @@ class NotificationService {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: clock.hour,
         minute: clock.minute,
-      },
-    });
-  }
-
-  // Schedule prayer reminder (5 minutes before)
-  private async schedulePrayerReminder(prayerName: string, time: string): Promise<void> {
-    const clock = parsePrayerClock(time);
-    if (!clock) return;
-    const reminder = shiftClock(clock.hour, clock.minute, -5);
-
-    const prayerNames = {
-      'fajr': 'الفجر',
-      'dhuhr': 'الظهر',
-      'asr': 'العصر',
-      'maghrib': 'المغرب',
-      'isha': 'العشاء'
-    };
-
-    const arabicName = prayerNames[prayerName as keyof typeof prayerNames] || prayerName;
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `⏰ تذكير: صلاة ${arabicName}`,
-        body: `السلام عليكم، يحين وقت صلاة ${arabicName} خلال 5 دقايق. استعد للصلاة.`,
-        data: {
-          type: 'prayer_reminder',
-          prayerName,
-          time: clock.time
-        },
-        sound: 'default',
-        vibrate: [0, 250, 250, 250],
-        priority: 'high',
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: reminder.hour,
-        minute: reminder.minute,
       },
     });
   }

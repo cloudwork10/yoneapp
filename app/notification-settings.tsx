@@ -29,7 +29,7 @@ const COPY = {
     contentDesc: 'Get notified when new articles, podcasts, advice, or roadmaps are added',
     testContent: 'Test content notification',
     prayerTitle: 'Prayer time alerts',
-    prayerDesc: 'Daily reminders for the five prayers (Fajr, Dhuhr, Asr, Maghrib, Isha)',
+    prayerDesc: 'One alert at each prayer time (Fajr, Dhuhr, Asr, Maghrib, Isha)',
     testPrayer: 'Test prayer notification',
     todayPrayers: "Today's prayer times",
     prayers: [
@@ -82,7 +82,7 @@ const COPY = {
     contentDesc: 'احصل على إشعار عند إضافة مقالات، بودكاست، نصائح، أو خرائط طريق جديدة',
     testContent: 'اختبار إشعار المحتوى',
     prayerTitle: 'إشعارات أوقات الصلاة',
-    prayerDesc: 'احصل على تذكير بأوقات الصلاة الخمس يومياً (الفجر، الظهر، العصر، المغرب، العشاء)',
+    prayerDesc: 'إشعار واحد وقت كل صلاة (الفجر، الظهر، العصر، المغرب، العشاء)',
     testPrayer: 'اختبار إشعار الصلاة',
     todayPrayers: 'أوقات الصلاة اليوم',
     prayers: [
