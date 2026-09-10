@@ -29,6 +29,25 @@ export function visiblePodcastEpisodes(episodes) {
   return (Array.isArray(episodes) ? episodes : []).filter((ep) => !isPodcastMetaEpisode(ep));
 }
 
+function normalizePeople(list) {
+  return (Array.isArray(list) ? list : []).map((item) => ({
+    ...item,
+    role: item?.role === 'guest' ? 'guest' : 'host',
+  }));
+}
+
+function mergeHosts(documentHosts, metaHosts) {
+  const primary = Array.isArray(documentHosts) && documentHosts.length ? documentHosts : [];
+  const meta = Array.isArray(metaHosts) ? metaHosts : [];
+  if (!primary.length) return normalizePeople(meta);
+  return primary.map((item, i) => {
+    const match =
+      meta.find((m) => String(m?.name || '') === String(item?.name || '')) || meta[i] || {};
+    const role = item?.role === 'guest' || match?.role === 'guest' ? 'guest' : 'host';
+    return { ...match, ...item, role };
+  });
+}
+
 export function withPodcastMetaEpisode(episodes, meta) {
   const visible = visiblePodcastEpisodes(episodes);
   const payload = {
@@ -37,7 +56,9 @@ export function withPodcastMetaEpisode(episodes, meta) {
       ? meta.formatItems.filter((f) => String(f?.label || f?.description || '').trim())
       : [],
     benefits: Array.isArray(meta?.benefits) ? meta.benefits.filter((b) => String(b || '').trim()) : [],
-    hosts: Array.isArray(meta?.hosts) ? meta.hosts.filter((h) => String(h?.name || h?.bio || h?.title || '').trim()) : [],
+    hosts: normalizePeople(
+      Array.isArray(meta?.hosts) ? meta.hosts.filter((h) => String(h?.name || h?.bio || h?.title || '').trim()) : []
+    ),
   };
   const hasMeta =
     payload.highlights.length ||
@@ -68,7 +89,7 @@ export function hydratePodcast(podcast) {
     highlights: Array.isArray(podcast.highlights) && podcast.highlights.length ? podcast.highlights : meta.highlights,
     formatItems: Array.isArray(podcast.formatItems) && podcast.formatItems.length ? podcast.formatItems : meta.formatItems,
     benefits: Array.isArray(podcast.benefits) && podcast.benefits.length ? podcast.benefits : meta.benefits,
-    hosts: Array.isArray(podcast.hosts) && podcast.hosts.length ? podcast.hosts : meta.hosts,
+    hosts: mergeHosts(podcast.hosts, meta.hosts),
     episodes: visiblePodcastEpisodes(podcast.episodes),
   };
 }

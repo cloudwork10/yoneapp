@@ -24,6 +24,11 @@ import {
 import { useUser } from '../../contexts/UserContext';
 import { showSignInAlert } from '../../hooks/useAuthGuard';
 import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
+import {
+  formatReleaseLabel,
+  getSoonestUpcomingEpisode,
+  getUpcomingEpisodes,
+} from '../../utils/episodeRelease';
 
 const { width, height } = Dimensions.get('window');
 
@@ -138,6 +143,9 @@ export default function PodcastsScreen() {
 
   const renderPodcast = ({ item: podcast }: { item: Podcast }) => {
     const isLocked = isContentLocked(podcast, hasActiveSubscription);
+    const upcoming = getUpcomingEpisodes((podcast as any).episodes);
+    const nextUp = upcoming[0] || getSoonestUpcomingEpisode((podcast as any).episodes);
+    const nextLabel = nextUp ? (formatReleaseLabel(nextUp.releaseDate) || 'Soon') : '';
     
     return (
       <TouchableOpacity 
@@ -161,6 +169,11 @@ export default function PodcastsScreen() {
               <Text style={styles.lockIcon}>🔒</Text>
             </View>
           )}
+          {nextUp ? (
+            <View style={styles.comingSoonBadge}>
+              <Text style={styles.comingSoonBadgeText}>⏳ {nextLabel}</Text>
+            </View>
+          ) : null}
         </View>
         
         <View style={styles.podcastInfo}>
@@ -170,6 +183,16 @@ export default function PodcastsScreen() {
           <Text style={styles.podcastHost} numberOfLines={1}>
             {podcast.host}
           </Text>
+          {nextUp ? (
+            <View style={styles.upcomingBox}>
+              <Text style={styles.upcomingTitle} numberOfLines={1}>
+                {nextUp.title || 'New episode'}
+              </Text>
+              <Text style={styles.upcomingDate}>
+                Coming {nextLabel}{upcoming.length > 1 ? ` · ${upcoming.length} unreleased` : ''}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.podcastStats}>
             <View style={styles.statItem}>
               <Text style={styles.statIcon}>⭐</Text>
@@ -493,6 +516,40 @@ const styles = StyleSheet.create({
   lockIcon: {
     fontSize: 32,
     color: '#E50914',
+  },
+  comingSoonBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#FFC107',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  comingSoonBadgeText: {
+    color: '#111',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  upcomingBox: {
+    backgroundColor: 'rgba(255, 193, 7, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 193, 7, 0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 10,
+  },
+  upcomingTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  upcomingDate: {
+    color: '#FFC107',
+    fontSize: 13,
+    marginTop: 2,
+    fontWeight: '600',
   },
   podcastInfo: {
     padding: 15,

@@ -130,6 +130,57 @@ const VideoLoadingScreen = ({ isVisible }: { isVisible: boolean }) => {
   );
 };
 
+function PodcastPersonCard({
+  person,
+  fallbackName,
+  fallbackInitial,
+}: {
+  person: any;
+  fallbackName?: string;
+  fallbackInitial?: string;
+}) {
+  const name = person?.name || fallbackName || 'Host';
+  const initials = String(name)
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase() || fallbackInitial || 'H';
+  return (
+    <View style={styles.hostCard}>
+      <View style={styles.hostAvatar}>
+        <Text style={styles.hostAvatarText}>{initials}</Text>
+      </View>
+      <Text style={styles.hostName}>{name}</Text>
+      {person?.title ? <Text style={styles.hostTitle}>{person.title}</Text> : null}
+      {person?.bio ? <Text style={styles.hostBio}>{person.bio}</Text> : null}
+      {(person?.episodesCount || person?.listenersCount || person?.rating) ? (
+        <View style={styles.hostStats}>
+          {person.episodesCount ? (
+            <View style={styles.hostStat}>
+              <Text style={styles.hostStatNumber}>{person.episodesCount}</Text>
+              <Text style={styles.hostStatLabel}>Episodes</Text>
+            </View>
+          ) : null}
+          {person.listenersCount ? (
+            <View style={styles.hostStat}>
+              <Text style={styles.hostStatNumber}>{person.listenersCount}</Text>
+              <Text style={styles.hostStatLabel}>Listeners</Text>
+            </View>
+          ) : null}
+          {person.rating ? (
+            <View style={styles.hostStat}>
+              <Text style={styles.hostStatNumber}>{person.rating}</Text>
+              <Text style={styles.hostStatLabel}>Rating</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 interface PodcastEpisode {
   id: string;
   title: string;
@@ -276,6 +327,7 @@ export default function PodcastDetailsScreen() {
     { id: 'episodes', label: 'Episodes', icon: '🎧' },
     { id: 'challenges', label: 'Challenges', icon: '🏆' },
     { id: 'host', label: 'Host', icon: '👨‍💼' },
+    { id: 'guest', label: 'Guest', icon: '🎤' },
   ];
 
   if (loading) {
@@ -424,7 +476,7 @@ export default function PodcastDetailsScreen() {
         {/* Tabs */}
         <View style={styles.tabsContainer}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll}>
-            {['overview', 'episodes', 'host'].map((tab) => (
+            {['overview', 'episodes', 'host', 'guest'].map((tab) => (
               <TouchableOpacity
                 key={tab}
                 style={[
@@ -625,50 +677,44 @@ export default function PodcastDetailsScreen() {
             </View>
 
             {(Array.isArray(podcast.hosts) && podcast.hosts.length > 0
-              ? podcast.hosts
-              : (podcast.host ? [{ name: podcast.host }] : [])
-            ).map((hostItem: any, index: number) => {
-              const name = hostItem.name || podcast.host || 'Host';
-              const initials = String(name)
-                .split(/\s+/)
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((w: string) => w[0])
-                .join('')
-                .toUpperCase() || 'H';
-              return (
-                <View key={`host-${index}`} style={styles.hostCard}>
-                  <View style={styles.hostAvatar}>
-                    <Text style={styles.hostAvatarText}>{initials}</Text>
-                  </View>
-                  <Text style={styles.hostName}>{name}</Text>
-                  {hostItem.title ? <Text style={styles.hostTitle}>{hostItem.title}</Text> : null}
-                  {hostItem.bio ? <Text style={styles.hostBio}>{hostItem.bio}</Text> : null}
-                  {(hostItem.episodesCount || hostItem.listenersCount || hostItem.rating) ? (
-                    <View style={styles.hostStats}>
-                      {hostItem.episodesCount ? (
-                        <View style={styles.hostStat}>
-                          <Text style={styles.hostStatNumber}>{hostItem.episodesCount}</Text>
-                          <Text style={styles.hostStatLabel}>Episodes</Text>
-                        </View>
-                      ) : null}
-                      {hostItem.listenersCount ? (
-                        <View style={styles.hostStat}>
-                          <Text style={styles.hostStatNumber}>{hostItem.listenersCount}</Text>
-                          <Text style={styles.hostStatLabel}>Listeners</Text>
-                        </View>
-                      ) : null}
-                      {hostItem.rating ? (
-                        <View style={styles.hostStat}>
-                          <Text style={styles.hostStatNumber}>{hostItem.rating}</Text>
-                          <Text style={styles.hostStatLabel}>Rating</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  ) : null}
-                </View>
-              );
-            })}
+              ? podcast.hosts.filter((item: any) => item?.role !== 'guest')
+              : (podcast.host ? [{ name: podcast.host, role: 'host' }] : [])
+            ).map((hostItem: any, index: number) => (
+              <PodcastPersonCard
+                key={`host-${index}`}
+                person={hostItem}
+                fallbackName={podcast.host || 'Host'}
+                fallbackInitial="H"
+              />
+            ))}
+          </View>
+        )}
+
+        {activeTab === 'guest' && (
+          <View style={styles.tabContent}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>🎤 Guest</Text>
+              <Text style={styles.sectionSubtitle}>Meet the episode guest</Text>
+            </View>
+
+            {(Array.isArray(podcast.hosts) ? podcast.hosts.filter((item: any) => item?.role === 'guest') : [])
+              .length > 0 ? (
+              podcast.hosts
+                .filter((item: any) => item?.role === 'guest')
+                .map((guestItem: any, index: number) => (
+                  <PodcastPersonCard
+                    key={`guest-${index}`}
+                    person={guestItem}
+                    fallbackName="Guest"
+                    fallbackInitial="G"
+                  />
+                ))
+            ) : (
+              <View style={styles.emptyEpisodesContainer}>
+                <Text style={styles.emptyEpisodesText}>No guest yet</Text>
+                <Text style={styles.emptyEpisodesSubtext}>Add a guest from the podcast dashboard</Text>
+              </View>
+            )}
           </View>
         )}
         </View>

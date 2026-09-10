@@ -35,6 +35,11 @@ const podcastSchema = new mongoose.Schema({
     title: { type: String, default: '', trim: true },
     bio: { type: String, default: '', trim: true },
     avatar: { type: String, default: '' },
+    role: {
+      type: String,
+      enum: ['host', 'guest'],
+      default: 'host'
+    },
     episodesCount: { type: String, default: '' },
     listenersCount: { type: String, default: '' },
     rating: { type: String, default: '' }

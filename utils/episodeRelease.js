@@ -163,3 +163,20 @@ export function hydratePodcastEpisodes(episodes) {
 export function packPodcastEpisodes(episodes) {
   return (Array.isArray(episodes) ? episodes : []).map((episode) => packRelease(episode));
 }
+
+export function getUpcomingEpisodes(episodes) {
+  return hydratePodcastEpisodes(episodes).filter((episode) => {
+    const title = String(episode?.title || '');
+    const category = String(episode?.category || '');
+    if (title === '__YONE_PODCAST_META__' || category === '__meta__') return false;
+    return isUnreleased(episode);
+  }).sort((a, b) => {
+    const left = toReleaseIso(a.releaseDate) || '9999-12-31';
+    const right = toReleaseIso(b.releaseDate) || '9999-12-31';
+    return left.localeCompare(right);
+  });
+}
+
+export function getSoonestUpcomingEpisode(episodes) {
+  return getUpcomingEpisodes(episodes)[0] || null;
+}

@@ -7055,9 +7055,9 @@ const styles = StyleSheet.create({
     formatItems: Array.isArray(hydrated?.formatItems) ? hydrated.formatItems : [],
     benefits: Array.isArray(hydrated?.benefits) ? hydrated.benefits : [],
     hosts: Array.isArray(hydrated?.hosts) && hydrated.hosts.length
-      ? hydrated.hosts
+      ? hydrated.hosts.map((item: any) => ({ ...item, role: item.role === 'guest' ? 'guest' : 'host' }))
       : (hydrated?.host
-          ? [{ name: hydrated.host, title: '', bio: '', avatar: '', episodesCount: '', listenersCount: '', rating: '' }]
+          ? [{ name: hydrated.host, title: '', bio: '', avatar: '', role: 'host', episodesCount: '', listenersCount: '', rating: '' }]
           : []),
     isActive: hydrated?.isActive !== undefined ? hydrated.isActive : true,
     isFeatured: podcast?.isFeatured || false,
@@ -7099,7 +7099,7 @@ const styles = StyleSheet.create({
       formatItems: Array.isArray(formData.formatItems) ? formData.formatItems : [],
       benefits: Array.isArray(formData.benefits) ? formData.benefits.filter((b: string) => String(b || '').trim()) : [],
       hosts: Array.isArray(formData.hosts) ? formData.hosts : [],
-      host: formData.host || formData.hosts?.[0]?.name || '',
+      host: formData.hosts?.find((h: any) => h.role !== 'guest')?.name || formData.host || '',
     };
     
     console.log('🎬 Final form data:', JSON.stringify(finalFormData, null, 2));
@@ -8519,35 +8519,78 @@ const styles = StyleSheet.create({
         </View>
 
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Host</Text>
-          <Text style={styles.formHint}>Add, edit, or delete hosts shown on the Host tab</Text>
-          <TouchableOpacity
-            style={styles.addEpisodeButton}
-            onPress={() => setFormData({
-              ...formData,
-              hosts: [...(formData.hosts || []), {
-                name: '',
-                title: '',
-                bio: '',
-                avatar: '',
-                episodesCount: '',
-                listenersCount: '',
-                rating: '',
-              }]
-            })}
-          >
-            <Text style={styles.addEpisodeButtonText}>+ Add host</Text>
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Host & Guest</Text>
+          <Text style={styles.formHint}>Add the host and guest shown on the Host and Guest tabs</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+            <TouchableOpacity
+              style={[styles.addEpisodeButton, { flex: 1 }]}
+              onPress={() => setFormData({
+                ...formData,
+                hosts: [...(formData.hosts || []), {
+                  name: '',
+                  title: '',
+                  bio: '',
+                  avatar: '',
+                  role: 'host',
+                  episodesCount: '',
+                  listenersCount: '',
+                  rating: '',
+                }]
+              })}
+            >
+              <Text style={styles.addEpisodeButtonText}>+ Add host</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.addEpisodeButton, { flex: 1, backgroundColor: '#4ECDC4' }]}
+              onPress={() => setFormData({
+                ...formData,
+                hosts: [...(formData.hosts || []), {
+                  name: '',
+                  title: '',
+                  bio: '',
+                  avatar: '',
+                  role: 'guest',
+                  episodesCount: '',
+                  listenersCount: '',
+                  rating: '',
+                }]
+              })}
+            >
+              <Text style={styles.addEpisodeButtonText}>+ Add guest</Text>
+            </TouchableOpacity>
+          </View>
           {(formData.hosts || []).map((hostItem: any, index: number) => (
             <View key={`host-${index}`} style={styles.episodeContainer}>
-              <Text style={styles.formLabel}>Host {index + 1}</Text>
+              <Text style={styles.formLabel}>{hostItem.role === 'guest' ? 'Guest' : 'Host'} {index + 1}</Text>
+              <View style={styles.formRow}>
+                <TouchableOpacity
+                  style={[styles.switch, { flex: 1, marginRight: 8, alignItems: 'center' }, hostItem.role !== 'guest' && styles.switchActive]}
+                  onPress={() => {
+                    const next = [...formData.hosts];
+                    next[index] = { ...next[index], role: 'host' };
+                    setFormData({ ...formData, hosts: next });
+                  }}
+                >
+                  <Text style={styles.switchText}>Host</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.switch, { flex: 1, marginLeft: 8, alignItems: 'center' }, hostItem.role === 'guest' && styles.switchActive]}
+                  onPress={() => {
+                    const next = [...formData.hosts];
+                    next[index] = { ...next[index], role: 'guest' };
+                    setFormData({ ...formData, hosts: next });
+                  }}
+                >
+                  <Text style={styles.switchText}>Guest</Text>
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={styles.formInput}
                 value={hostItem.name || ''}
                 onChangeText={(text) => {
                   const next = [...formData.hosts];
                   next[index] = { ...next[index], name: text };
-                  setFormData({ ...formData, hosts: next, host: index === 0 ? text : formData.host });
+                  setFormData({ ...formData, hosts: next, host: hostItem.role === 'guest' ? formData.host : (index === 0 ? text : formData.host) });
                 }}
                 placeholder="Name"
                 placeholderTextColor="#666666"
@@ -8560,7 +8603,7 @@ const styles = StyleSheet.create({
                   next[index] = { ...next[index], title: text };
                   setFormData({ ...formData, hosts: next });
                 }}
-                placeholder="Title e.g. Developer & Podcast Host"
+                placeholder={hostItem.role === 'guest' ? 'Title e.g. Founder' : 'Title e.g. Developer & Podcast Host'}
                 placeholderTextColor="#666666"
               />
               <TextInput
@@ -8584,7 +8627,7 @@ const styles = StyleSheet.create({
                   next[index] = { ...next[index], episodesCount: text };
                   setFormData({ ...formData, hosts: next });
                 }}
-                placeholder="Episodes stat e.g. 50+"
+                placeholder={hostItem.role === 'guest' ? 'Appearances e.g. 3' : 'Episodes stat e.g. 50+'}
                 placeholderTextColor="#666666"
               />
               <TextInput
@@ -8595,7 +8638,7 @@ const styles = StyleSheet.create({
                   next[index] = { ...next[index], listenersCount: text };
                   setFormData({ ...formData, hosts: next });
                 }}
-                placeholder="Listeners stat e.g. 15K+"
+                placeholder={hostItem.role === 'guest' ? 'Followers e.g. 10K' : 'Listeners stat e.g. 15K+'}
                 placeholderTextColor="#666666"
               />
               <TextInput
@@ -8616,7 +8659,9 @@ const styles = StyleSheet.create({
                   hosts: formData.hosts.filter((_: any, i: number) => i !== index)
                 })}
               >
-                <Text style={styles.removeEpisodeButtonText}>Delete host</Text>
+                <Text style={styles.removeEpisodeButtonText}>
+                  Delete {hostItem.role === 'guest' ? 'guest' : 'host'}
+                </Text>
               </TouchableOpacity>
             </View>
           ))}
