@@ -984,7 +984,7 @@ export default function ClubScreen() {
 
           <Text style={styles.brand}>ELNADY</Text>
           <Text style={styles.title}>Elnady</Text>
-          <Text style={styles.cohortName}>{cohort?.title || 'October 2026 Cohort'}</Text>
+          <Text style={styles.cohortName}>{cohort?.title || 'October 2026 Scholarship'}</Text>
           <Text style={styles.subtitle}>
             {cohort?.description ||
               'Live tracks · Zoom sessions · WhatsApp communities per specialization'}

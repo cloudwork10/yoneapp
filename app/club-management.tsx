@@ -641,10 +641,10 @@ export default function ClubManagementScreen() {
           </TouchableOpacity>
           <Text style={styles.title}>Club Management</Text>
           <Text style={styles.subtitle}>
-            Cohort 10-10-2026 · English tracks · multiple WhatsApp groups per specialization
+            {title || 'Scholarship'}{startDate ? ` · ${startDate}` : ''} · English tracks · WhatsApp groups
           </Text>
 
-          <Text style={styles.label}>Cohort title</Text>
+          <Text style={styles.label}>Scholarship title</Text>
           <TextInput style={styles.input} value={title} onChangeText={setTitle} />
 
           <Text style={styles.label}>Description</Text>

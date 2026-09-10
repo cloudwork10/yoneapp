@@ -327,9 +327,47 @@ export default function HomeScreen() {
   );
 }
 
+function formatScholarshipDate(value?: string) {
+  if (!value) return '';
+  const ymd = String(value).slice(0, 10);
+  const match = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const dd = String(parsed.getDate()).padStart(2, '0');
+  const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+  return `${dd}-${mm}-${parsed.getFullYear()}`;
+}
+
 function ScholarshipPromo() {
   const [hidden, setHidden] = useState(false);
+  const [subtitle, setSubtitle] = useState('Scholarship · Learn · Live · Community');
   const scale = useRef(new Animated.Value(1)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/club/current`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const dateLabel = formatScholarshipDate(data?.data?.cohort?.startDate);
+          if (cancelled) return;
+          setSubtitle(
+            dateLabel
+              ? `Scholarship ${dateLabel} · Learn · Live · Community`
+              : 'Scholarship · Learn · Live · Community'
+          );
+        } catch {
+          // Keep the last/fallback subtitle
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [])
+  );
 
   useEffect(() => {
     if (hidden) return;
@@ -364,7 +402,7 @@ function ScholarshipPromo() {
           </View>
           <View style={styles.promoCenter}>
             <Text style={styles.promoTitle}>Elnady</Text>
-            <Text style={styles.promoSubtitle}>Cohort 10-10-2026 · Learn · Live · Community</Text>
+            <Text style={styles.promoSubtitle}>{subtitle}</Text>
           </View>
           <TouchableOpacity
             onPress={() => setHidden(true)}
