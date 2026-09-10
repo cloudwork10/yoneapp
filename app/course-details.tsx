@@ -27,14 +27,20 @@ import { buildCertificateHtml, getCertificateFields } from '../utils/certificate
 import resolveMediaUrl from '../utils/mediaUrl';
 import { isContentLocked } from '../utils/contentAccess';
 import {
-  fetchSubscriptionAccess,
-  showPremiumGateAlert,
+    fetchSubscriptionAccess,
+    showPremiumGateAlert,
 } from '../utils/subscriptionAccess';
 import { showSignInAlert } from '../hooks/useAuthGuard';
 import { getWebViewSource, needsWebView } from '../utils/videoPlayback';
 import { useUser } from '../contexts/UserContext';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 import { recordActivityDay } from '../utils/learningProgress';
+import RemindMeButton from '../components/RemindMeButton';
+import {
+    formatReleaseLabel,
+    hydrateCourseSections,
+    isUnreleased,
+} from '../utils/episodeRelease';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
@@ -66,6 +72,9 @@ interface CourseVideo {
   isCompleted: boolean;
   category: string;
   isLocked?: boolean;
+  comingSoon?: boolean;
+  releaseLabel?: string;
+  itemKey?: string;
 }
 
 interface CourseTask {
@@ -103,6 +112,7 @@ export default function CourseDetailsScreen() {
   const [subscriptionAccess, setSubscriptionAccess] = useState<any>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [watchedVideoIds, setWatchedVideoIds] = useState<string[]>([]);
+  const [watchKeys, setWatchKeys] = useState<string[]>([]);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [fullName, setFullName] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
@@ -187,21 +197,27 @@ export default function CourseDetailsScreen() {
     }
 
     return course.sections.flatMap((section: any, sectionIndex: number) => 
-      section.lessons?.map((lesson: any, lessonIndex: number) => ({
+      section.lessons?.map((lesson: any, lessonIndex: number) => {
+        const comingSoon = isUnreleased(lesson);
+        return {
         id: `${sectionIndex}-${lessonIndex}`,
+        itemKey: String(lesson._itemKey || lesson._id || `${sectionIndex}-${lessonIndex}`),
         title: lesson.title || `درس ${lessonIndex + 1}`,
-        duration: lesson.duration || '10:00',
-        url: lesson.videoUrl?.trim() || course?.previewVideo?.trim() || '',
+        duration: comingSoon ? (formatReleaseLabel(lesson.releaseDate) || 'Soon') : (lesson.duration || '10:00'),
+        url: comingSoon ? '' : (lesson.videoUrl?.trim() || course?.previewVideo?.trim() || ''),
         thumbnail: lesson.thumbnail || course?.thumbnail || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
         description: lesson.description || lesson.title || 'وصف الدرس',
         isCompleted: Boolean(lesson.isCompleted),
         category: section.title || `القسم ${sectionIndex + 1}`,
         accessType: lesson.accessType || course?.accessType || 'free',
+        comingSoon,
+        releaseLabel: formatReleaseLabel(lesson.releaseDate),
         isLocked: isContentLocked(
           { accessType: lesson.accessType || course?.accessType || 'free' },
           hasActiveSubscription
         ),
-      })) || []
+      };
+      }) || []
     );
   }, [course, hasActiveSubscription]);
 
@@ -212,10 +228,12 @@ export default function CourseDetailsScreen() {
         const response = await fetch(`${API_BASE_URL}/api/public/courses/${courseId}`);
         if (response.ok) {
           const result = await response.json();
+          const raw = result.data.course;
           setCourse({
-            ...result.data.course,
-            thumbnail: resolveMediaUrl(result.data.course.thumbnail || result.data.course.image),
-            image: resolveMediaUrl(result.data.course.image || result.data.course.thumbnail),
+            ...raw,
+            sections: hydrateCourseSections(raw.sections),
+            thumbnail: resolveMediaUrl(raw.thumbnail || raw.image),
+            image: resolveMediaUrl(raw.image || raw.thumbnail),
           });
         } else {
           console.error('Failed to fetch course details');
@@ -243,6 +261,23 @@ export default function CourseDetailsScreen() {
         if (Array.isArray(parsed)) {
           setWatchedVideoIds(parsed.map(String));
         }
+      })
+      .catch(() => {});
+  }, [courseId, user]);
+
+  useEffect(() => {
+    const id = String(courseId || '');
+    if (!id || !user) {
+      setWatchKeys([]);
+      return;
+    }
+    makeAuthenticatedRequest(
+      `${API_BASE_URL}/api/content-watches?kind=course_lesson&parentId=${encodeURIComponent(id)}`
+    )
+      .then((response) => response.json())
+      .then((result) => {
+        const keys = result?.data?.itemKeys;
+        setWatchKeys(Array.isArray(keys) ? keys.map(String) : []);
       })
       .catch(() => {});
   }, [courseId, user]);
@@ -336,8 +371,10 @@ export default function CourseDetailsScreen() {
   );
 
   const watchedSet = React.useMemo(() => new Set(watchedVideoIds), [watchedVideoIds]);
-  const totalVideos = courseVideos.length;
-  const watchedCount = courseVideos.filter((video) => watchedSet.has(video.id) || video.isCompleted).length;
+  const watchSet = React.useMemo(() => new Set(watchKeys), [watchKeys]);
+  const releasedVideos = courseVideos.filter((video) => !video.comingSoon);
+  const totalVideos = releasedVideos.length;
+  const watchedCount = releasedVideos.filter((video) => watchedSet.has(video.id) || video.isCompleted).length;
   const progressPercent = totalVideos ? Math.round((watchedCount / totalVideos) * 100) : 0;
   const isCourseComplete = totalVideos > 0 && watchedCount >= totalVideos;
   const projectRules = React.useMemo(() => resolveProjectRules(course || {}), [course]);
@@ -397,6 +434,13 @@ export default function CourseDetailsScreen() {
   ];
 
   const handleVideoPress = (video: CourseVideo) => {
+    if (video.comingSoon) {
+      Alert.alert(
+        video.releaseLabel ? `Coming ${video.releaseLabel}` : 'Coming soon',
+        'This lesson is not out yet. Tap Remind me if you want a notification when it drops.'
+      );
+      return;
+    }
     if (video.isLocked && !user) {
       showSignInAlert('videos');
     } else if (video.isLocked) {
@@ -615,16 +659,19 @@ export default function CourseDetailsScreen() {
                         styles.moduleCard,
                         done && styles.moduleCompleted,
                         video.isLocked && styles.moduleLocked,
+                        video.comingSoon && styles.moduleComingSoon,
                       ]}
                       onPress={() => handleVideoPress(video)}
                     >
                       <View style={styles.moduleIcon}>
                         <Text style={styles.moduleIconText}>
-                          {done ? '✅' : video.isLocked ? '🔒' : '▶'}
+                          {done ? '✅' : video.comingSoon ? '⏳' : video.isLocked ? '🔒' : '▶'}
                         </Text>
                       </View>
                       <Text style={styles.moduleTitle} numberOfLines={2}>{video.title}</Text>
-                      <Text style={styles.moduleDuration}>{video.duration}</Text>
+                      <Text style={styles.moduleDuration}>
+                        {video.comingSoon ? (video.releaseLabel || 'Coming soon') : video.duration}
+                      </Text>
                       <View style={styles.moduleProgress}>
                         <View style={[
                           styles.moduleProgressBar,
@@ -676,20 +723,23 @@ export default function CourseDetailsScreen() {
                     
                     {expandedCategories[category] && (
                       <>
-                        {videos.map((video, index) => (
-                          <TouchableOpacity
+                        {videos.map((video, index) => {
+                          const RowTag = video.comingSoon ? View : TouchableOpacity;
+                          return (
+                          <RowTag
                             key={video.id}
                             style={[
                               styles.videoHeadline,
-                              index === videos.length - 1 && styles.lastVideoHeadline
+                              index === videos.length - 1 && styles.lastVideoHeadline,
+                              video.comingSoon && styles.videoHeadlineComingSoon,
                             ]}
-                            onPress={() => handleVideoPress(video)}
+                            {...(video.comingSoon ? {} : { onPress: () => handleVideoPress(video), activeOpacity: 0.8 })}
                           >
                             <View style={styles.videoHeadlineLeft}>
                               <View style={styles.videoHeadlineThumbnail}>
                                 <ImageBackground
                                   source={{ uri: video.thumbnail }}
-                                  style={styles.videoHeadlineImage}
+                                  style={[styles.videoHeadlineImage, video.comingSoon && { opacity: 0.55 }]}
                                   resizeMode="cover"
                                 >
                                   <LinearGradient
@@ -697,10 +747,12 @@ export default function CourseDetailsScreen() {
                                     style={styles.videoHeadlineGradient}
                                   >
                                     <View style={styles.videoHeadlinePlayButton}>
-                                      <Text style={styles.videoHeadlinePlayIcon}>▶</Text>
+                                      <Text style={styles.videoHeadlinePlayIcon}>{video.comingSoon ? '⏳' : '▶'}</Text>
                                     </View>
                                     <View style={styles.videoHeadlineDuration}>
-                                      <Text style={styles.videoHeadlineDurationText}>{video.duration}</Text>
+                                      <Text style={styles.videoHeadlineDurationText}>
+                                        {video.comingSoon ? (video.releaseLabel || 'Soon') : video.duration}
+                                      </Text>
                                     </View>
                                   </LinearGradient>
                                 </ImageBackground>
@@ -710,21 +762,39 @@ export default function CourseDetailsScreen() {
                             <View style={styles.videoHeadlineContent}>
                               <View style={styles.videoHeadlineHeader}>
                                 <Text style={styles.videoHeadlineTitle} numberOfLines={2}>{video.title}</Text>
-                                {(watchedSet.has(video.id) || video.isCompleted) && (
+                                {video.comingSoon ? (
+                                  <View style={styles.comingSoonPill}>
+                                    <Text style={styles.comingSoonPillText}>
+                                      {video.releaseLabel || 'Coming soon'}
+                                    </Text>
+                                  </View>
+                                ) : (watchedSet.has(video.id) || video.isCompleted) ? (
                                   <View style={styles.videoHeadlineCompleted}>
                                     <Text style={styles.videoHeadlineCompletedText}>✓</Text>
                                   </View>
-                                )}
+                                ) : null}
                               </View>
                               <Text style={styles.videoHeadlineDescription} numberOfLines={2}>{video.description}</Text>
+                              {video.comingSoon ? (
+                                <RemindMeButton
+                                  kind="course_lesson"
+                                  parentId={String(courseId || course?._id || '')}
+                                  itemKey={String(video.itemKey || video.id)}
+                                  title={video.title}
+                                  parentTitle={course?.title}
+                                  watching={watchSet.has(String(video.itemKey || video.id))}
+                                />
+                              ) : (
                               <View style={styles.videoHeadlineMeta}>
                                 <Text style={styles.videoHeadlineMetaText}>Video {index + 1}</Text>
                                 <Text style={styles.videoHeadlineMetaText}>•</Text>
                                 <Text style={styles.videoHeadlineMetaText}>{video.duration}</Text>
                               </View>
+                              )}
                             </View>
-                          </TouchableOpacity>
-                        ))}
+                          </RowTag>
+                          );
+                        })}
                         
                         {/* Challenge after each category */}
                         <View style={styles.categoryChallenge}>
@@ -1426,6 +1496,21 @@ const styles = StyleSheet.create({
   lastVideoHeadline: {
     borderBottomWidth: 0,
   },
+  videoHeadlineComingSoon: {
+    borderLeftColor: '#FFC107',
+    opacity: 0.95,
+  },
+  comingSoonPill: {
+    backgroundColor: '#FFC107',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  comingSoonPillText: {
+    color: '#111',
+    fontSize: 10,
+    fontWeight: '800',
+  },
   categoryChallenge: {
     backgroundColor: 'rgba(255, 215, 0, 0.1)',
     borderWidth: 1,
@@ -1747,6 +1832,10 @@ const styles = StyleSheet.create({
   },
   moduleLocked: {
     opacity: 0.5,
+  },
+  moduleComingSoon: {
+    opacity: 0.72,
+    borderColor: 'rgba(255, 193, 7, 0.4)',
   },
   moduleIcon: {
     width: 40,

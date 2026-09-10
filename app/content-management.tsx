@@ -51,6 +51,13 @@ import {
 } from '../utils/programmingLanguages';
 import { PROJECT_KINDS, resolveProjectRules } from '../utils/projectRules';
 import { isClubRecordedCourse } from '../utils/clubCourse';
+import ComingSoonReleaseFields from '../components/ComingSoonReleaseFields';
+import {
+  hydrateCourseSections,
+  hydratePodcastEpisodes,
+  packCourseSections,
+  packPodcastEpisodes,
+} from '../utils/episodeRelease';
 import {
   hydratePodcast,
   visiblePodcastEpisodes,
@@ -58,6 +65,7 @@ import {
 } from '../utils/podcastMeta';
 import { makeAuthenticatedRequest, refreshAuthToken } from '../utils/tokenRefresh';
 import { uploadContentImage } from '../utils/uploadContentImage';
+import { cleanVideoUrl } from '../utils/videoPlayback';
 
 type AccessType = 'free' | 'premium';
 
@@ -4311,7 +4319,7 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
     projectExtraRequired: course?.projectExtraRequired,
     requirements: course?.requirements || [],
     learningOutcomes: course?.learningOutcomes || [],
-    sections: course?.sections || [],
+    sections: hydrateCourseSections(course?.sections || []),
     challenges: course?.challenges || [],
     isActive: course?.isActive !== undefined ? course.isActive : true,
     isFeatured: course?.isFeatured || false,
@@ -4624,6 +4632,8 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
       thumbnail: '',
       isCompleted: false,
       accessType: formData.accessType || 'free',
+      comingSoon: false,
+      releaseDate: null,
       order: updatedSections[sectionIndex].lessons.length
     });
     setFormData({ ...formData, sections: updatedSections });
@@ -4661,7 +4671,12 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
     console.log('🎯 Learning outcomes data:', formData.learningOutcomes);
     console.log('🎯 Requirements length:', formData.requirements.length);
     console.log('🎯 Learning outcomes length:', formData.learningOutcomes.length);
-    onSave({ ...formData, category, isClub: false });
+    onSave({
+      ...formData,
+      category,
+      isClub: false,
+      sections: packCourseSections(formData.sections),
+    });
   };
 
   const addCourseCategory = () => {
@@ -5573,7 +5588,7 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
                     style={styles.formInput}
                     value={lesson.videoUrl}
                     onChangeText={(text) => updateLesson(sectionIndex, lessonIndex, 'videoUrl', text)}
-                    placeholder="Video URL (YouTube / Vimeo / Drive / MP4)"
+                    placeholder={lesson.comingSoon ? 'Video URL (optional until it drops)' : 'Video URL (YouTube / Vimeo / Drive / MP4)'}
                     placeholderTextColor="#666"
                   />
 
@@ -5607,6 +5622,20 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
                     value={lesson.accessType}
                     fallback="premium"
                     onChange={(next) => updateLesson(sectionIndex, lessonIndex, 'accessType', next)}
+                  />
+
+                  <ComingSoonReleaseFields
+                    comingSoon={!!lesson.comingSoon}
+                    releaseDate={lesson.releaseDate}
+                    onChange={({ comingSoon, releaseDate }) => {
+                      const updatedSections = [...formData.sections];
+                      updatedSections[sectionIndex].lessons[lessonIndex] = {
+                        ...updatedSections[sectionIndex].lessons[lessonIndex],
+                        comingSoon,
+                        releaseDate,
+                      };
+                      setFormData({ ...formData, sections: updatedSections });
+                    }}
                   />
                 </View>
               ))}
@@ -6954,7 +6983,7 @@ const styles = StyleSheet.create({
     thumbnail: hydrated?.thumbnail || '',
     videoUrl: hydrated?.videoUrl || '',
     introVideo: hydrated?.introVideo || '',
-    episodes: visiblePodcastEpisodes(hydrated?.episodes),
+    episodes: hydratePodcastEpisodes(visiblePodcastEpisodes(hydrated?.episodes)),
     highlights: Array.isArray(hydrated?.highlights) ? hydrated.highlights : [],
     formatItems: Array.isArray(hydrated?.formatItems) ? hydrated.formatItems : [],
     benefits: Array.isArray(hydrated?.benefits) ? hydrated.benefits : [],
@@ -6988,7 +7017,7 @@ const styles = StyleSheet.create({
     
     // Force episodes to be an array if it's not
     const packedEpisodes = withPodcastMetaEpisode(
-      Array.isArray(formData.episodes) ? formData.episodes : [],
+      packPodcastEpisodes(Array.isArray(formData.episodes) ? formData.episodes : []),
       {
         highlights: Array.isArray(formData.highlights) ? formData.highlights : [],
         formatItems: Array.isArray(formData.formatItems) ? formData.formatItems : [],
@@ -7978,6 +8007,8 @@ const styles = StyleSheet.create({
                             thumbnail: '',
                             description: 'Episode description',
                             isCompleted: false,
+                            comingSoon: false,
+                            releaseDate: null,
                             category: 'Episode'
                           };
                           setFormData({
@@ -8006,6 +8037,8 @@ const styles = StyleSheet.create({
                             thumbnail: randomImage,
                             description: 'Episode with custom image',
                             isCompleted: false,
+                            comingSoon: false,
+                            releaseDate: null,
                             category: 'Episode'
                           };
                           setFormData({
@@ -8057,25 +8090,72 @@ const styles = StyleSheet.create({
                             placeholderTextColor="#666666"
                           />
                           
-                          {/* Episode Video Options */}
+                          <Text style={styles.formLabel}>Video URL (YouTube or Vimeo)</Text>
                           <View style={styles.episodeVideoOptions}>
                             <TouchableOpacity 
                               style={[styles.episodeVideoButton, { backgroundColor: '#4ECDC4' }]}
-                              onPress={() => {
-                                const newEpisodes = [...formData.episodes];
-                                newEpisodes[index].url = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-                                setFormData({...formData, episodes: newEpisodes});
+                              onPress={async () => {
+                                try {
+                                  const clipboardContent = await Clipboard.getString();
+                                  const cleaned = cleanVideoUrl(clipboardContent);
+                                  if (!cleaned) {
+                                    Alert.alert('Paste', 'Copy the video link first, then tap Paste.');
+                                    return;
+                                  }
+                                  const newEpisodes = [...formData.episodes];
+                                  newEpisodes[index] = { ...newEpisodes[index], url: cleaned };
+                                  setFormData({...formData, episodes: newEpisodes});
+                                } catch {
+                                  Alert.alert('Paste', 'Could not read the clipboard.');
+                                }
                               }}
                             >
-                              <Text style={styles.episodeVideoButtonText}>📹 Sample</Text>
+                              <Text style={styles.episodeVideoButtonText}>📋 Paste</Text>
                             </TouchableOpacity>
                             
                             <TouchableOpacity 
+                              style={[styles.episodeVideoButton, { backgroundColor: '#1AB7EA' }]}
+                              onPress={async () => {
+                                try {
+                                  const clipboardContent = await Clipboard.getString();
+                                  const cleaned = cleanVideoUrl(clipboardContent);
+                                  if (!/vimeo\.com/i.test(cleaned)) {
+                                    Alert.alert(
+                                      'Vimeo link',
+                                      'Copy the Vimeo link from the browser, then tap Vimeo.\n\nExample:\nhttps://vimeo.com/123456789\n\nPrivate video:\nhttps://vimeo.com/123456789/abcdef'
+                                    );
+                                    return;
+                                  }
+                                  const newEpisodes = [...formData.episodes];
+                                  newEpisodes[index] = { ...newEpisodes[index], url: cleaned };
+                                  setFormData({...formData, episodes: newEpisodes});
+                                } catch {
+                                  Alert.alert('Vimeo', 'Copy the Vimeo link, then tap this button.');
+                                }
+                              }}
+                            >
+                              <Text style={styles.episodeVideoButtonText}>🟦 Vimeo</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
                               style={[styles.episodeVideoButton, { backgroundColor: '#E50914' }]}
-                              onPress={() => {
-                                const newEpisodes = [...formData.episodes];
-                                newEpisodes[index].url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-                                setFormData({...formData, episodes: newEpisodes});
+                              onPress={async () => {
+                                try {
+                                  const clipboardContent = await Clipboard.getString();
+                                  const cleaned = cleanVideoUrl(clipboardContent);
+                                  if (!/youtube\.com|youtu\.be/i.test(cleaned)) {
+                                    Alert.alert(
+                                      'YouTube link',
+                                      'Copy the YouTube link from the browser, then tap YouTube.\n\nExample:\nhttps://www.youtube.com/watch?v=xxxxx'
+                                    );
+                                    return;
+                                  }
+                                  const newEpisodes = [...formData.episodes];
+                                  newEpisodes[index] = { ...newEpisodes[index], url: cleaned };
+                                  setFormData({...formData, episodes: newEpisodes});
+                                } catch {
+                                  Alert.alert('YouTube', 'Copy the YouTube link, then tap this button.');
+                                }
                               }}
                             >
                               <Text style={styles.episodeVideoButtonText}>🎥 YouTube</Text>
@@ -8087,24 +8167,27 @@ const styles = StyleSheet.create({
                             value={episode.url}
                             onChangeText={(text) => {
                               const newEpisodes = [...formData.episodes];
-                              newEpisodes[index].url = text;
+                              newEpisodes[index] = { ...newEpisodes[index], url: text };
                               setFormData({...formData, episodes: newEpisodes});
                             }}
-                            placeholder="أو اكتب رابط الحلقة يدوياً..."
+                            onEndEditing={(event) => {
+                              const newEpisodes = [...formData.episodes];
+                              newEpisodes[index] = { ...newEpisodes[index], url: cleanVideoUrl(event.nativeEvent.text) };
+                              setFormData({...formData, episodes: newEpisodes});
+                            }}
+                            placeholder="https://vimeo.com/123456789  or  https://youtube.com/watch?v=..."
                             placeholderTextColor="#666666"
                             multiline={false}
                             autoCapitalize="none"
                             autoCorrect={false}
-                            keyboardType="default"
+                            keyboardType="url"
                             returnKeyType="done"
                             blurOnSubmit={true}
-                            secureTextEntry={false}
-                            autoFocus={false}
-                            caretHidden={false}
-                            contextMenuHidden={false}
-                            selectTextOnFocus={false}
-                            spellCheck={false}
+                            selectTextOnFocus={true}
                           />
+                          <Text style={styles.formHint}>
+                            Vimeo: copy the link from the browser (Share → Copy). Private Vimeo links must include the extra code after the number.
+                          </Text>
 
                           {/* Episode Thumbnail Image */}
                           <View style={styles.formGroup}>
@@ -8198,6 +8281,16 @@ const styles = StyleSheet.create({
                             onChange={(next) => {
                               const newEpisodes = [...formData.episodes];
                               newEpisodes[index] = { ...newEpisodes[index], accessType: next };
+                              setFormData({ ...formData, episodes: newEpisodes });
+                            }}
+                          />
+
+                          <ComingSoonReleaseFields
+                            comingSoon={!!episode.comingSoon}
+                            releaseDate={episode.releaseDate}
+                            onChange={({ comingSoon, releaseDate }) => {
+                              const newEpisodes = [...formData.episodes];
+                              newEpisodes[index] = { ...newEpisodes[index], comingSoon, releaseDate };
                               setFormData({ ...formData, episodes: newEpisodes });
                             }}
                           />

@@ -101,6 +101,14 @@ export default function RootLayout() {
           router.push('/(tabs)/courses');
         } else if (data.type === 'podcast') {
           router.push('/(tabs)/podcasts');
+        } else if (data.type === 'episode_released') {
+          if (data.kind === 'podcast_episode' && data.parentId) {
+            router.push({ pathname: '/podcast-details', params: { podcastId: String(data.parentId) } });
+          } else if (data.parentId) {
+            router.push({ pathname: '/course-details', params: { courseId: String(data.parentId) } });
+          } else {
+            router.push('/(tabs)/courses');
+          }
         } else if (
           data.type === 'subscription_approved' ||
           data.type === 'subscription_rejected' ||

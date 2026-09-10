@@ -114,6 +114,14 @@ const podcastSchema = new mongoose.Schema({
       enum: ['free', 'premium'],
       default: 'premium'
     },
+    comingSoon: {
+      type: Boolean,
+      default: false
+    },
+    releaseDate: {
+      type: Date,
+      default: null
+    },
     category: {
       type: String,
       default: 'Episode'

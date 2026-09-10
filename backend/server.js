@@ -173,6 +173,7 @@ app.use('/api/courses', securityMiddleware, require('./routes/courses'));
 app.use('/api/payments', publicSecurityMiddleware, require('./routes/payments'));
 app.use('/api/subscription-requests', publicSecurityMiddleware, require('./routes/subscriptionRequests'));
 app.use('/api/course-projects', publicSecurityMiddleware, require('./routes/courseProjects'));
+app.use('/api/content-watches', publicSecurityMiddleware, require('./routes/contentWatches'));
 // Admin content: requires auth + admin (was open before - caused 500 when req.user undefined)
 app.use('/api/admin/content', securityMiddleware, requireAuth, requireAdmin, require('./routes/content'));
 // Public content: read-only content for app (no auth required)
@@ -272,6 +273,23 @@ app.listen(PORT, '0.0.0.0', () => {
     setInterval(runLifecycle, 30 * 60 * 1000);
   } catch (e) {
     console.warn('Subscription lifecycle scheduler not started:', e.message);
+  }
+
+  try {
+    const { runEpisodeReleaseJob } = require('./services/episodeReleaseNotify');
+    const runReleases = () => {
+      runEpisodeReleaseJob()
+        .then((r) =>
+          console.log(
+            `🎬 Episode releases: courses=${r.coursesUpdated} podcasts=${r.podcastsUpdated} released=${r.released} notified=${r.notified}`
+          )
+        )
+        .catch((e) => console.warn('🎬 Episode release job failed:', e.message));
+    };
+    setTimeout(runReleases, 25000);
+    setInterval(runReleases, 15 * 60 * 1000);
+  } catch (e) {
+    console.warn('Episode release scheduler not started:', e.message);
   }
 
   try {

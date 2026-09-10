@@ -148,6 +148,14 @@ const courseSchema = new mongoose.Schema({
         enum: ['free', 'premium'],
         default: 'premium'
       },
+      comingSoon: {
+        type: Boolean,
+        default: false
+      },
+      releaseDate: {
+        type: Date,
+        default: null
+      },
       order: {
         type: Number,
         default: 0

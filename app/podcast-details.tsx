@@ -17,9 +17,18 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import API_BASE_URL from '../config/api';
+import RemindMeButton from '../components/RemindMeButton';
+import { useUser } from '../contexts/UserContext';
 import resolveMediaUrl from '../utils/mediaUrl';
+import {
+    formatReleaseLabel,
+    hydratePodcastEpisodes,
+    isUnreleased,
+} from '../utils/episodeRelease';
 import { hydratePodcast, visiblePodcastEpisodes } from '../utils/podcastMeta';
 import { goBackOr } from '../utils/navigation';
+import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
+import { getWebViewSource, keepPlaybackInWebView, needsWebView } from '../utils/videoPlayback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
@@ -121,51 +130,6 @@ const VideoLoadingScreen = ({ isVisible }: { isVisible: boolean }) => {
   );
 };
 
-// Function to convert video URLs to embed format
-const convertToEmbedUrl = (url: string): string => {
-  if (!url) return '';
-  
-  // YouTube URLs
-  if (url.includes('youtube.com/watch')) {
-    const videoId = url.split('v=')[1]?.split('&')[0];
-    if (videoId) {
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-  }
-  
-  // YouTube short URLs
-  if (url.includes('youtu.be/')) {
-    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
-    if (videoId) {
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-  }
-  
-  // Vimeo URLs
-  if (url.includes('vimeo.com/')) {
-    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
-    if (videoId) {
-      return `https://player.vimeo.com/video/${videoId}`;
-    }
-  }
-  
-  // Cloudinary URLs (already embed format)
-  if (url.includes('player.cloudinary.com')) {
-    return url;
-  }
-  
-  // Direct video URLs (MP4, WebM, etc.)
-  return url;
-};
-
-// Function to check if URL needs WebView
-const needsWebView = (url: string): boolean => {
-  return url.includes('youtube.com') || 
-         url.includes('vimeo.com') || 
-         url.includes('player.cloudinary.com') ||
-         url.includes('embed');
-};
-
 interface PodcastEpisode {
   id: string;
   title: string;
@@ -175,6 +139,10 @@ interface PodcastEpisode {
   description: string;
   isCompleted: boolean;
   category: string;
+  comingSoon?: boolean;
+  releaseDate?: string | null;
+  _itemKey?: string;
+  _id?: string;
 }
 
 export default function PodcastDetailsScreen() {
@@ -182,8 +150,10 @@ export default function PodcastDetailsScreen() {
   // back button has to clear the notch itself.
   const insets = useSafeAreaInsets();
   const { podcastId } = useLocalSearchParams();
+  const { user } = useUser();
   const [podcast, setPodcast] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [watchKeys, setWatchKeys] = useState<string[]>([]);
   const [selectedEpisode, setSelectedEpisode] = useState<PodcastEpisode | null>(null);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<PodcastEpisode | null>(null);
@@ -225,7 +195,7 @@ export default function PodcastDetailsScreen() {
           thumbnail: resolveMediaUrl(
             hydrated.thumbnail || hydrated.image
           ),
-          episodes: visiblePodcastEpisodes(hydrated.episodes),
+          episodes: hydratePodcastEpisodes(visiblePodcastEpisodes(hydrated.episodes)),
         });
         
         // Show video loading immediately if there's an intro video
@@ -254,7 +224,31 @@ export default function PodcastDetailsScreen() {
     }
   };
 
+  useEffect(() => {
+    const id = String(podcastId || '');
+    if (!id || !user) {
+      setWatchKeys([]);
+      return;
+    }
+    makeAuthenticatedRequest(
+      `${API_BASE_URL}/api/content-watches?kind=podcast_episode&parentId=${encodeURIComponent(id)}`
+    )
+      .then((response) => response.json())
+      .then((result) => {
+        const keys = result?.data?.itemKeys;
+        setWatchKeys(Array.isArray(keys) ? keys.map(String) : []);
+      })
+      .catch(() => {});
+  }, [podcastId, user]);
+
   const handleEpisodePress = (episode: PodcastEpisode) => {
+    if (isUnreleased(episode)) {
+      Alert.alert(
+        formatReleaseLabel(episode.releaseDate) ? `Coming ${formatReleaseLabel(episode.releaseDate)}` : 'Coming soon',
+        'This episode is not out yet. Tap Remind me if you want a notification when it drops.'
+      );
+      return;
+    }
     setSelectedVideo(episode);
     setIsEpisodeVideoLoading(true); // Show loading immediately
     setShowVideoModal(true);
@@ -324,10 +318,11 @@ export default function PodcastDetailsScreen() {
                 <VideoLoadingScreen isVisible={isVideoLoading} />
                 {needsWebView(podcast.introVideo) ? (
                   <WebView
-                    source={{ uri: convertToEmbedUrl(podcast.introVideo) }}
+                    source={getWebViewSource(podcast.introVideo) || { uri: podcast.introVideo }}
                     style={styles.heroVideo}
                     allowsFullscreenVideo={true}
                     mediaPlaybackRequiresUserAction={false}
+                    onShouldStartLoadWithRequest={keepPlaybackInWebView}
                     onError={(error) => {
                       console.log('🎬 WebView error:', error);
                       setIsVideoLoading(false);
@@ -509,14 +504,20 @@ export default function PodcastDetailsScreen() {
             <View style={styles.podcastEpisodesContainer}>
               {console.log('🎬 Rendering episodes:', podcast.episodes)}
               {(podcast.episodes && podcast.episodes.length > 0) ? (
-                podcast.episodes.map((episode, index) => (
-                <TouchableOpacity
+                podcast.episodes.map((episode, index) => {
+                const comingSoon = isUnreleased(episode);
+                const releaseLabel = formatReleaseLabel(episode.releaseDate);
+                const itemKey = String(episode._itemKey || episode._id || episode.id || `e${index}`);
+                const CardTag = comingSoon ? View : TouchableOpacity;
+                return (
+                <CardTag
                   key={episode._id || episode.id || index}
                   style={[
                     styles.episodeCardModern,
-                    index === 0 && styles.episodeCardFirst
+                    index === 0 && styles.episodeCardFirst,
+                    comingSoon && styles.episodeCardComingSoon,
                   ]}
-                  onPress={() => handleEpisodePress(episode)}
+                  {...(comingSoon ? {} : { onPress: () => handleEpisodePress(episode), activeOpacity: 0.85 })}
                 >
                   <LinearGradient
                     colors={['#1a1a1a', '#2a2a2a', '#1a1a1a']}
@@ -537,7 +538,13 @@ export default function PodcastDetailsScreen() {
                         </View>
                       </View>
                       <View style={styles.episodeCardStatus}>
-                        {episode.isCompleted ? (
+                        {comingSoon ? (
+                          <View style={styles.episodeComingSoonBadge}>
+                            <Text style={styles.episodeComingSoonText}>
+                              {releaseLabel || 'Soon'}
+                            </Text>
+                          </View>
+                        ) : episode.isCompleted ? (
                           <View style={styles.episodeCompletedBadge}>
                             <Text style={styles.episodeCompletedIcon}>✓</Text>
                           </View>
@@ -561,7 +568,7 @@ export default function PodcastDetailsScreen() {
                         >
                           <View style={styles.episodeCardPlayButton}>
                             <View style={styles.episodeCardPlayButtonInner}>
-                              <Text style={styles.episodeCardPlayIcon}>▶</Text>
+                              <Text style={styles.episodeCardPlayIcon}>{comingSoon ? '⏳' : '▶'}</Text>
                             </View>
                           </View>
                         </LinearGradient>
@@ -572,19 +579,33 @@ export default function PodcastDetailsScreen() {
                           <View style={styles.episodeDurationIcon}>
                             <Text style={styles.episodeDurationEmoji}>⏱️</Text>
                           </View>
-                          <Text style={styles.episodeDurationText}>{episode.duration || '0:00'}</Text>
+                          <Text style={styles.episodeDurationText}>
+                            {comingSoon ? (releaseLabel || 'Coming soon') : (episode.duration || '0:00')}
+                          </Text>
                         </View>
                         
+                        {comingSoon ? (
+                          <RemindMeButton
+                            kind="podcast_episode"
+                            parentId={String(podcastId || podcast?._id || '')}
+                            itemKey={itemKey}
+                            title={episode.title}
+                            parentTitle={podcast?.title}
+                            watching={watchKeys.includes(itemKey)}
+                          />
+                        ) : (
                         <View style={styles.episodeCardType}>
                           <Text style={styles.episodeTypeText}>
                             {episode.category === 'Introduction' ? 'INTRO' : 'FULL EPISODE'}
                           </Text>
                         </View>
+                        )}
                       </View>
                     </View>
                   </LinearGradient>
-                </TouchableOpacity>
-                ))
+                </CardTag>
+                );
+                })
               ) : (
                 <View style={styles.emptyEpisodesContainer}>
                   <Text style={styles.emptyEpisodesText}>لا توجد حلقات متاحة</Text>
@@ -761,10 +782,11 @@ export default function PodcastDetailsScreen() {
                     <VideoLoadingScreen isVisible={isEpisodeVideoLoading} />
                     {needsWebView(selectedVideo.url) ? (
                     <WebView
-                      source={{ uri: convertToEmbedUrl(selectedVideo.url) }}
+                      source={getWebViewSource(selectedVideo.url) || { uri: selectedVideo.url }}
                       style={styles.videoPlayer}
                       allowsFullscreenVideo={true}
                       mediaPlaybackRequiresUserAction={false}
+                      onShouldStartLoadWithRequest={keepPlaybackInWebView}
                       onError={(error) => {
                         console.log('🎬 Episode WebView error:', error);
                         setIsEpisodeVideoLoading(false);
@@ -1844,6 +1866,9 @@ const styles = StyleSheet.create({
   episodeCardFirst: {
     marginTop: 0,
   },
+  episodeCardComingSoon: {
+    opacity: 0.92,
+  },
   episodeCardGradient: {
     padding: 0,
   },
@@ -1894,6 +1919,17 @@ const styles = StyleSheet.create({
   },
   episodeCardStatus: {
     marginLeft: 10,
+  },
+  episodeComingSoonBadge: {
+    backgroundColor: '#FFC107',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  episodeComingSoonText: {
+    color: '#111',
+    fontSize: 11,
+    fontWeight: '800',
   },
   episodeCompletedBadge: {
     width: 35,

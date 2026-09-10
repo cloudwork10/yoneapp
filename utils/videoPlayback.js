@@ -1,8 +1,31 @@
 function normalizeUrl(url) {
-  const value = String(url || '').trim();
+  let value = String(url || '').trim();
   if (!value) return '';
+  value = value.replace(/^\/+(https?:\/\/)/i, '$1');
+  if (value.startsWith('//')) value = `https:${value}`;
   if (/^https?:\/\//i.test(value)) return value;
-  return `https://${value}`;
+  if (/^(www\.|youtube\.|youtu\.be|vimeo\.|player\.vimeo|drive\.google)/i.test(value)) {
+    return `https://${value}`;
+  }
+  return value;
+}
+
+export function cleanVideoUrl(url) {
+  const value = normalizeUrl(url);
+  if (!value) return '';
+
+  const vimeoId = extractVimeoId(value);
+  if (vimeoId) {
+    const hash = extractVimeoPrivacyHash(value);
+    return hash ? `https://vimeo.com/${vimeoId}/${hash}` : `https://vimeo.com/${vimeoId}`;
+  }
+
+  const youtubeId = extractYouTubeId(value);
+  if (youtubeId) {
+    return `https://www.youtube.com/watch?v=${youtubeId}`;
+  }
+
+  return value;
 }
 
 function extractYouTubeId(url) {

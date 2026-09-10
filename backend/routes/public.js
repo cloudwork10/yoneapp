@@ -13,6 +13,8 @@ const Course = require('../models/Course');
 const Challenge = require('../models/Challenge');
 const Reel = require('../models/Reel');
 const { resolveMediaFields } = require('../utils/mediaUrl');
+const { sanitizeCourseForPublic, sanitizePodcastForPublic } = require('../utils/episodeRelease');
+const { notifyNewlyReleased } = require('../services/episodeReleaseNotify');
 
 const router = express.Router();
 
@@ -86,7 +88,7 @@ router.get('/podcasts', async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        podcasts: withMedia(podcasts, ['thumbnail', 'image', 'coverImage'], req)
+        podcasts: withMedia(podcasts, ['thumbnail', 'image', 'coverImage'], req).map(sanitizePodcastForPublic)
       }
     });
   } catch (error) {
@@ -116,7 +118,7 @@ router.get('/podcasts/:id', async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        podcast: withMedia(podcast, ['thumbnail', 'image', 'coverImage'], req)
+        podcast: sanitizePodcastForPublic(withMedia(podcast, ['thumbnail', 'image', 'coverImage'], req))
       }
     });
   } catch (error) {
@@ -425,7 +427,7 @@ router.get('/courses', async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        courses: withMedia(courses, ['thumbnail', 'image'], req)
+        courses: withMedia(courses, ['thumbnail', 'image'], req).map(sanitizeCourseForPublic)
       }
     });
   } catch (error) {
@@ -458,7 +460,7 @@ router.get('/courses/:id', async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        course: withMedia(course, ['thumbnail', 'image'], req)
+        course: sanitizeCourseForPublic(withMedia(course, ['thumbnail', 'image'], req))
       }
     });
   } catch (error) {
@@ -543,6 +545,7 @@ router.put('/courses/:id', async (req, res) => {
       courseData.isClub = parseIsClub(req.body.isClub);
     }
 
+    const previous = await Course.findById(req.params.id);
     const course = await Course.findByIdAndUpdate(
       req.params.id,
       courseData,
@@ -555,6 +558,10 @@ router.put('/courses/:id', async (req, res) => {
         message: 'Course not found'
       });
     }
+
+    notifyNewlyReleased('course', previous, course).catch((error) => {
+      console.warn('Course release notify failed:', error.message);
+    });
 
     console.log('✅ Course updated:', course);
     res.status(200).json({

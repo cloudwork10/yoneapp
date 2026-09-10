@@ -26,6 +26,7 @@ const CVTemplate = require('../models/CVTemplate');
 // const { requireAuth  } = require('../middleware/auth');
 const { uploadLimiter } = require('../middleware/security');
 const { apiLimiter } = require('../middleware/security');
+const { notifyNewlyReleased } = require('../services/episodeReleaseNotify');
 
 const router = express.Router();
 
@@ -461,6 +462,7 @@ router.put('/courses/:id', [
       });
     }
 
+    const previous = course.toObject();
     const updateData = {
       ...req.body,
       updatedBy: null
@@ -471,6 +473,10 @@ router.put('/courses/:id', [
       updateData,
       { new: true, runValidators: true }
     );
+
+    notifyNewlyReleased('course', previous, updatedCourse).catch((error) => {
+      console.warn('Course release notify failed:', error.message);
+    });
 
     res.status(200).json({
       status: 'success',
@@ -1940,6 +1946,7 @@ router.put('/podcasts/:id', async (req, res) => {
 
     console.log('🎧 Update data:', updateData);
     
+    const previous = await Podcast.findById(req.params.id);
     const podcast = await Podcast.findByIdAndUpdate(
       req.params.id,
       updateData,
@@ -1954,6 +1961,10 @@ router.put('/podcasts/:id', async (req, res) => {
         message: 'Podcast not found'
       });
     }
+
+    notifyNewlyReleased('podcast', previous, podcast).catch((error) => {
+      console.warn('Podcast release notify failed:', error.message);
+    });
 
     res.json({
       status: 'success',
@@ -2217,6 +2228,7 @@ router.put('/courses/:id',  async (req, res) => {
       learningOutcomes: req.body.learningOutcomes || []
     };
 
+    const previous = await Course.findById(req.params.id);
     const course = await Course.findByIdAndUpdate(
       req.params.id,
       courseData,
@@ -2229,6 +2241,10 @@ router.put('/courses/:id',  async (req, res) => {
         message: 'Course not found'
       });
     }
+
+    notifyNewlyReleased('course', previous, course).catch((error) => {
+      console.warn('Course release notify failed:', error.message);
+    });
 
     console.log('✅ Course updated:', course);
     res.status(200).json({
