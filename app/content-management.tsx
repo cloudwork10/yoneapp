@@ -58,6 +58,7 @@ import {
   packCourseSections,
   packPodcastEpisodes,
 } from '../utils/episodeRelease';
+import { emptySectionTask, hasSectionTask } from '../utils/sectionTask';
 import {
   hydratePodcast,
   visiblePodcastEpisodes,
@@ -4602,6 +4603,7 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
         title: 'New Section',
         description: '',
         lessons: [],
+        task: emptySectionTask(),
         order: formData.sections.length
       }]
     });
@@ -5639,6 +5641,71 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
                   />
                 </View>
               ))}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.formLabel}>Section task / challenge</Text>
+              <Text style={styles.formHint}>
+                Optional. Write the task by hand, add a PDF link, or both. Students tap it to open a popup.
+              </Text>
+              <TextInput
+                style={styles.formInput}
+                value={section.task?.title || ''}
+                onChangeText={(text) => {
+                  const updatedSections = [...formData.sections];
+                  updatedSections[sectionIndex] = {
+                    ...updatedSections[sectionIndex],
+                    task: { ...(updatedSections[sectionIndex].task || emptySectionTask()), title: text },
+                  };
+                  setFormData({ ...formData, sections: updatedSections });
+                }}
+                placeholder="Task title (e.g. Section challenge)"
+                placeholderTextColor="#666"
+              />
+              <TextInput
+                style={[styles.formInput, { height: 90, textAlignVertical: 'top' }]}
+                value={section.task?.body || ''}
+                onChangeText={(text) => {
+                  const updatedSections = [...formData.sections];
+                  updatedSections[sectionIndex] = {
+                    ...updatedSections[sectionIndex],
+                    task: { ...(updatedSections[sectionIndex].task || emptySectionTask()), body: text },
+                  };
+                  setFormData({ ...formData, sections: updatedSections });
+                }}
+                placeholder="Write the task here..."
+                placeholderTextColor="#666"
+                multiline
+              />
+              <TextInput
+                style={styles.formInput}
+                value={section.task?.pdfUrl || ''}
+                onChangeText={(text) => {
+                  const updatedSections = [...formData.sections];
+                  updatedSections[sectionIndex] = {
+                    ...updatedSections[sectionIndex],
+                    task: { ...(updatedSections[sectionIndex].task || emptySectionTask()), pdfUrl: text },
+                  };
+                  setFormData({ ...formData, sections: updatedSections });
+                }}
+                placeholder="PDF link (optional)"
+                placeholderTextColor="#666"
+                autoCapitalize="none"
+              />
+              {hasSectionTask(section.task) ? (
+                <TouchableOpacity
+                  onPress={() => {
+                    const updatedSections = [...formData.sections];
+                    updatedSections[sectionIndex] = {
+                      ...updatedSections[sectionIndex],
+                      task: emptySectionTask(),
+                    };
+                    setFormData({ ...formData, sections: updatedSections });
+                  }}
+                >
+                  <Text style={styles.removeItemText}>Delete this section task</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         ))}

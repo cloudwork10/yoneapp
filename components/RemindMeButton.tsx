@@ -113,13 +113,13 @@ export default function RemindMeButton({
 const styles = StyleSheet.create({
   button: {
     backgroundColor: '#E50914',
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   buttonOn: {
     backgroundColor: '#2E7D32',
@@ -129,11 +129,11 @@ const styles = StyleSheet.create({
   },
   icon: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
   },
   label: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 11,
   },
 });

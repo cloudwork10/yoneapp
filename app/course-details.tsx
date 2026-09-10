@@ -11,6 +11,7 @@ import {
     ImageBackground,
     Linking,
     Modal,
+    Pressable,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -41,6 +42,7 @@ import {
     hydrateCourseSections,
     isUnreleased,
 } from '../utils/episodeRelease';
+import { hasSectionTask, pdfPreviewUrl } from '../utils/sectionTask';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
@@ -113,6 +115,7 @@ export default function CourseDetailsScreen() {
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
   const [watchedVideoIds, setWatchedVideoIds] = useState<string[]>([]);
   const [watchKeys, setWatchKeys] = useState<string[]>([]);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [fullName, setFullName] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
@@ -220,6 +223,16 @@ export default function CourseDetailsScreen() {
       }) || []
     );
   }, [course, hasActiveSubscription]);
+
+  const sectionTasks = React.useMemo(() => {
+    const map: Record<string, any> = {};
+    (course?.sections || []).forEach((section: any, index: number) => {
+      if (!hasSectionTask(section?.task)) return;
+      const name = section.title || `القسم ${index + 1}`;
+      map[name] = section.task;
+    });
+    return map;
+  }, [course]);
 
   // Fetch course details from API
   useEffect(() => {
@@ -797,21 +810,26 @@ export default function CourseDetailsScreen() {
                         })}
                         
                         {/* Challenge after each category */}
-                        <View style={styles.categoryChallenge}>
+                        {sectionTasks[category] ? (
+                        <TouchableOpacity
+                          style={styles.categoryChallenge}
+                          onPress={() => setSelectedTask({
+                            ...sectionTasks[category],
+                            sectionTitle: category,
+                          })}
+                          activeOpacity={0.85}
+                        >
                           <View style={styles.challengeHeader}>
                             <Text style={styles.challengeIcon}>🏆</Text>
-                            <Text style={styles.challengeTitle}>تحدي {category}</Text>
+                            <Text style={styles.challengeTitle}>
+                              {sectionTasks[category].title || `تحدي ${category}`}
+                            </Text>
                           </View>
-                          <Text style={styles.challengeDescription}>
-                            {category === 'JavaScript Basics' && 'قم بإنشاء آلة حاسبة تفاعلية باستخدام JavaScript'}
-                            {category === 'React Native Fundamentals' && 'أنشئ تطبيق قائمة مهام بسيط باستخدام React Native'}
-                            {category === 'Advanced Concepts' && 'طور تطبيق دردشة في الوقت الفعلي مع Firebase'}
-                          </Text>
                           <View style={styles.challengeMeta}>
-                            <Text style={styles.challengeDifficulty}>متوسط</Text>
-                            <Text style={styles.challengeTime}>⏱️ 2-3 ساعات</Text>
+                            <Text style={styles.challengeTime}>Tap to open</Text>
                           </View>
-                        </View>
+                        </TouchableOpacity>
+                        ) : null}
                       </>
                     )}
                   </View>
@@ -1067,6 +1085,45 @@ export default function CourseDetailsScreen() {
             </TouchableOpacity>
             <TouchableOpacity style={styles.certCloseBtn} onPress={() => setShowCertificate(false)}>
               <Text style={styles.certCloseText}>إغلاق</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!selectedTask}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setSelectedTask(null)}
+      >
+        <View style={styles.taskModalBackdrop}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setSelectedTask(null)} />
+          <View style={styles.taskModalCard}>
+            <Text style={styles.taskModalTitle} numberOfLines={3}>
+              {selectedTask?.title || selectedTask?.sectionTitle || 'Task'}
+            </Text>
+            <ScrollView style={styles.taskModalBody} showsVerticalScrollIndicator={false}>
+              {selectedTask?.body ? (
+                <Text style={styles.taskModalText}>{selectedTask.body}</Text>
+              ) : null}
+              {selectedTask?.pdfUrl ? (
+                <View style={styles.taskPdfWrap}>
+                  <WebView
+                    source={{ uri: pdfPreviewUrl(resolveMediaUrl(selectedTask.pdfUrl)) || resolveMediaUrl(selectedTask.pdfUrl) }}
+                    style={styles.taskPdfView}
+                    startInLoadingState
+                  />
+                  <TouchableOpacity
+                    style={styles.taskOpenPdf}
+                    onPress={() => Linking.openURL(resolveMediaUrl(selectedTask.pdfUrl))}
+                  >
+                    <Text style={styles.taskOpenPdfText}>Open PDF</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </ScrollView>
+            <TouchableOpacity style={styles.taskCloseBtn} onPress={() => setSelectedTask(null)}>
+              <Text style={styles.taskCloseBtnText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1407,9 +1464,9 @@ const styles = StyleSheet.create({
     marginRight: 15,
   },
   videoHeadlineThumbnail: {
-    width: 80,
-    height: 60,
-    borderRadius: 8,
+    width: 148,
+    height: 96,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   videoHeadlineImage: {
@@ -1423,15 +1480,15 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   videoHeadlinePlayButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   videoHeadlinePlayIcon: {
-    fontSize: 10,
+    fontSize: 14,
     color: '#E50914',
     marginLeft: 1,
   },
@@ -1502,13 +1559,13 @@ const styles = StyleSheet.create({
   },
   comingSoonPill: {
     backgroundColor: '#FFC107',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   comingSoonPillText: {
     color: '#111',
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '800',
   },
   categoryChallenge: {
@@ -2445,5 +2502,77 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     textAlign: 'center',
+  },
+  taskModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 22,
+  },
+  taskModalCard: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 18,
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '78%',
+    paddingTop: 22,
+    paddingBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  taskModalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    textAlign: 'left',
+  },
+  taskModalBody: {
+    paddingHorizontal: 20,
+    maxHeight: 360,
+  },
+  taskModalText: {
+    color: '#ddd',
+    fontSize: 16,
+    lineHeight: 26,
+    marginBottom: 16,
+  },
+  taskPdfWrap: {
+    height: 320,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    marginBottom: 12,
+  },
+  taskPdfView: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  taskOpenPdf: {
+    alignSelf: 'center',
+    marginTop: 10,
+    backgroundColor: '#333',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  taskOpenPdfText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
+  taskCloseBtn: {
+    marginTop: 14,
+    marginHorizontal: 20,
+    backgroundColor: '#E50914',
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  taskCloseBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '800',
   },
 });

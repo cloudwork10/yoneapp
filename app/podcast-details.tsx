@@ -1922,13 +1922,13 @@ const styles = StyleSheet.create({
   },
   episodeComingSoonBadge: {
     backgroundColor: '#FFC107',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   episodeComingSoonText: {
     color: '#111',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '800',
   },
   episodeCompletedBadge: {

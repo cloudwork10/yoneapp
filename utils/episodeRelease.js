@@ -1,3 +1,5 @@
+import { hydrateSectionTask, packSectionTask } from './sectionTask';
+
 export const RELEASE_MARKER = '__YONE_RELEASE__';
 export const RELEASE_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -129,20 +131,26 @@ export function episodeItemKey(episode, index) {
 }
 
 export function hydrateCourseSections(sections) {
-  return (Array.isArray(sections) ? sections : []).map((section, sectionIndex) => ({
-    ...asPlain(section),
-    lessons: (Array.isArray(section?.lessons) ? section.lessons : []).map((lesson, lessonIndex) => ({
-      ...hydrateRelease(lesson),
-      _itemKey: lessonItemKey(lesson, sectionIndex, lessonIndex),
-    })),
-  }));
+  return (Array.isArray(sections) ? sections : []).map((section, sectionIndex) => {
+    const hydrated = hydrateSectionTask(asPlain(section));
+    return {
+      ...hydrated,
+      lessons: (Array.isArray(hydrated?.lessons) ? hydrated.lessons : []).map((lesson, lessonIndex) => ({
+        ...hydrateRelease(lesson),
+        _itemKey: lessonItemKey(lesson, sectionIndex, lessonIndex),
+      })),
+    };
+  });
 }
 
 export function packCourseSections(sections) {
-  return (Array.isArray(sections) ? sections : []).map((section) => ({
-    ...section,
-    lessons: (Array.isArray(section?.lessons) ? section.lessons : []).map((lesson) => packRelease(lesson)),
-  }));
+  return (Array.isArray(sections) ? sections : []).map((section) => {
+    const packed = packSectionTask(section);
+    return {
+      ...packed,
+      lessons: (Array.isArray(packed?.lessons) ? packed.lessons : []).map((lesson) => packRelease(lesson)),
+    };
+  });
 }
 
 export function hydratePodcastEpisodes(episodes) {

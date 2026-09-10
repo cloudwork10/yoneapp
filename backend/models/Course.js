@@ -164,6 +164,11 @@ const courseSchema = new mongoose.Schema({
     order: {
       type: Number,
       default: 0
+    },
+    task: {
+      title: { type: String, default: '', trim: true },
+      body: { type: String, default: '', trim: true },
+      pdfUrl: { type: String, default: '', trim: true },
     }
   }],
   // Course preview video
