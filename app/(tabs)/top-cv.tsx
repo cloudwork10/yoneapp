@@ -8,6 +8,20 @@ import API_BASE_URL from '../../config/api';
 import { buildCvFilters, matchesCvFilter } from '../../utils/cvCategory';
 import resolveMediaUrl from '../../utils/mediaUrl';
 
+function cvLocation(cv?: { location?: string; education?: string }) {
+  const stored = String(cv?.location || '').trim();
+  if (stored) return stored;
+  const edu = String(cv?.education || '');
+  if (edu.includes(' · ')) return edu.split(' · ')[0].trim();
+  return 'Egypt';
+}
+
+function cvEducation(cv?: { education?: string }) {
+  const edu = String(cv?.education || '').trim();
+  if (edu.includes(' · ')) return edu.split(' · ').slice(1).join(' · ').trim() || edu;
+  return edu || 'Not specified';
+}
+
 function toViewableCvUrl(raw?: string) {
   const resolved = resolveMediaUrl(raw || '');
   if (!resolved) return '';
@@ -274,7 +288,7 @@ export default function TopCVScreen() {
               <View style={styles.templateFooter}>
                 <View style={styles.statsContainer}>
                   <Text style={styles.experience}>{template.experience} experience</Text>
-                  <Text style={styles.location}>📍 Cairo, Egypt</Text>
+                  <Text style={styles.location} numberOfLines={1}>📍 {cvLocation(template)}</Text>
                 </View>
                 <TouchableOpacity 
                   style={styles.downloadButton}
@@ -324,12 +338,12 @@ export default function TopCVScreen() {
                       
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Education:</Text>
-                        <Text style={styles.detailValue}>{selectedCV.education}</Text>
+                        <Text style={styles.detailValue}>{cvEducation(selectedCV)}</Text>
                       </View>
                       
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Location:</Text>
-                        <Text style={styles.detailValue}>Cairo, Egypt</Text>
+                        <Text style={styles.detailValue}>{cvLocation(selectedCV)}</Text>
                       </View>
                       
                       <View style={styles.detailRow}>

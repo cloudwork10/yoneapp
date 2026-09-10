@@ -17,6 +17,28 @@ const podcastSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  highlights: [{
+    icon: { type: String, default: '🚀', trim: true },
+    text: { type: String, default: '', trim: true }
+  }],
+  formatItems: [{
+    icon: { type: String, default: '🎙️', trim: true },
+    label: { type: String, default: '', trim: true },
+    description: { type: String, default: '', trim: true }
+  }],
+  benefits: [{
+    type: String,
+    trim: true
+  }],
+  hosts: [{
+    name: { type: String, default: '', trim: true },
+    title: { type: String, default: '', trim: true },
+    bio: { type: String, default: '', trim: true },
+    avatar: { type: String, default: '' },
+    episodesCount: { type: String, default: '' },
+    listenersCount: { type: String, default: '' },
+    rating: { type: String, default: '' }
+  }],
   duration: {
     type: String,
     default: ''

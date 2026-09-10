@@ -23,6 +23,7 @@ import {
   mergeCourseCategories,
 } from '../../utils/courseCategories';
 import resolveMediaUrl from '../../utils/mediaUrl';
+import { isClubRecordedCourse } from '../../utils/clubCourse';
 
 const { width } = Dimensions.get('window');
 
@@ -82,11 +83,13 @@ export default function CoursesScreen() {
       }
       setError(null);
       
-      const response = await fetch(`${API_BASE_URL}/api/public/courses`);
+      const response = await fetch(`${API_BASE_URL}/api/public/courses?scope=regular`);
       
       if (response.ok) {
         const data = await response.json();
-        const fetchedCourses = data.data.courses.map((course: any) => ({
+        const fetchedCourses = data.data.courses
+          .filter((course: any) => !isClubRecordedCourse(course))
+          .map((course: any) => ({
           id: course._id,
           title: course.title,
           instructor: course.instructor,

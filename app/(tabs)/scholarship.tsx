@@ -28,6 +28,7 @@ import { WebView } from 'react-native-webview';
 import API_BASE_URL from '../../config/api';
 import NotificationService from '../../services/NotificationService';
 import CommunityLiveCard from '../../components/CommunityLiveCard';
+import { isClubRecordedCourse, mapCohortRecordedCourses } from '../../utils/clubCourse';
 import { PAID_FLOW_ENABLED, SUBSCRIBE_ROUTE } from '../../utils/subscriptionAccess';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -83,6 +84,7 @@ type Cohort = {
   status?: string;
   tracks?: Track[];
   sessions?: Session[];
+  recordedCourses?: any[];
   whatsappLink?: string;
   communityLive?: {
     enabled?: boolean;
@@ -590,6 +592,10 @@ export default function ClubScreen() {
       const publicData = await publicRes.json();
       if (publicRes.ok && publicData?.data?.cohort) {
         setCohort(publicData.data.cohort);
+        const fromCohort = mapCohortRecordedCourses(publicData.data.cohort.recordedCourses);
+        if (fromCohort.length > 0) {
+          setRecordedCourses(fromCohort);
+        }
         // Refresh lecture reminders from latest weekly slots
         NotificationService.scheduleClubLectureNotifications(
           publicData.data.cohort.tracks || []
@@ -597,15 +603,16 @@ export default function ClubScreen() {
       }
 
       try {
-        const coursesRes = await fetchWithTimeout(`${API_BASE_URL}/api/public/courses`);
+        const coursesRes = await fetchWithTimeout(`${API_BASE_URL}/api/public/courses?scope=all`);
         const coursesData = await coursesRes.json();
         const list =
           coursesData?.data?.courses ||
           coursesData?.courses ||
           (Array.isArray(coursesData?.data) ? coursesData.data : []) ||
           [];
-        setRecordedCourses(
-          (list as any[]).map((c) => ({
+        const fromCourses = (list as any[])
+          .filter((c) => isClubRecordedCourse(c))
+          .map((c) => ({
             _id: c._id || c.id,
             title: c.title || 'Untitled course',
             description: c.description || '',
@@ -614,8 +621,8 @@ export default function ClubScreen() {
             level: c.level || '',
             duration: c.duration || '',
             sections: c.sections || [],
-          }))
-        );
+          }));
+        setRecordedCourses((prev) => (prev.length > 0 ? prev : fromCourses));
       } catch {
         // keep previous courses list
       }
@@ -633,6 +640,8 @@ export default function ClubScreen() {
           if (myRes.ok && myData?.data?.cohort) {
             setCohort(myData.data.cohort);
             setHasAccess(!!myData.data.hasAccess);
+            const fromMy = mapCohortRecordedCourses(myData.data.cohort.recordedCourses);
+            if (fromMy.length > 0) setRecordedCourses(fromMy);
           } else {
             setHasAccess(false);
           }
@@ -899,7 +908,12 @@ export default function ClubScreen() {
     if (!requireAccess()) return;
     setPlayingVideo(null);
     setCourseModalVisible(true);
+    const hasLessons = (course.sections || []).some((s) => (s.lessons || []).length > 0);
     setSelectedCourse(course);
+    if (hasLessons || !course._id || String(course._id).length !== 24) {
+      setCourseDetailLoading(false);
+      return;
+    }
     setCourseDetailLoading(true);
     try {
       const res = await fetchWithTimeout(`${API_BASE_URL}/api/public/courses/${course._id}`);
@@ -914,7 +928,7 @@ export default function ClubScreen() {
           thumbnail: full.thumbnail || course.thumbnail,
           level: full.level || course.level,
           duration: full.duration || course.duration,
-          sections: full.sections || [],
+          sections: full.sections || course.sections || [],
         });
       }
     } catch (e) {

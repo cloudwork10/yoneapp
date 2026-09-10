@@ -50,6 +50,12 @@ import {
   writeLocalProgrammingLanguages,
 } from '../utils/programmingLanguages';
 import { PROJECT_KINDS, resolveProjectRules } from '../utils/projectRules';
+import { isClubRecordedCourse } from '../utils/clubCourse';
+import {
+  hydratePodcast,
+  visiblePodcastEpisodes,
+  withPodcastMetaEpisode,
+} from '../utils/podcastMeta';
 import { makeAuthenticatedRequest, refreshAuthToken } from '../utils/tokenRefresh';
 import { uploadContentImage } from '../utils/uploadContentImage';
 
@@ -918,16 +924,16 @@ export default function ContentManagementScreen() {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/public/courses`);
+      const response = await fetch(`${API_BASE_URL}/api/public/courses?scope=regular`);
 
       if (response.ok) {
         const data = await response.json();
-        setCourses(data.data.courses || []);
+        setCourses((data.data.courses || []).filter((course: any) => !isClubRecordedCourse(course)));
       } else if (response.status === 401) {
         console.log('🔄 Token expired, attempting to refresh...');
         const newToken = await refreshToken();
         if (newToken) {
-          const retryResponse = await fetch(`${API_BASE_URL}/api/admin/content/courses`, {
+          const retryResponse = await fetch(`${API_BASE_URL}/api/admin/content/courses?scope=regular`, {
             headers: {
               'Authorization': `Bearer ${newToken}`,
               'Content-Type': 'application/json',
@@ -935,7 +941,7 @@ export default function ContentManagementScreen() {
           });
           if (retryResponse.ok) {
             const data = await retryResponse.json();
-            setCourses(data.data.courses || []);
+            setCourses((data.data.courses || []).filter((course: any) => !isClubRecordedCourse(course)));
           } else {
             console.error('❌ Failed to fetch courses after token refresh:', retryResponse.status);
           }
@@ -4655,7 +4661,7 @@ const CourseForm = ({ course, onSave, onCancel, knownCategories = [] }: { course
     console.log('🎯 Learning outcomes data:', formData.learningOutcomes);
     console.log('🎯 Requirements length:', formData.requirements.length);
     console.log('🎯 Learning outcomes length:', formData.learningOutcomes.length);
-    onSave({ ...formData, category });
+    onSave({ ...formData, category, isClub: false });
   };
 
   const addCourseCategory = () => {
@@ -6936,21 +6942,28 @@ const styles = StyleSheet.create({
 // Podcast Form Component
             const PodcastForm = ({ podcast, onSave, onCancel }: { podcast: any, onSave: (data: any) => void, onCancel: () => void }) => {
   
-  // Debug: Log when component mounts
-  console.log('🎬 PodcastForm mounted with podcast:', podcast);
+  const hydrated = hydratePodcast(podcast || {});
   const [formData, setFormData] = useState({
-    title: podcast?.title || 'My Podcast',
-    description: podcast?.description || 'A great podcast episode',
-    host: podcast?.host || 'Host Name',
-    duration: podcast?.duration || '30:00',
-    category: podcast?.category || 'Technology',
-    rating: podcast?.rating !== undefined ? podcast.rating : 4,
-    totalListeners: podcast?.totalListeners !== undefined ? podcast.totalListeners : 100,
-    thumbnail: podcast?.thumbnail || '',
-    videoUrl: podcast?.videoUrl || '',
-    introVideo: podcast?.introVideo || '',
-    episodes: podcast?.episodes || [],
-    isActive: podcast?.isActive !== undefined ? podcast.isActive : true,
+    title: hydrated?.title || 'My Podcast',
+    description: hydrated?.description || 'A great podcast episode',
+    host: hydrated?.host || 'Host Name',
+    duration: hydrated?.duration || '30:00',
+    category: hydrated?.category || 'Technology',
+    rating: hydrated?.rating !== undefined ? hydrated.rating : 4,
+    totalListeners: hydrated?.totalListeners !== undefined ? hydrated.totalListeners : 100,
+    thumbnail: hydrated?.thumbnail || '',
+    videoUrl: hydrated?.videoUrl || '',
+    introVideo: hydrated?.introVideo || '',
+    episodes: visiblePodcastEpisodes(hydrated?.episodes),
+    highlights: Array.isArray(hydrated?.highlights) ? hydrated.highlights : [],
+    formatItems: Array.isArray(hydrated?.formatItems) ? hydrated.formatItems : [],
+    benefits: Array.isArray(hydrated?.benefits) ? hydrated.benefits : [],
+    hosts: Array.isArray(hydrated?.hosts) && hydrated.hosts.length
+      ? hydrated.hosts
+      : (hydrated?.host
+          ? [{ name: hydrated.host, title: '', bio: '', avatar: '', episodesCount: '', listenersCount: '', rating: '' }]
+          : []),
+    isActive: hydrated?.isActive !== undefined ? hydrated.isActive : true,
     isFeatured: podcast?.isFeatured || false,
     accessType: podcast?.accessType || 'free',
   });
@@ -6974,9 +6987,23 @@ const styles = StyleSheet.create({
                 console.log('🎬 Episodes URLs:', formData.episodes?.map(ep => ep.url));
     
     // Force episodes to be an array if it's not
+    const packedEpisodes = withPodcastMetaEpisode(
+      Array.isArray(formData.episodes) ? formData.episodes : [],
+      {
+        highlights: Array.isArray(formData.highlights) ? formData.highlights : [],
+        formatItems: Array.isArray(formData.formatItems) ? formData.formatItems : [],
+        benefits: Array.isArray(formData.benefits) ? formData.benefits : [],
+        hosts: Array.isArray(formData.hosts) ? formData.hosts : [],
+      }
+    );
     const finalFormData = {
       ...formData,
-      episodes: Array.isArray(formData.episodes) ? formData.episodes : []
+      episodes: packedEpisodes,
+      highlights: Array.isArray(formData.highlights) ? formData.highlights : [],
+      formatItems: Array.isArray(formData.formatItems) ? formData.formatItems : [],
+      benefits: Array.isArray(formData.benefits) ? formData.benefits.filter((b: string) => String(b || '').trim()) : [],
+      hosts: Array.isArray(formData.hosts) ? formData.hosts : [],
+      host: formData.host || formData.hosts?.[0]?.name || '',
     };
     
     console.log('🎬 Final form data:', JSON.stringify(finalFormData, null, 2));
@@ -8177,6 +8204,263 @@ const styles = StyleSheet.create({
                         </View>
                       ))}
                     </View>
+
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Overview</Text>
+          <Text style={styles.formHint}>What You'll Learn, format, and why listen — shown on the Overview tab</Text>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>What You'll Learn</Text>
+            <TouchableOpacity
+              style={styles.addEpisodeButton}
+              onPress={() => setFormData({
+                ...formData,
+                highlights: [...(formData.highlights || []), { icon: '🚀', text: '' }]
+              })}
+            >
+              <Text style={styles.addEpisodeButtonText}>+ Add highlight</Text>
+            </TouchableOpacity>
+            {(formData.highlights || []).map((item: any, index: number) => (
+              <View key={`hl-${index}`} style={styles.episodeContainer}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TextInput
+                    style={[styles.formInput, { flex: 0, width: 70 }]}
+                    value={item.icon || ''}
+                    onChangeText={(text) => {
+                      const next = [...formData.highlights];
+                      next[index] = { ...next[index], icon: text };
+                      setFormData({ ...formData, highlights: next });
+                    }}
+                    placeholder="🚀"
+                    placeholderTextColor="#666666"
+                  />
+                  <TextInput
+                    style={[styles.formInput, { flex: 1 }]}
+                    value={item.text || ''}
+                    onChangeText={(text) => {
+                      const next = [...formData.highlights];
+                      next[index] = { ...next[index], text: text };
+                      setFormData({ ...formData, highlights: next });
+                    }}
+                    placeholder="Highlight text"
+                    placeholderTextColor="#666666"
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.removeEpisodeButton}
+                  onPress={() => setFormData({
+                    ...formData,
+                    highlights: formData.highlights.filter((_: any, i: number) => i !== index)
+                  })}
+                >
+                  <Text style={styles.removeEpisodeButtonText}>Delete highlight</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Podcast Format</Text>
+            <TouchableOpacity
+              style={styles.addEpisodeButton}
+              onPress={() => setFormData({
+                ...formData,
+                formatItems: [...(formData.formatItems || []), { icon: '🎙️', label: '', description: '' }]
+              })}
+            >
+              <Text style={styles.addEpisodeButtonText}>+ Add format</Text>
+            </TouchableOpacity>
+            {(formData.formatItems || []).map((item: any, index: number) => (
+              <View key={`fmt-${index}`} style={styles.episodeContainer}>
+                <TextInput
+                  style={styles.formInput}
+                  value={item.icon || ''}
+                  onChangeText={(text) => {
+                    const next = [...formData.formatItems];
+                    next[index] = { ...next[index], icon: text };
+                    setFormData({ ...formData, formatItems: next });
+                  }}
+                  placeholder="Icon e.g. 🎙️"
+                  placeholderTextColor="#666666"
+                />
+                <TextInput
+                  style={styles.formInput}
+                  value={item.label || ''}
+                  onChangeText={(text) => {
+                    const next = [...formData.formatItems];
+                    next[index] = { ...next[index], label: text };
+                    setFormData({ ...formData, formatItems: next });
+                  }}
+                  placeholder="Label e.g. Interview Style"
+                  placeholderTextColor="#666666"
+                />
+                <TextInput
+                  style={[styles.formInput, styles.textArea]}
+                  value={item.description || ''}
+                  onChangeText={(text) => {
+                    const next = [...formData.formatItems];
+                    next[index] = { ...next[index], description: text };
+                    setFormData({ ...formData, formatItems: next });
+                  }}
+                  placeholder="Short description"
+                  placeholderTextColor="#666666"
+                  multiline
+                />
+                <TouchableOpacity
+                  style={styles.removeEpisodeButton}
+                  onPress={() => setFormData({
+                    ...formData,
+                    formatItems: formData.formatItems.filter((_: any, i: number) => i !== index)
+                  })}
+                >
+                  <Text style={styles.removeEpisodeButtonText}>Delete format</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.formLabel}>Why Listen</Text>
+            <TouchableOpacity
+              style={styles.addEpisodeButton}
+              onPress={() => setFormData({
+                ...formData,
+                benefits: [...(formData.benefits || []), '']
+              })}
+            >
+              <Text style={styles.addEpisodeButtonText}>+ Add benefit</Text>
+            </TouchableOpacity>
+            {(formData.benefits || []).map((item: string, index: number) => (
+              <View key={`bn-${index}`} style={styles.episodeContainer}>
+                <TextInput
+                  style={[styles.formInput, styles.textArea]}
+                  value={item || ''}
+                  onChangeText={(text) => {
+                    const next = [...formData.benefits];
+                    next[index] = text;
+                    setFormData({ ...formData, benefits: next });
+                  }}
+                  placeholder="Benefit text"
+                  placeholderTextColor="#666666"
+                  multiline
+                />
+                <TouchableOpacity
+                  style={styles.removeEpisodeButton}
+                  onPress={() => setFormData({
+                    ...formData,
+                    benefits: formData.benefits.filter((_: any, i: number) => i !== index)
+                  })}
+                >
+                  <Text style={styles.removeEpisodeButtonText}>Delete benefit</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Host</Text>
+          <Text style={styles.formHint}>Add, edit, or delete hosts shown on the Host tab</Text>
+          <TouchableOpacity
+            style={styles.addEpisodeButton}
+            onPress={() => setFormData({
+              ...formData,
+              hosts: [...(formData.hosts || []), {
+                name: '',
+                title: '',
+                bio: '',
+                avatar: '',
+                episodesCount: '',
+                listenersCount: '',
+                rating: '',
+              }]
+            })}
+          >
+            <Text style={styles.addEpisodeButtonText}>+ Add host</Text>
+          </TouchableOpacity>
+          {(formData.hosts || []).map((hostItem: any, index: number) => (
+            <View key={`host-${index}`} style={styles.episodeContainer}>
+              <Text style={styles.formLabel}>Host {index + 1}</Text>
+              <TextInput
+                style={styles.formInput}
+                value={hostItem.name || ''}
+                onChangeText={(text) => {
+                  const next = [...formData.hosts];
+                  next[index] = { ...next[index], name: text };
+                  setFormData({ ...formData, hosts: next, host: index === 0 ? text : formData.host });
+                }}
+                placeholder="Name"
+                placeholderTextColor="#666666"
+              />
+              <TextInput
+                style={styles.formInput}
+                value={hostItem.title || ''}
+                onChangeText={(text) => {
+                  const next = [...formData.hosts];
+                  next[index] = { ...next[index], title: text };
+                  setFormData({ ...formData, hosts: next });
+                }}
+                placeholder="Title e.g. Developer & Podcast Host"
+                placeholderTextColor="#666666"
+              />
+              <TextInput
+                style={[styles.formInput, styles.textArea]}
+                value={hostItem.bio || ''}
+                onChangeText={(text) => {
+                  const next = [...formData.hosts];
+                  next[index] = { ...next[index], bio: text };
+                  setFormData({ ...formData, hosts: next });
+                }}
+                placeholder="Bio"
+                placeholderTextColor="#666666"
+                multiline
+                numberOfLines={4}
+              />
+              <TextInput
+                style={styles.formInput}
+                value={hostItem.episodesCount || ''}
+                onChangeText={(text) => {
+                  const next = [...formData.hosts];
+                  next[index] = { ...next[index], episodesCount: text };
+                  setFormData({ ...formData, hosts: next });
+                }}
+                placeholder="Episodes stat e.g. 50+"
+                placeholderTextColor="#666666"
+              />
+              <TextInput
+                style={styles.formInput}
+                value={hostItem.listenersCount || ''}
+                onChangeText={(text) => {
+                  const next = [...formData.hosts];
+                  next[index] = { ...next[index], listenersCount: text };
+                  setFormData({ ...formData, hosts: next });
+                }}
+                placeholder="Listeners stat e.g. 15K+"
+                placeholderTextColor="#666666"
+              />
+              <TextInput
+                style={styles.formInput}
+                value={hostItem.rating || ''}
+                onChangeText={(text) => {
+                  const next = [...formData.hosts];
+                  next[index] = { ...next[index], rating: text };
+                  setFormData({ ...formData, hosts: next });
+                }}
+                placeholder="Rating e.g. 4.9"
+                placeholderTextColor="#666666"
+              />
+              <TouchableOpacity
+                style={styles.removeEpisodeButton}
+                onPress={() => setFormData({
+                  ...formData,
+                  hosts: formData.hosts.filter((_: any, i: number) => i !== index)
+                })}
+              >
+                <Text style={styles.removeEpisodeButtonText}>Delete host</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
 
         <View style={styles.formGroup}>
           <View style={styles.checkboxRow}>

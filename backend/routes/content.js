@@ -29,6 +29,13 @@ const { apiLimiter } = require('../middleware/security');
 
 const router = express.Router();
 
+const courseScopeFilter = (scope) => {
+  const s = String(scope || 'regular').toLowerCase();
+  if (s === 'club') return { isClub: true };
+  if (s === 'all') return {};
+  return { isClub: { $ne: true } };
+};
+
 const ROADMAP_DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
 const ROADMAP_RESOURCE_TYPES = ['course', 'article', 'video', 'documentation', 'tool'];
 const ROADMAP_FALLBACK_IMAGE =
@@ -324,10 +331,12 @@ router.get('/courses', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-    const { search, category, level, status } = req.query;
+    const { search, category, level, status, scope } = req.query;
 
     // Build filter
-    const filter = {};
+    const filter = {
+      ...courseScopeFilter(scope)
+    };
     
     if (search) {
       filter.$or = [
@@ -1891,6 +1900,10 @@ router.post('/podcasts', async (req, res) => {
       videoUrl: req.body.videoUrl || 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       introVideo: req.body.introVideo || '',
       episodes: req.body.episodes || [],
+      highlights: req.body.highlights || [],
+      formatItems: req.body.formatItems || [],
+      benefits: req.body.benefits || [],
+      hosts: req.body.hosts || [],
       isActive: true,
       isFeatured: false
     });
@@ -2070,9 +2083,11 @@ router.get('/courses', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-    const { search, category, level, status } = req.query;
+    const { search, category, level, status, scope } = req.query;
 
-    const filter = {};
+    const filter = {
+      ...courseScopeFilter(scope)
+    };
     
     if (search) {
       filter.$or = [

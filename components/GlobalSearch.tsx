@@ -89,7 +89,7 @@ export default function GlobalSearch() {
     try {
       const [coursesRes, articlesRes, roadmapsRes, podcastsRes, advicesRes, termsRes, cvsRes] =
         await Promise.all([
-          fetch(`${API_BASE_URL}/api/public/courses`),
+          fetch(`${API_BASE_URL}/api/public/courses?scope=regular`),
           fetch(`${API_BASE_URL}/api/public/articles`),
           fetch(`${API_BASE_URL}/api/public/roadmaps`),
           fetch(`${API_BASE_URL}/api/public/podcasts`),

@@ -51,7 +51,7 @@ export default function ProfileScreen() {
       await recordActivityDay(user.id);
       const [profileRes, coursesRes] = await Promise.all([
         makeAuthenticatedRequest(`${API_BASE_URL}/api/users/profile`),
-        fetch(`${API_BASE_URL}/api/public/courses`),
+        fetch(`${API_BASE_URL}/api/public/courses?scope=regular`),
       ]);
 
       let profileUser = user;

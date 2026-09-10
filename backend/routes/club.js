@@ -559,6 +559,23 @@ function serializeCohort(cohort, { includePrivateLinks = false, includeAutoSched
     tracks: serializeTracks(obj.tracks, includePrivateLinks),
     sessions,
     communityLive: serializeCommunityLive(obj.communityLive, { includePrivateLinks }),
+    recordedCourses: (obj.recordedCourses || []).map((c) => ({
+      _id: c._id,
+      title: c.title || '',
+      description: c.description || '',
+      instructor: c.instructor || 'ELNADY',
+      level: c.level || 'Beginner',
+      duration: c.duration || '',
+      thumbnail: c.thumbnail || '',
+      lessons: (c.lessons || []).map((l) => ({
+        _id: l._id,
+        title: l.title || '',
+        videoUrl: includePrivateLinks ? l.videoUrl || '' : '',
+        taskPdfUrl: includePrivateLinks ? l.taskPdfUrl || '' : '',
+        readingPdfUrl: includePrivateLinks ? l.readingPdfUrl || '' : '',
+        duration: l.duration || '',
+      })),
+    })),
     whatsappLink: includePrivateLinks ? obj.whatsappLink || '' : undefined,
     isPublished: obj.isPublished,
     createdAt: obj.createdAt,
@@ -729,6 +746,7 @@ router.put('/admin/cohorts/:id', requireAuth, requireAdmin, async (req, res) => 
       'tracks',
       'sessions',
       'communityLive',
+      'recordedCourses',
       'isPublished',
     ];
     const updates = {};

@@ -24,13 +24,22 @@ const withMedia = (docs, fields, req) => {
   return resolveMediaFields(docs, fields, req);
 };
 
+const courseScopeFilter = (scope) => {
+  const s = String(scope || 'regular').toLowerCase();
+  if (s === 'club') return { isClub: true };
+  if (s === 'all') return {};
+  return { isClub: { $ne: true } };
+};
+
+const parseIsClub = (value) => value === true || value === 'true';
+
 // @route   GET /api/public/stats
 // @desc    Lightweight content counts for home screen
 // @access  Public
 router.get('/stats', async (req, res) => {
   try {
     const [courses, articles, roadmaps, podcasts, reels, advices, terms, cvs] = await Promise.all([
-      Course.countDocuments({ isActive: true }),
+      Course.countDocuments({ isActive: true, isClub: { $ne: true } }),
       Article.countDocuments({ isActive: true }),
       Roadmap.countDocuments({ isActive: true }),
       Podcast.countDocuments({ isActive: true }),
@@ -408,8 +417,10 @@ router.get('/programming-terms', async (req, res) => {
 router.get('/courses', async (req, res) => {
   try {
     console.log('📚 Public courses route hit!');
-    const courses = await Course.find({ isActive: true })
-      .sort({ createdAt: -1 });
+    const courses = await Course.find({
+      isActive: true,
+      ...courseScopeFilter(req.query.scope)
+    }).sort({ createdAt: -1 });
 
     res.json({
       status: 'success',
@@ -471,7 +482,8 @@ router.post('/courses', async (req, res) => {
       category: String(req.body.category || '').trim().replace(/\s+/g, ' ').slice(0, 40),
       sections: req.body.sections || [],
       requirements: req.body.requirements || [],
-      learningOutcomes: req.body.learningOutcomes || []
+      learningOutcomes: req.body.learningOutcomes || [],
+      isClub: parseIsClub(req.body.isClub)
     };
 
     const course = await Course.create(courseData);
@@ -525,6 +537,11 @@ router.put('/courses/:id', async (req, res) => {
       requirements: req.body.requirements || [],
       learningOutcomes: req.body.learningOutcomes || []
     };
+    if (req.body.isClub === undefined) {
+      delete courseData.isClub;
+    } else {
+      courseData.isClub = parseIsClub(req.body.isClub);
+    }
 
     const course = await Course.findByIdAndUpdate(
       req.params.id,

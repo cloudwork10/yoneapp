@@ -142,7 +142,7 @@ export const fetchReelLinkOptions = async () => {
   try {
     const [coursesRes, thoughtsRes, podcastsRes, roadmapsRes, articlesRes, newsRes] =
       await Promise.all([
-        fetch(`${API_BASE_URL}/api/public/courses`),
+        fetch(`${API_BASE_URL}/api/public/courses?scope=regular`),
         fetch(`${API_BASE_URL}/api/public/programmer-thoughts`),
         fetch(`${API_BASE_URL}/api/public/podcasts`),
         fetch(`${API_BASE_URL}/api/public/roadmaps`),

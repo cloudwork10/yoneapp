@@ -18,6 +18,7 @@ import {
 import { WebView } from 'react-native-webview';
 import API_BASE_URL from '../config/api';
 import resolveMediaUrl from '../utils/mediaUrl';
+import { hydratePodcast, visiblePodcastEpisodes } from '../utils/podcastMeta';
 import { goBackOr } from '../utils/navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -217,11 +218,14 @@ export default function PodcastDetailsScreen() {
         console.log('🎬 Intro Video:', result.data.podcast.introVideo);
         console.log('📹 Episodes count:', result.data.podcast.episodes?.length || 0);
         console.log('📹 Episodes data:', result.data.podcast.episodes);
+        const raw = result.data.podcast;
+        const hydrated = hydratePodcast(raw);
         setPodcast({
-          ...result.data.podcast,
+          ...hydrated,
           thumbnail: resolveMediaUrl(
-            result.data.podcast.thumbnail || result.data.podcast.image
+            hydrated.thumbnail || hydrated.image
           ),
+          episodes: visiblePodcastEpisodes(hydrated.episodes),
         });
         
         // Show video loading immediately if there's an intro video
@@ -230,9 +234,9 @@ export default function PodcastDetailsScreen() {
         }
         
         // Initialize expanded categories for episodes
-        if (result.data.podcast.episodes && result.data.podcast.episodes.length > 0) {
+        if (hydrated.episodes && hydrated.episodes.length > 0) {
           const categories = {};
-          result.data.podcast.episodes.forEach((episode, index) => {
+          hydrated.episodes.forEach((episode, index) => {
             const categoryKey = episode.category || `Episode ${index + 1}`;
             categories[categoryKey] = index === 0; // Expand first episode
           });
@@ -454,78 +458,44 @@ export default function PodcastDetailsScreen() {
               <Text style={styles.overviewText}>{podcast.description}</Text>
             </View>
             
-            <View style={styles.podcastHighlights}>
-              <Text style={styles.highlightsTitle}>What You'll Learn:</Text>
-              <View style={styles.highlightItem}>
-                <Text style={styles.highlightIcon}>🚀</Text>
-                <Text style={styles.highlightText}>Modern programming languages and frameworks</Text>
+            {Array.isArray(podcast.highlights) && podcast.highlights.length > 0 ? (
+              <View style={styles.podcastHighlights}>
+                <Text style={styles.highlightsTitle}>What You'll Learn:</Text>
+                {podcast.highlights.map((item: any, index: number) => (
+                  <View key={`hl-${index}`} style={styles.highlightItem}>
+                    <Text style={styles.highlightIcon}>{item.icon || '•'}</Text>
+                    <Text style={styles.highlightText}>{item.text}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={styles.highlightItem}>
-                <Text style={styles.highlightIcon}>💡</Text>
-                <Text style={styles.highlightText}>Best practices from industry experts</Text>
-              </View>
-              <View style={styles.highlightItem}>
-                <Text style={styles.highlightIcon}>🔧</Text>
-                <Text style={styles.highlightText}>Real-world project development techniques</Text>
-              </View>
-              <View style={styles.highlightItem}>
-                <Text style={styles.highlightIcon}>📱</Text>
-                <Text style={styles.highlightText}>Mobile and web application development</Text>
-              </View>
-              <View style={styles.highlightItem}>
-                <Text style={styles.highlightIcon}>🤖</Text>
-                <Text style={styles.highlightText}>AI and machine learning integration</Text>
-              </View>
-              <View style={styles.highlightItem}>
-                <Text style={styles.highlightIcon}>💼</Text>
-                <Text style={styles.highlightText}>Career development and industry insights</Text>
-              </View>
-            </View>
+            ) : null}
 
-            <View style={styles.podcastFormat}>
-              <Text style={styles.formatTitle}>Podcast Format:</Text>
-              <View style={styles.formatItem}>
-                <Text style={styles.formatIcon}>🎙️</Text>
-                <View style={styles.formatContent}>
-                  <Text style={styles.formatLabel}>Interview Style</Text>
-                  <Text style={styles.formatDescription}>Deep conversations with successful developers and tech leaders</Text>
-                </View>
+            {Array.isArray(podcast.formatItems) && podcast.formatItems.length > 0 ? (
+              <View style={styles.podcastFormat}>
+                <Text style={styles.formatTitle}>Podcast Format:</Text>
+                {podcast.formatItems.map((item: any, index: number) => (
+                  <View key={`fmt-${index}`} style={styles.formatItem}>
+                    <Text style={styles.formatIcon}>{item.icon || '🎙️'}</Text>
+                    <View style={styles.formatContent}>
+                      <Text style={styles.formatLabel}>{item.label}</Text>
+                      <Text style={styles.formatDescription}>{item.description}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
-              <View style={styles.formatItem}>
-                <Text style={styles.formatIcon}>💬</Text>
-                <View style={styles.formatContent}>
-                  <Text style={styles.formatLabel}>Q&A Sessions</Text>
-                  <Text style={styles.formatDescription}>Answering listener questions and solving coding challenges</Text>
-                </View>
-              </View>
-              <View style={styles.formatItem}>
-                <Text style={styles.formatIcon}>📚</Text>
-                <View style={styles.formatContent}>
-                  <Text style={styles.formatLabel}>Educational Series</Text>
-                  <Text style={styles.formatDescription}>Step-by-step tutorials and concept explanations</Text>
-                </View>
-              </View>
-            </View>
+            ) : null}
 
-            <View style={styles.podcastBenefits}>
-              <Text style={styles.benefitsTitle}>Why Listen to This Podcast:</Text>
-              <View style={styles.benefitItem}>
-                <Text style={styles.benefitNumber}>01</Text>
-                <Text style={styles.benefitText}>Stay updated with the latest technology trends and industry news</Text>
+            {Array.isArray(podcast.benefits) && podcast.benefits.length > 0 ? (
+              <View style={styles.podcastBenefits}>
+                <Text style={styles.benefitsTitle}>Why Listen to This Podcast:</Text>
+                {podcast.benefits.map((text: string, index: number) => (
+                  <View key={`bn-${index}`} style={styles.benefitItem}>
+                    <Text style={styles.benefitNumber}>{String(index + 1).padStart(2, '0')}</Text>
+                    <Text style={styles.benefitText}>{text}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={styles.benefitItem}>
-                <Text style={styles.benefitNumber}>02</Text>
-                <Text style={styles.benefitText}>Learn from experienced developers who share their real-world insights</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <Text style={styles.benefitNumber}>03</Text>
-                <Text style={styles.benefitText}>Get practical tips and tricks that you can apply immediately</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <Text style={styles.benefitNumber}>04</Text>
-                <Text style={styles.benefitText}>Build your network by learning about industry professionals</Text>
-              </View>
-            </View>
+            ) : null}
           </View>
         )}
 
@@ -633,32 +603,51 @@ export default function PodcastDetailsScreen() {
               <Text style={styles.sectionSubtitle}>Meet the podcast host</Text>
             </View>
 
-            <View style={styles.hostCard}>
-              <View style={styles.hostAvatar}>
-                <Text style={styles.hostAvatarText}>AM</Text>
-              </View>
-              <Text style={styles.hostName}>Ahmed Mohamed</Text>
-              <Text style={styles.hostTitle}>Developer & Podcast Host</Text>
-              <Text style={styles.hostBio}>
-                Developer with 10 years of experience in app and web development. 
-                Founder of the Programming & Technology Podcast and author of several programming books.
-              </Text>
-              
-              <View style={styles.hostStats}>
-                <View style={styles.hostStat}>
-                  <Text style={styles.hostStatNumber}>50+</Text>
-                  <Text style={styles.hostStatLabel}>Episodes</Text>
+            {(Array.isArray(podcast.hosts) && podcast.hosts.length > 0
+              ? podcast.hosts
+              : (podcast.host ? [{ name: podcast.host }] : [])
+            ).map((hostItem: any, index: number) => {
+              const name = hostItem.name || podcast.host || 'Host';
+              const initials = String(name)
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((w: string) => w[0])
+                .join('')
+                .toUpperCase() || 'H';
+              return (
+                <View key={`host-${index}`} style={styles.hostCard}>
+                  <View style={styles.hostAvatar}>
+                    <Text style={styles.hostAvatarText}>{initials}</Text>
+                  </View>
+                  <Text style={styles.hostName}>{name}</Text>
+                  {hostItem.title ? <Text style={styles.hostTitle}>{hostItem.title}</Text> : null}
+                  {hostItem.bio ? <Text style={styles.hostBio}>{hostItem.bio}</Text> : null}
+                  {(hostItem.episodesCount || hostItem.listenersCount || hostItem.rating) ? (
+                    <View style={styles.hostStats}>
+                      {hostItem.episodesCount ? (
+                        <View style={styles.hostStat}>
+                          <Text style={styles.hostStatNumber}>{hostItem.episodesCount}</Text>
+                          <Text style={styles.hostStatLabel}>Episodes</Text>
+                        </View>
+                      ) : null}
+                      {hostItem.listenersCount ? (
+                        <View style={styles.hostStat}>
+                          <Text style={styles.hostStatNumber}>{hostItem.listenersCount}</Text>
+                          <Text style={styles.hostStatLabel}>Listeners</Text>
+                        </View>
+                      ) : null}
+                      {hostItem.rating ? (
+                        <View style={styles.hostStat}>
+                          <Text style={styles.hostStatNumber}>{hostItem.rating}</Text>
+                          <Text style={styles.hostStatLabel}>Rating</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
                 </View>
-                <View style={styles.hostStat}>
-                  <Text style={styles.hostStatNumber}>15K+</Text>
-                  <Text style={styles.hostStatLabel}>Listeners</Text>
-                </View>
-                <View style={styles.hostStat}>
-                  <Text style={styles.hostStatNumber}>4.9</Text>
-                  <Text style={styles.hostStatLabel}>Rating</Text>
-                </View>
-              </View>
-            </View>
+              );
+            })}
           </View>
         )}
         </View>
@@ -1508,6 +1497,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
+    marginBottom: 16,
   },
   hostAvatar: {
     width: 80,

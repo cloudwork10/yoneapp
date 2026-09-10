@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import API_BASE_URL from '../config/api';
+import { CLUB_COURSE_CATEGORY, isClubRecordedCourse, withClubCourseTag } from '../utils/clubCourse';
 import { makeAuthenticatedRequest } from '../utils/tokenRefresh';
 
 type WaGroupForm = {
@@ -160,53 +161,68 @@ export default function ClubManagementScreen() {
         }))
       );
 
-      // Recorded contents (courses shown under المحتويات المسجلة)
-      try {
-        const coursesRes = await fetch(`${API_BASE_URL}/api/public/courses`);
-        const coursesData = await coursesRes.json();
-        const list = coursesData?.data?.courses || [];
-        const detailed = await Promise.all(
-          list.map(async (c: any) => {
-            try {
-              const dRes = await fetch(`${API_BASE_URL}/api/public/courses/${c._id}`);
-              const dJson = await dRes.json();
-              return dJson?.data?.course || c;
-            } catch {
-              return c;
-            }
-          })
-        );
-        setRecordedCourses(
-          detailed.map((c: any) => {
-            const lessons: LessonForm[] = [];
-            for (const section of c.sections || []) {
-              for (const lesson of section.lessons || []) {
-                lessons.push({
-                  _id: lesson._id,
-                  title: lesson.title || '',
-                  videoUrl: lesson.videoUrl || '',
-                  taskPdfUrl: lesson.taskPdfUrl || '',
-                  readingPdfUrl: lesson.readingPdfUrl || '',
-                  duration: lesson.duration || '',
-                });
-              }
-            }
-            return {
-              _id: c._id,
-              title: c.title || '',
-              description: c.description || '',
-              instructor: c.instructor || 'ELNADY',
-              level: c.level || 'Beginner',
-              duration: c.duration || '1 hour',
-              category: c.category || 'Programming',
-              expanded: false,
-              lessons,
-              raw: c,
-            };
-          })
-        );
-      } catch (e) {
-        console.warn('Failed to load recorded courses', e);
+      const fromCohort = (cohort.recordedCourses || []).map((c: any) => ({
+        _id: c._id,
+        title: c.title || '',
+        description: c.description || '',
+        instructor: c.instructor || 'ELNADY',
+        level: c.level || 'Beginner',
+        duration: c.duration || '1 hour',
+        category: CLUB_COURSE_CATEGORY,
+        expanded: false,
+        lessons: (c.lessons || []).map((l: any) => ({
+          _id: l._id,
+          title: l.title || '',
+          videoUrl: l.videoUrl || '',
+          taskPdfUrl: l.taskPdfUrl || '',
+          readingPdfUrl: l.readingPdfUrl || '',
+          duration: l.duration || '',
+        })),
+        raw: c,
+      }));
+
+      if (fromCohort.length > 0) {
+        setRecordedCourses(fromCohort);
+      } else {
+        try {
+          const coursesRes = await fetch(`${API_BASE_URL}/api/public/courses?scope=all`);
+          const coursesData = await coursesRes.json();
+          const list = coursesData?.data?.courses || [];
+          setRecordedCourses(
+            list
+              .filter((c: any) => isClubRecordedCourse(c))
+              .map((c: any) => {
+                const lessons: LessonForm[] = [];
+                for (const section of c.sections || []) {
+                  for (const lesson of section.lessons || []) {
+                    lessons.push({
+                      _id: lesson._id,
+                      title: lesson.title || '',
+                      videoUrl: lesson.videoUrl || '',
+                      taskPdfUrl: lesson.taskPdfUrl || '',
+                      readingPdfUrl: lesson.readingPdfUrl || '',
+                      duration: lesson.duration || '',
+                    });
+                  }
+                }
+                return {
+                  _id: c._id,
+                  title: c.title || '',
+                  description: c.description || '',
+                  instructor: c.instructor || 'ELNADY',
+                  level: c.level || 'Beginner',
+                  duration: c.duration || '1 hour',
+                  category: CLUB_COURSE_CATEGORY,
+                  expanded: false,
+                  lessons,
+                  raw: c,
+                };
+              })
+          );
+        } catch (e) {
+          console.warn('Failed to load recorded courses', e);
+          setRecordedCourses([]);
+        }
       }
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to load النادي');
@@ -307,6 +323,23 @@ export default function ClubManagementScreen() {
           link: communityLink,
           recordingUrl: communityRecording,
         },
+        recordedCourses: recordedCourses.map((c) => ({
+          ...(c._id && !String(c._id).startsWith('club-course-') ? { _id: c._id } : {}),
+          title: c.title,
+          description: c.description || c.title,
+          instructor: c.instructor || 'ELNADY',
+          level: c.level || 'Beginner',
+          duration: c.duration || '1 hour',
+          thumbnail: c.raw?.thumbnail || '',
+          lessons: (c.lessons || []).map((l) => ({
+            ...(l._id ? { _id: l._id } : {}),
+            title: l.title || '',
+            videoUrl: l.videoUrl || '',
+            taskPdfUrl: l.taskPdfUrl || '',
+            readingPdfUrl: l.readingPdfUrl || '',
+            duration: l.duration || '',
+          })),
+        })),
         isPublished: true,
       };
 
@@ -404,7 +437,7 @@ export default function ClubManagementScreen() {
         instructor: 'ELNADY',
         level: 'Beginner',
         duration: '1 hour',
-        category: 'Programming',
+        category: CLUB_COURSE_CATEGORY,
         expanded: true,
         lessons: [
           {
@@ -420,6 +453,38 @@ export default function ClubManagementScreen() {
     ]);
   };
 
+  const persistRecordedCourses = async (courses: RecordedCourseForm[]) => {
+    if (!cohortId) throw new Error('No cohort');
+    const res = await makeAuthenticatedRequest(
+      `${API_BASE_URL}/api/club/admin/cohorts/${cohortId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          recordedCourses: courses.map((c) => ({
+            ...(c._id && String(c._id).length === 24 ? { _id: c._id } : {}),
+            title: c.title,
+            description: c.description || c.title,
+            instructor: c.instructor || 'ELNADY',
+            level: c.level || 'Beginner',
+            duration: c.duration || '1 hour',
+            thumbnail: c.raw?.thumbnail || '',
+            lessons: (c.lessons || []).map((l) => ({
+              ...(l._id && String(l._id).length === 24 ? { _id: l._id } : {}),
+              title: l.title || '',
+              videoUrl: l.videoUrl || '',
+              taskPdfUrl: l.taskPdfUrl || '',
+              readingPdfUrl: l.readingPdfUrl || '',
+              duration: l.duration || '',
+            })),
+          })),
+        }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || 'Failed to save club course');
+    return data?.data?.cohort?.recordedCourses || [];
+  };
+
   const saveRecordedCourse = async (index: number) => {
     const course = recordedCourses[index];
     if (!course.title.trim()) {
@@ -428,62 +493,130 @@ export default function ClubManagementScreen() {
     }
     try {
       setSavingCourseId(course._id || `new-${index}`);
-      const sections = [
-        {
-          title: 'Intro',
-          description: '',
-          order: 0,
-          lessons: course.lessons.map((l, i) => ({
-            ...(l._id ? { _id: l._id } : {}),
-            title: l.title || `Lecture ${i + 1}`,
+      const nextCourses = recordedCourses.map((c, i) =>
+        i === index ? { ...c, category: CLUB_COURSE_CATEGORY } : c
+      );
+      const savedList = await persistRecordedCourses(nextCourses);
+      if (Array.isArray(savedList) && savedList.length > 0) {
+        setRecordedCourses(
+          savedList.map((c: any, i: number) => ({
+            _id: c._id,
+            title: c.title || '',
+            description: c.description || '',
+            instructor: c.instructor || 'ELNADY',
+            level: c.level || 'Beginner',
+            duration: c.duration || '1 hour',
+            category: CLUB_COURSE_CATEGORY,
+            expanded: i === index,
+            lessons: (c.lessons || []).map((l: any) => ({
+              _id: l._id,
+              title: l.title || '',
+              videoUrl: l.videoUrl || '',
+              taskPdfUrl: l.taskPdfUrl || '',
+              readingPdfUrl: l.readingPdfUrl || '',
+              duration: l.duration || '',
+            })),
+            raw: c,
+          }))
+        );
+      } else {
+        // Production API may ignore recordedCourses until backend deploy.
+        // Mark as club-only via category so it never appears on the Courses page.
+        const sections = [
+          {
+            title: 'Intro',
             description: '',
-            videoUrl: l.videoUrl || '',
-            taskPdfUrl: l.taskPdfUrl || '',
-            readingPdfUrl: l.readingPdfUrl || '',
-            duration: l.duration || '',
-            accessType: 'premium',
-            order: i,
-          })),
-        },
-      ];
-
-      const payload = {
-        title: course.title,
-        description: course.description || course.title,
-        instructor: course.instructor || 'ELNADY',
-        duration: course.duration || '1 hour',
-        level: course.level || 'Beginner',
-        category: course.category || 'Programming',
-        price: course.raw?.price ?? 0,
-        originalPrice: course.raw?.originalPrice ?? 0,
-        language: course.raw?.language || 'Arabic',
-        thumbnail: course.raw?.thumbnail || '',
-        image: course.raw?.image || '',
-        previewVideo: course.raw?.previewVideo || '',
-        requirements: course.raw?.requirements || [],
-        learningOutcomes: course.raw?.learningOutcomes || [],
-        isActive: true,
-        isFeatured: !!course.raw?.isFeatured,
-        sections,
-      };
-
-      const url = course._id
-        ? `${API_BASE_URL}/api/public/courses/${course._id}`
-        : `${API_BASE_URL}/api/public/courses`;
-      const method = course._id ? 'PUT' : 'POST';
-      const res = await makeAuthenticatedRequest(url, {
-        method,
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || 'Failed to save course');
-      Alert.alert('Saved', 'Recorded course saved — appears under المحتويات المسجلة');
-      await load();
+            order: 0,
+            lessons: course.lessons.map((l, i) => ({
+              ...(l._id ? { _id: l._id } : {}),
+              title: l.title || `Lecture ${i + 1}`,
+              description: '',
+              videoUrl: l.videoUrl || '',
+              taskPdfUrl: l.taskPdfUrl || '',
+              readingPdfUrl: l.readingPdfUrl || '',
+              duration: l.duration || '',
+              accessType: 'premium',
+              order: i,
+            })),
+          },
+        ];
+        const payload = {
+          title: course.title,
+          description: course.description || course.title,
+          instructor: course.instructor || 'ELNADY',
+          duration: course.duration || '1 hour',
+          level: course.level || 'Beginner',
+          category: CLUB_COURSE_CATEGORY,
+          price: 0,
+          originalPrice: 0,
+          language: 'Arabic',
+          thumbnail: course.raw?.thumbnail || '',
+          isActive: true,
+          isFeatured: false,
+          isClub: true,
+          tags: withClubCourseTag(course.raw?.tags),
+          sections,
+        };
+        const url = course._id && String(course._id).length === 24
+          ? `${API_BASE_URL}/api/public/courses/${course._id}`
+          : `${API_BASE_URL}/api/public/courses`;
+        const method = course._id && String(course._id).length === 24 ? 'PUT' : 'POST';
+        const res = await makeAuthenticatedRequest(url, {
+          method,
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.message || 'Failed to save course');
+        const saved = data?.data?._id ? data.data : data?.data?.course || data?.data;
+        if (saved?._id) {
+          setRecordedCourses((prev) =>
+            prev.map((c, i) => (i === index ? { ...c, _id: saved._id, category: CLUB_COURSE_CATEGORY, raw: saved } : c))
+          );
+        }
+      }
+      Alert.alert('Saved', 'اتحفظ في النادي فقط — مش هيظهر في صفحة الكورسات');
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to save course');
     } finally {
       setSavingCourseId(null);
     }
+  };
+
+  const deleteRecordedCourse = (index: number) => {
+    const course = recordedCourses[index];
+    const isClubCourse = !course._id || isClubRecordedCourse(course);
+    Alert.alert(
+      'حذف الكورس',
+      isClubCourse
+        ? `حذف "${course.title || 'this course'}" من النادي؟`
+        : `"${course.title}" موجود في صفحة الكورسات. هيختفي من النادي فقط ولن يتم مسحه من هناك.`,
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'حذف',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const remaining = recordedCourses.filter((_, i) => i !== index);
+              try {
+                await persistRecordedCourses(remaining);
+              } catch {
+                // ignore if backend does not store recordedCourses yet
+              }
+              if (course._id && String(course._id).length === 24 && isClubRecordedCourse(course)) {
+                await makeAuthenticatedRequest(
+                  `${API_BASE_URL}/api/public/courses/${course._id}`,
+                  { method: 'DELETE' }
+                ).catch(() => {});
+              }
+              setRecordedCourses(remaining);
+            } catch (e: any) {
+              Alert.alert('Error', e?.message || 'Failed to delete course');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (!isAdmin) return <SafeAreaView style={styles.safe} />;
@@ -817,11 +950,20 @@ export default function ClubManagementScreen() {
           ) : (
             recordedCourses.map((course, cIndex) => (
               <View key={course._id || `rc-${cIndex}`} style={styles.block}>
-                <TouchableOpacity onPress={() => toggleCourse(cIndex)}>
-                  <Text style={styles.blockTitle}>
-                    {course.expanded ? '▼' : '▶'} {course.title || `Course ${cIndex + 1}`}
-                  </Text>
-                </TouchableOpacity>
+                <View style={styles.courseRow}>
+                  <TouchableOpacity style={styles.courseRowMain} onPress={() => toggleCourse(cIndex)}>
+                    <Text style={styles.blockTitle}>
+                      {course.expanded ? '▼' : '▶'} {course.title || `Course ${cIndex + 1}`}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteCourseBtn}
+                    onPress={() => deleteRecordedCourse(cIndex)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.deleteCourseBtnText}>حذف</Text>
+                  </TouchableOpacity>
+                </View>
 
                 {course.expanded ? (
                   <>
@@ -911,6 +1053,9 @@ export default function ClubManagementScreen() {
                           : 'Save course'}
                       </Text>
                     </TouchableOpacity>
+                    <TouchableOpacity onPress={() => deleteRecordedCourse(cIndex)}>
+                      <Text style={styles.deleteLink}>Delete course</Text>
+                    </TouchableOpacity>
                   </>
                 ) : null}
               </View>
@@ -986,7 +1131,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#222',
   },
-  blockTitle: { color: '#E50914', fontWeight: '800', marginBottom: 8 },
+  blockTitle: { color: '#E50914', fontWeight: '800', marginBottom: 0, flex: 1 },
+  courseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 8,
+  },
+  courseRowMain: { flex: 1, paddingRight: 8 },
+  deleteCourseBtn: {
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderWidth: 1,
+    borderColor: '#ff6b6b',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  deleteCourseBtnText: { color: '#ff6b6b', fontWeight: '800', fontSize: 13 },
   waBlock: {
     backgroundColor: '#0c0c0c',
     borderRadius: 10,

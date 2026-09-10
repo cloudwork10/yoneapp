@@ -195,6 +195,12 @@ const courseSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Club (Elnady) recorded courses — separate from the public Courses tab
+  isClub: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
   tags: [{
     type: String,
     trim: true

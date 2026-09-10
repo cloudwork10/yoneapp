@@ -75,6 +75,21 @@ const clubCohortSchema = new mongoose.Schema({
   tracks: [trackSchema],
   sessions: [sessionSchema],
   communityLive: { type: communityLiveSchema, default: () => ({}) },
+  recordedCourses: [{
+    title: { type: String, default: '', trim: true },
+    description: { type: String, default: '' },
+    instructor: { type: String, default: 'ELNADY', trim: true },
+    level: { type: String, default: 'Beginner' },
+    duration: { type: String, default: '' },
+    thumbnail: { type: String, default: '' },
+    lessons: [{
+      title: { type: String, default: '' },
+      videoUrl: { type: String, default: '' },
+      taskPdfUrl: { type: String, default: '' },
+      readingPdfUrl: { type: String, default: '' },
+      duration: { type: String, default: '' },
+    }],
+  }],
   isPublished: { type: Boolean, default: true },
 }, { timestamps: true });
 
