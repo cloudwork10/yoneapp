@@ -6,8 +6,9 @@ import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as ScreenCapture from 'expo-screen-capture';
 import { useEffect, useRef } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import 'react-native-reanimated';
 import NotificationService from '../services/NotificationService';
 import { recordActivityDay } from '../utils/learningProgress';
@@ -56,6 +57,43 @@ function PresenceHeartbeat() {
       sub.remove();
     };
   }, [user?.id]);
+
+  return null;
+}
+
+function BlockScreenCapture() {
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    let cancelled = false;
+
+    const lock = async () => {
+      try {
+        const available = await ScreenCapture.isAvailableAsync();
+        if (!available || cancelled) return;
+        await ScreenCapture.preventScreenCaptureAsync('app');
+        if (Platform.OS === 'ios') {
+          await ScreenCapture.enableAppSwitcherProtectionAsync(1);
+        }
+      } catch {
+        // Expo Go / missing native module — ignore
+      }
+    };
+
+    lock();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') lock();
+    });
+
+    return () => {
+      cancelled = true;
+      sub.remove();
+      ScreenCapture.allowScreenCaptureAsync('app').catch(() => {});
+      if (Platform.OS === 'ios') {
+        ScreenCapture.disableAppSwitcherProtectionAsync().catch(() => {});
+      }
+    };
+  }, []);
 
   return null;
 }
@@ -156,6 +194,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <UserProvider>
+        <BlockScreenCapture />
         <PresenceHeartbeat />
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack
