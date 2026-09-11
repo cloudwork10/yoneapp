@@ -192,6 +192,9 @@ export default function ReelsScreen() {
   // Reel ids whose video has fired its first onLoad — used to show a spinner
   // instead of a blank/frozen frame while the current reel is still buffering.
   const [readyVideoIds, setReadyVideoIds] = useState<Set<string>>(new Set());
+  // Reel ids that are currently stalled waiting for more data (mid-playback
+  // rebuffering, not just the initial load) — also shows the spinner.
+  const [bufferingIds, setBufferingIds] = useState<Set<string>>(new Set());
   const seekTrackWidth = useRef(width);
   const wasPlayingBeforeScrub = useRef(false);
   const scrubbingIdRef = useRef<string | null>(null);
@@ -615,7 +618,7 @@ export default function ReelsScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Reject',
-          onPress: async (reason) => {
+          onPress: async (reason: any) => {
             try {
               const response = await makeAuthenticatedRequest(
                 `${API_BASE_URL}/api/reels/${reelId}/reject`,
@@ -1178,6 +1181,20 @@ export default function ReelsScreen() {
           progressUpdateIntervalMillis={250}
           onPlaybackStatusUpdate={(status: any) => {
             if (!status?.isLoaded) return;
+
+            // Track mid-playback stalls (rebuffering) so the spinner comes
+            // back any time a reel stops downloading/buffering, not just
+            // before its first frame.
+            const buffering = !!status.isBuffering;
+            setBufferingIds((prev) => {
+              const has = prev.has(item._id);
+              if (has === buffering) return prev;
+              const next = new Set(prev);
+              if (buffering) next.add(item._id);
+              else next.delete(item._id);
+              return next;
+            });
+
             if (scrubbingIdRef.current === item._id) return;
             const position = status.positionMillis || 0;
             const duration = status.durationMillis || 0;
@@ -1219,11 +1236,24 @@ export default function ReelsScreen() {
           }}
           onError={(error) => {
             console.error('Video error:', item.videoUrl, error);
+            // Don't leave the spinner running forever on a broken video.
+            setReadyVideoIds((prev) =>
+              prev.has(item._id) ? prev : new Set(prev).add(item._id)
+            );
+            setBufferingIds((prev) => {
+              if (!prev.has(item._id)) return prev;
+              const next = new Set(prev);
+              next.delete(item._id);
+              return next;
+            });
           }}
         />
 
-          {/* Buffering indicator — the current reel while its video hasn't produced a frame yet */}
-          {index === currentIndex && !readyVideoIds.has(item._id) ? (
+          {/* Buffering indicator — shows for the current reel whenever it hasn't
+              produced its first frame yet, or has stalled mid-playback waiting
+              for more data. */}
+          {index === currentIndex &&
+          (!readyVideoIds.has(item._id) || bufferingIds.has(item._id)) ? (
             <View style={styles.playPauseOverlay} pointerEvents="none">
               <ActivityIndicator size="large" color="#FFFFFF" />
             </View>
@@ -1528,7 +1558,7 @@ export default function ReelsScreen() {
             data={reels}
             renderItem={renderReel}
             keyExtractor={(item) => item._id}
-            extraData={[reelHeight, readyVideoIds]}
+            extraData={[reelHeight, readyVideoIds, bufferingIds]}
             pagingEnabled
             scrollEnabled={scrubbingId === null}
             showsVerticalScrollIndicator={false}
