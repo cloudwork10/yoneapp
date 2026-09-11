@@ -82,9 +82,21 @@ export default function CoursesScreen() {
         setLoading(true);
       }
       setError(null);
-      
-      const response = await fetch(`${API_BASE_URL}/api/public/courses?scope=regular`);
-      
+
+      // Guard against a hung request (e.g. a sleeping backend) leaving the
+      // skeleton spinning forever — fail fast and show the retry state.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      let response;
+      try {
+        response = await fetch(`${API_BASE_URL}/api/public/courses?scope=regular`, {
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
       if (response.ok) {
         const data = await response.json();
         const fetchedCourses = data.data.courses
@@ -111,9 +123,13 @@ export default function CoursesScreen() {
       } else {
         setError('Failed to load courses');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching courses:', error);
-      setError('Failed to load courses');
+      setError(
+        error?.name === 'AbortError'
+          ? 'Request timed out. Check your connection and try again.'
+          : 'Failed to load courses'
+      );
     } finally {
       setLoading(false);
     }

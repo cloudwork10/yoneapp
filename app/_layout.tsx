@@ -2,6 +2,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { UserProvider, useUser } from '@/contexts/UserContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
 import * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
@@ -16,6 +17,27 @@ import { PAID_FLOW_ENABLED } from '../utils/subscriptionAccess';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+/**
+ * On iOS, the shared AVAudioSession is created lazily the first time any
+ * expo-av player actually starts playing — that one-time setup can stall
+ * playback for a noticeable moment. This is why only the very first video
+ * a user sees (e.g. the first reel) appears to "freeze" before it starts.
+ * Warming the session once here, right after app mount, moves that cost
+ * off the first video's critical path.
+ */
+function PrimeAudioSession() {
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
+    }).catch(() => {});
+  }, []);
+
+  return null;
+}
 
 function PresenceHeartbeat() {
   const { user } = useUser();
@@ -195,6 +217,7 @@ export default function RootLayout() {
     <ErrorBoundary>
       <UserProvider>
         <BlockScreenCapture />
+        <PrimeAudioSession />
         <PresenceHeartbeat />
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack

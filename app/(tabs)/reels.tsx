@@ -40,6 +40,23 @@ import { makeAuthenticatedRequest } from '../../utils/tokenRefresh';
 
 const { width, height } = Dimensions.get('window');
 
+/**
+ * expo-av's native video player (AVPlayer on iOS / ExoPlayer on Android)
+ * opens its own connection to the media host — it does NOT share RN's
+ * `fetch` connection pool. So even though the JSON reels request just woke
+ * up / warmed a connection to the same API host, the first `<Video>` still
+ * pays a fresh DNS+TLS+TCP handshake (and, on a sleeping Railway backend,
+ * a cold-start). That one-time cost is what makes only the first reel look
+ * frozen. Firing a tiny ranged GET the moment we know the first reel's URL
+ * — well before the `<Video>` mounts — lets that handshake happen while
+ * the JSON is still being parsed/hydrated instead of on the video's own
+ * critical path.
+ */
+const preconnectVideoHost = (url?: string | null) => {
+  if (!url) return;
+  fetch(url, { headers: { Range: 'bytes=0-1' } }).catch(() => {});
+};
+
 function ReelPromoCta({
   linkType,
   remainingMs,
@@ -172,6 +189,9 @@ export default function ReelsScreen() {
   >({});
   const [scrubbingId, setScrubbingId] = useState<string | null>(null);
   const [scrubRatio, setScrubRatio] = useState(0);
+  // Reel ids whose video has fired its first onLoad — used to show a spinner
+  // instead of a blank/frozen frame while the current reel is still buffering.
+  const [readyVideoIds, setReadyVideoIds] = useState<Set<string>>(new Set());
   const seekTrackWidth = useRef(width);
   const wasPlayingBeforeScrub = useRef(false);
   const scrubbingIdRef = useRef<string | null>(null);
@@ -310,6 +330,7 @@ export default function ReelsScreen() {
       
       if (response.ok) {
         const data = await response.json();
+        preconnectVideoHost(data.data.reels?.[0]?.videoUrl);
         setReels(await hydrateReels(data.data.reels || []));
       } else {
         setReels([]);
@@ -324,15 +345,16 @@ export default function ReelsScreen() {
 
   const fetchFollowingReels = async () => {
     if (!user) return;
-    
+
     try {
       if (reels.length === 0) setLoading(true);
       const response = await makeAuthenticatedRequest(
         `${API_BASE_URL}/api/reels?feed=following`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
+        preconnectVideoHost(data.data.reels?.[0]?.videoUrl);
         setReels(await hydrateReels(data.data.reels || []));
       } else {
         setReels([]);
@@ -347,15 +369,16 @@ export default function ReelsScreen() {
 
   const fetchMyReels = async () => {
     if (!user) return;
-    
+
     try {
       if (reels.length === 0) setLoading(true);
       const response = await makeAuthenticatedRequest(
         `${API_BASE_URL}/api/reels/my-reels`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
+        preconnectVideoHost(data.data.reels?.[0]?.videoUrl);
         setReels(await hydrateReels(data.data.reels || []));
       } else {
         setReels([]);
@@ -1173,6 +1196,12 @@ export default function ReelsScreen() {
           }}
           onReadyForDisplay={(event: any) => {
             detectVideoFit(item._id, event?.naturalSize);
+            // This fires when the first real frame is actually painted —
+            // the true end of the "frozen" window, ahead of onLoad which
+            // only means metadata/decoder is ready.
+            setReadyVideoIds((prev) =>
+              prev.has(item._id) ? prev : new Set(prev).add(item._id)
+            );
           }}
           onLoad={(status: any) => {
             // Fallback when onReadyForDisplay is missing (some web/native builds)
@@ -1184,11 +1213,21 @@ export default function ReelsScreen() {
             if (index === currentIndex) {
               incrementView(item._id);
             }
+            setReadyVideoIds((prev) =>
+              prev.has(item._id) ? prev : new Set(prev).add(item._id)
+            );
           }}
           onError={(error) => {
             console.error('Video error:', item.videoUrl, error);
           }}
         />
+
+          {/* Buffering indicator — the current reel while its video hasn't produced a frame yet */}
+          {index === currentIndex && !readyVideoIds.has(item._id) ? (
+            <View style={styles.playPauseOverlay} pointerEvents="none">
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+          ) : null}
 
           {/* Play/Pause Icon Overlay */}
           {!isPlaying && index === currentIndex && showPlayIcon === index ? (
@@ -1489,7 +1528,7 @@ export default function ReelsScreen() {
             data={reels}
             renderItem={renderReel}
             keyExtractor={(item) => item._id}
-            extraData={reelHeight}
+            extraData={[reelHeight, readyVideoIds]}
             pagingEnabled
             scrollEnabled={scrubbingId === null}
             showsVerticalScrollIndicator={false}
@@ -1498,6 +1537,13 @@ export default function ReelsScreen() {
             snapToInterval={reelHeight}
             snapToAlignment="start"
             decelerationRate="fast"
+            // Only mount the current reel + one neighbour on each side so the
+            // first video isn't fighting nine other <Video> elements for
+            // bandwidth on initial render (that was the main cause of the
+            // "first reel takes a moment" delay).
+            initialNumToRender={2}
+            windowSize={3}
+            maxToRenderPerBatch={2}
             getItemLayout={(data, index) => ({
               length: reelHeight,
               offset: reelHeight * index,
