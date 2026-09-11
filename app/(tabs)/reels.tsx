@@ -1182,10 +1182,25 @@ export default function ReelsScreen() {
           onPlaybackStatusUpdate={(status: any) => {
             if (!status?.isLoaded) return;
 
+            // `status.isPlaying` is the single most trustworthy signal that
+            // frames are actually being presented. Whenever it's true, force
+            // both spinner gates closed — this is a hard override so a stale
+            // `readyVideoIds`/`bufferingIds` (e.g. a missed onReadyForDisplay
+            // on some devices, or a stuck `isBuffering` flag) can never leave
+            // the spinner showing over video that is visibly playing.
+            if (status.isPlaying) {
+              setReadyVideoIds((prev) =>
+                prev.has(item._id) ? prev : new Set(prev).add(item._id)
+              );
+            }
+
             // Track mid-playback stalls (rebuffering) so the spinner comes
             // back any time a reel stops downloading/buffering, not just
-            // before its first frame.
-            const buffering = !!status.isBuffering;
+            // before its first frame. `isBuffering` alone is flaky on
+            // expo-av — it can stay `true` even once frames are flowing
+            // again, so only trust it when the player has actually stalled
+            // (isPlaying is false at the same time).
+            const buffering = !!status.isBuffering && !status.isPlaying;
             setBufferingIds((prev) => {
               const has = prev.has(item._id);
               if (has === buffering) return prev;

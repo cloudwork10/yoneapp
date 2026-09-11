@@ -1205,7 +1205,16 @@ export default function CourseDetailsScreen() {
                       }}
                       onLoad={() => setIsVideoLoading(false)}
                       onLoadStart={() => setIsVideoLoading(true)}
-                      onLoadEnd={() => setIsVideoLoading(false)}
+                      onPlaybackStatusUpdate={(status: any) => {
+                        // Hard override: once the player confirms frames are
+                        // actually being presented, force the spinner closed
+                        // regardless of onLoad/onLoadStart — those can leave
+                        // isVideoLoading stuck true on some devices even
+                        // while the video is visibly playing fine.
+                        if (status?.isLoaded && status.isPlaying) {
+                          setIsVideoLoading(false);
+                        }
+                      }}
                     />
                   )}
                   {isVideoLoading ? (
