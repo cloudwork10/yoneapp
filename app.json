@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.elnady.app",
-      "buildNumber": "5",
+      "buildNumber": "10",
       "supportsTablet": false,
       "infoPlist": {
         "NSPhotoLibraryAddUsageDescription": "This app needs access to save videos to your photo library.",
@@ -34,7 +34,7 @@
     },
     "android": {
       "package": "com.elnady.app",
-      "versionCode": 9,
+      "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
