@@ -5,8 +5,8 @@ const ClubEnrollment = require('../models/ClubEnrollment');
 const Subscription = require('../models/Subscription');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 
-const DEFAULT_START = new Date('2026-10-10T17:00:00.000Z');
-const DEFAULT_END = new Date('2026-12-05T21:00:00.000Z');
+const DEFAULT_START = new Date('2026-12-01T00:00:00+03:00');
+const DEFAULT_END = new Date('2027-02-01T21:00:00.000Z');
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -142,6 +142,14 @@ function egyptLocalDate(year, monthIndex, day, hours, minutes) {
   );
 }
 
+function clubLivesStarted(startDate, now = new Date()) {
+  if (!startDate) return false;
+  const startParts = getEgyptParts(new Date(startDate));
+  const nowParts = getEgyptParts(now);
+  const toKey = (p) => p.year * 10000 + (p.month + 1) * 100 + p.day;
+  return toKey(nowParts) >= toKey(startParts);
+}
+
 function sessionKey(trackId, startsAt) {
   const d = new Date(startsAt);
   return `${String(trackId || '')}|${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}-${d.getUTCHours()}`;
@@ -245,10 +253,10 @@ function generateSessionsFromWeeklySlots(cohort, now = new Date()) {
   if (wd === undefined) return [];
 
   // Before cohort start / after end → no daily schedule
-  const todayNoon = egyptLocalDate(year, month, day, 12, 0);
-  if (cohortStart && todayNoon < new Date(cohortStart.getTime() - 12 * 60 * 60 * 1000)) {
+  if (cohortStart && !clubLivesStarted(cohortStart, now)) {
     return [];
   }
+  const todayNoon = egyptLocalDate(year, month, day, 12, 0);
   if (cohortEnd && todayNoon > cohortEnd) {
     return [];
   }
@@ -338,7 +346,7 @@ function buildDefaultCohort() {
   ];
 
   return {
-    title: 'النادي · دفعة أكتوبر 2026',
+    title: 'النادي · دفعة ديسمبر 2026',
     description:
       'Live cohort inside ELNADY — choose your track, join Zoom sessions, and enter your WhatsApp community groups.',
     startDate: DEFAULT_START,
@@ -406,6 +414,11 @@ async function ensureDefaultCohort() {
     await cohort.save();
   }
 
+  if (!cohort.startDate || new Date(cohort.startDate) < DEFAULT_START) {
+    cohort.startDate = DEFAULT_START;
+    await cohort.save();
+  }
+
   if (!cohort.communityLive || typeof cohort.communityLive !== 'object') {
     cohort.communityLive = {
       enabled: true,
@@ -434,7 +447,7 @@ async function userHasClubAccess(userId) {
   return !!sub;
 }
 
-function serializeTracks(tracks, includePrivateLinks) {
+function serializeTracks(tracks, includePrivateLinks, { hideWeeklySlots = false } = {}) {
   return (tracks || [])
     .slice()
     .sort((a, b) => (a.order || 0) - (b.order || 0))
@@ -445,13 +458,15 @@ function serializeTracks(tracks, includePrivateLinks) {
         hasLink: !!g.link,
         link: includePrivateLinks ? g.link || '' : undefined,
       }));
-      const weeklySlots = (t.weeklySlots || []).map((s) => ({
-        _id: s._id,
-        dayOfWeek: s.dayOfWeek,
-        time: s.time || '19:00',
-        dayName: DAY_NAMES[s.dayOfWeek] || '',
-        label: s.label || formatSlotLabel(s.dayOfWeek, s.time || '19:00'),
-      }));
+      const weeklySlots = hideWeeklySlots
+        ? []
+        : (t.weeklySlots || []).map((s) => ({
+            _id: s._id,
+            dayOfWeek: s.dayOfWeek,
+            time: s.time || '19:00',
+            dayName: DAY_NAMES[s.dayOfWeek] || '',
+            label: s.label || formatSlotLabel(s.dayOfWeek, s.time || '19:00'),
+          }));
       return {
         _id: t._id,
         title: t.title,
@@ -468,9 +483,14 @@ function serializeTracks(tracks, includePrivateLinks) {
     });
 }
 
-function serializeCohort(cohort, { includePrivateLinks = false, includeAutoSchedule = false } = {}) {
+function serializeCohort(cohort, {
+  includePrivateLinks = false,
+  includeAutoSchedule = false,
+  includeLiveSchedule = false,
+} = {}) {
   const obj = cohort.toObject ? cohort.toObject() : { ...cohort };
   const now = new Date();
+  const livesVisible = includeLiveSchedule || clubLivesStarted(obj.startDate, now);
 
   const manualRaw = (obj.sessions || []).map((s) => ({
     _id: s._id,
@@ -486,7 +506,7 @@ function serializeCohort(cohort, { includePrivateLinks = false, includeAutoSched
 
   let mergedRaw = manualRaw;
 
-  if (includeAutoSchedule) {
+  if (includeAutoSchedule && livesVisible) {
     const autoRaw = generateSessionsFromWeeklySlots(obj, now);
     const usedManual = new Set();
     mergedRaw = [];
@@ -556,8 +576,8 @@ function serializeCohort(cohort, { includePrivateLinks = false, includeAutoSched
     price: obj.price,
     maxSeats: obj.maxSeats,
     coverImage: obj.coverImage,
-    tracks: serializeTracks(obj.tracks, includePrivateLinks),
-    sessions,
+    tracks: serializeTracks(obj.tracks, includePrivateLinks, { hideWeeklySlots: !livesVisible }),
+    sessions: livesVisible ? sessions : [],
     communityLive: serializeCommunityLive(obj.communityLive, { includePrivateLinks }),
     recordedCourses: (obj.recordedCourses || []).map((c) => ({
       _id: c._id,
@@ -687,7 +707,7 @@ router.get('/admin/cohorts', requireAuth, requireAdmin, async (req, res) => {
     res.json({
       status: 'success',
       data: {
-        cohorts: cohorts.map((c) => serializeCohort(c, { includePrivateLinks: true })),
+        cohorts: cohorts.map((c) => serializeCohort(c, { includePrivateLinks: true, includeLiveSchedule: true })),
       },
     });
   } catch (error) {
@@ -704,7 +724,7 @@ router.get('/admin/cohorts/:id', requireAuth, requireAdmin, async (req, res) => 
     }
     res.json({
       status: 'success',
-      data: { cohort: serializeCohort(cohort, { includePrivateLinks: true }) },
+      data: { cohort: serializeCohort(cohort, { includePrivateLinks: true, includeLiveSchedule: true }) },
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: 'Failed to load cohort' });
@@ -723,7 +743,7 @@ router.post('/admin/cohorts', requireAuth, requireAdmin, async (req, res) => {
     const cohort = await ClubCohort.create(payload);
     res.status(201).json({
       status: 'success',
-      data: { cohort: serializeCohort(cohort, { includePrivateLinks: true }) },
+      data: { cohort: serializeCohort(cohort, { includePrivateLinks: true, includeLiveSchedule: true }) },
     });
   } catch (error) {
     console.error('Create cohort error:', error);
@@ -766,7 +786,7 @@ router.put('/admin/cohorts/:id', requireAuth, requireAdmin, async (req, res) => 
 
     res.json({
       status: 'success',
-      data: { cohort: serializeCohort(cohort, { includePrivateLinks: true }) },
+      data: { cohort: serializeCohort(cohort, { includePrivateLinks: true, includeLiveSchedule: true }) },
     });
   } catch (error) {
     console.error('Update cohort error:', error);

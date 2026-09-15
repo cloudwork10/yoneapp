@@ -486,17 +486,19 @@ class NotificationService {
         }
       }
 
-      if (!resolvedTracks.length) {
-        console.log('⏸️ No club tracks available for lecture notifications');
-        return;
-      }
-
-      // Cancel previous club lecture notifications
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
       for (const n of scheduled) {
         if (n.content.data?.type === 'club_lecture') {
           await Notifications.cancelScheduledNotificationAsync(n.identifier);
         }
+      }
+
+      const hasSlots = (resolvedTracks || []).some((track) =>
+        (track.weeklySlots || []).some((slot) => slot?.time || slot?.dayOfWeek != null)
+      );
+      if (!resolvedTracks.length || !hasSlots) {
+        console.log('⏸️ Club live lectures are not open yet — notifications cleared');
+        return;
       }
 
       const now = new Date();

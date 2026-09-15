@@ -154,10 +154,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 1,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Sunday 7:00 PM' },
-      { label: 'Wednesday 8:00 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'Cyber Security',
@@ -165,10 +162,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 2,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Monday 7:30 PM' },
-      { label: 'Thursday 9:00 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'Front End',
@@ -176,10 +170,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 3,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Tuesday 7:00 PM' },
-      { label: 'Saturday 8:30 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'Back End',
@@ -187,10 +178,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 4,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Sunday 8:00 PM' },
-      { label: 'Thursday 7:00 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'Mobile Apps',
@@ -198,10 +186,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 5,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Monday 8:00 PM' },
-      { label: 'Friday 7:30 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'Data Analysis',
@@ -209,10 +194,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 6,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Tuesday 8:30 PM' },
-      { label: 'Friday 9:00 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'UI UX Design',
@@ -220,10 +202,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 7,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Wednesday 7:00 PM' },
-      { label: 'Saturday 7:00 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'AI Automation',
@@ -231,10 +210,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 8,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Sunday 9:00 PM' },
-      { label: 'Tuesday 9:00 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'Media Buying',
@@ -242,10 +218,7 @@ const FALLBACK_TRACKS: Track[] = [
     order: 9,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Monday 9:30 PM' },
-      { label: 'Wednesday 8:30 PM' },
-    ],
+    weeklySlots: [],
   },
   {
     title: 'Freelancing',
@@ -253,19 +226,16 @@ const FALLBACK_TRACKS: Track[] = [
     order: 10,
     groupCount: 1,
     whatsappGroups: [{ label: 'Group 1' }],
-    weeklySlots: [
-      { label: 'Thursday 8:00 PM' },
-      { label: 'Saturday 9:00 PM' },
-    ],
+    weeklySlots: [],
   },
 ];
 
 const FALLBACK_COHORT: Cohort = {
   _id: 'local-fallback',
-  title: 'النادي · دفعة أكتوبر 2026',
+  title: 'النادي · دفعة ديسمبر 2026',
   description: 'Live tracks · Zoom sessions · WhatsApp communities per specialization',
-  startDate: '2026-10-10T17:00:00.000Z',
-  endDate: '2026-12-05T21:00:00.000Z',
+  startDate: '2026-12-01T00:00:00.000Z',
+  endDate: '2027-02-01T21:00:00.000Z',
   status: 'upcoming',
   tracks: FALLBACK_TRACKS,
   sessions: [],
