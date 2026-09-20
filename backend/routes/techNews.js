@@ -2,6 +2,8 @@ const express = require('express');
 const TechNews = require('../models/TechNews');
 const {
   refreshTechNews,
+  kickHistoryRefresh,
+  NEWS_LOOKBACK_DAYS,
   enrichMissingImages,
   replaceGoogleLogoImages,
   seededFallback,
@@ -116,6 +118,15 @@ router.get('/', async (req, res) => {
       kickImageEnrich(Math.min(120, missingImages + 20));
     }
 
+    const oldest = items[items.length - 1]?.publishedAt
+      ? new Date(items[items.length - 1].publishedAt).getTime()
+      : 0;
+    const historyGap =
+      oldest && Date.now() - oldest < (NEWS_LOOKBACK_DAYS - 3) * 24 * 60 * 60 * 1000;
+    if (historyGap) {
+      kickHistoryRefresh();
+    }
+
     res.json({
       status: 'success',
       data: { news: items.map(serialize), region },
@@ -176,12 +187,13 @@ router.get('/admin', requireAuth, requireAdmin, async (req, res) => {
 // Manual refresh
 router.post('/admin/refresh', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const result = await refreshTechNews();
-    const filled = result?.images?.filled || 0;
+    const started = kickHistoryRefresh();
     res.json({
       status: 'success',
-      message: `Imported ${result.imported} new items · filled ${filled} images`,
-      data: result,
+      message: started
+        ? 'Refresh started in the background. Older stories keep filling in.'
+        : 'Refresh already running.',
+      data: { started, running: true },
     });
   } catch (error) {
     res.status(500).json({ status: 'error', message: error.message || 'Refresh failed' });

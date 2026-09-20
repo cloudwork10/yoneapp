@@ -236,8 +236,8 @@ function ymd(date) {
   return new Date(date).toISOString().slice(0, 10);
 }
 
-/** Last 30 days in ~10-day slices so Google RSS returns older stories, not only this week. */
-function lookbackWindows(days = NEWS_LOOKBACK_DAYS, sliceDays = 10) {
+/** Last 30 days in week slices, oldest first, so Google RSS yields earlier stories. */
+function lookbackWindows(days = NEWS_LOOKBACK_DAYS, sliceDays = 7) {
   const windows = [];
   const now = Date.now();
   for (let offset = 0; offset < days; offset += sliceDays) {
@@ -248,7 +248,7 @@ function lookbackWindows(days = NEWS_LOOKBACK_DAYS, sliceDays = 10) {
       before: ymd(new Date(before.getTime() + 86400000)),
     });
   }
-  return windows;
+  return windows.reverse();
 }
 
 function applyGoogleWindow(url, after, before) {
@@ -842,8 +842,30 @@ async function refreshTechNews() {
   return { imported: total, errors, images, hiddenOffTopic, logoReplaced, clearedShortExplains };
 }
 
+let historyRefreshRunning = false;
+
+function kickHistoryRefresh() {
+  if (historyRefreshRunning) return false;
+  historyRefreshRunning = true;
+  refreshTechNews()
+    .then((result) => {
+      console.log(
+        `📰 History refresh done: imported ${result?.imported || 0}, errors ${result?.errors?.length || 0}`
+      );
+    })
+    .catch((error) => {
+      console.warn('History refresh failed:', error.message);
+    })
+    .finally(() => {
+      historyRefreshRunning = false;
+    });
+  return true;
+}
+
 module.exports = {
   refreshTechNews,
+  kickHistoryRefresh,
+  NEWS_LOOKBACK_DAYS,
   FEEDS,
   fetchOgImage,
   enrichMissingImages,
