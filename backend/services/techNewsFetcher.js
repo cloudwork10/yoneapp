@@ -2,6 +2,8 @@ const Parser = require('rss-parser');
 const fetch = require('node-fetch');
 const TechNews = require('../models/TechNews');
 
+const NEWS_LOOKBACK_DAYS = 30;
+
 const parser = new Parser({
   timeout: 15000,
   headers: {
@@ -229,6 +231,27 @@ const FEEDS = [
     source: 'MENA · Cybersecurity',
   },
 ];
+
+function googleNewsAfterDate() {
+  return new Date(Date.now() - NEWS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** Widen Google News windows from 7d/14d to the last 30 days. */
+function resolveFeedUrl(url) {
+  if (!/news\.google\.com/i.test(String(url || ''))) return url;
+  try {
+    const parsed = new URL(url);
+    let q = parsed.searchParams.get('q') || '';
+    q = q.replace(/\s*when:\d+[hdmy]\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+    q = q.replace(/\s*after:\d{4}-\d{2}-\d{2}\s*/gi, ' ').replace(/\s+/g, ' ').trim();
+    parsed.searchParams.set('q', `${q} after:${googleNewsAfterDate()}`);
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
 
 function stripHtml(html = '') {
   return String(html)
@@ -619,16 +642,16 @@ async function replaceGoogleLogoImages(limit = 400) {
 }
 
 async function fetchFeed(feed) {
-  const result = await parser.parseURL(feed.url);
+  const result = await parser.parseURL(resolveFeedUrl(feed.url));
   const items = result.items || [];
   let upserted = 0;
 
-  for (const item of items.slice(0, 12)) {
+  for (const item of items.slice(0, 25)) {
     const title = stripHtml(item.title || '').slice(0, 300);
     const url = item.link || item.guid;
     if (!title || !url) continue;
 
-    const summary = stripHtml(item.contentSnippet || item.content || item.summary || '').slice(0, 600);
+    const summary = stripHtml(item.contentSnippet || item.content || item.summary || '').slice(0, 900);
     if (!isElnadyRelevant(title, summary)) continue;
 
     const externalId = String(item.guid || url).slice(0, 500);
@@ -744,6 +767,22 @@ async function refreshTechNews() {
     publishedAt: { $lt: cutoff },
   });
 
+  let clearedShortExplains = 0;
+  try {
+    const rows = await TechNews.find({ summaryAr: { $exists: true, $nin: [null, ''] } })
+      .select('_id summaryAr')
+      .lean();
+    const shortIds = rows
+      .filter((row) => String(row.summaryAr || '').trim().length < 160)
+      .map((row) => row._id);
+    if (shortIds.length) {
+      await TechNews.updateMany({ _id: { $in: shortIds } }, { $unset: { summaryAr: 1 } });
+      clearedShortExplains = shortIds.length;
+    }
+  } catch (e) {
+    console.warn('Tech news short explain cleanup failed:', e.message);
+  }
+
   let hiddenOffTopic = 0;
   try {
     hiddenOffTopic = await hideOffTopicAutoNews();
@@ -770,7 +809,7 @@ async function refreshTechNews() {
     console.warn('Tech news image enrich failed:', e.message);
   }
 
-  return { imported: total, errors, images, hiddenOffTopic, logoReplaced };
+  return { imported: total, errors, images, hiddenOffTopic, logoReplaced, clearedShortExplains };
 }
 
 module.exports = {
