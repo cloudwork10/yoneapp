@@ -94,7 +94,7 @@ router.get('/', async (req, res) => {
     const q = String(req.query.q || '').trim();
     const type = String(req.query.type || '').toLowerCase();
     const workMode = String(req.query.workMode || '').toLowerCase();
-    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const limit = Math.min(Number(req.query.limit) || 150, 250);
 
     const filter = {
       approvalStatus: 'approved',
@@ -133,6 +133,14 @@ router.get('/', async (req, res) => {
     }
 
     const jobs = await query.sort({ isFeatured: -1, createdAt: -1 }).limit(limit);
+
+    if (jobs.length < 40) {
+      try {
+        require('../services/jobFeed').kickJobFeed();
+      } catch {
+        // ignore
+      }
+    }
 
     res.json({
       status: 'success',
@@ -340,12 +348,12 @@ router.get('/:id/applications', requireAuth, async (req, res) => {
 // ——— Admin routes (before /:id) ———
 router.post('/admin/sync-feed', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { refreshJobFeed } = require('../services/jobFeed');
-    const result = await refreshJobFeed();
+    const { kickJobFeed } = require('../services/jobFeed');
+    const started = kickJobFeed();
     res.json({
       status: 'success',
-      message: 'Job feed refreshed',
-      data: result,
+      message: started ? 'Job feed refresh started' : 'Job feed refresh already running',
+      data: { started },
     });
   } catch (error) {
     console.error('Job feed sync error:', error);
