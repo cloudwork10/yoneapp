@@ -66,7 +66,7 @@ router.get('/', async (req, res) => {
     const category = String(req.query.category || '').toLowerCase();
     const regionRaw = String(req.query.region || 'world').toLowerCase();
     const region = ['world', 'egypt', 'arab'].includes(regionRaw) ? regionRaw : 'world';
-    const limit = Math.min(Number(req.query.limit) || 40, 100);
+    const limit = Math.min(Number(req.query.limit) || 160, 250);
     const filter = { isActive: true, isHidden: false };
 
     if (region === 'egypt') {

@@ -232,24 +232,42 @@ const FEEDS = [
   },
 ];
 
-function googleNewsAfterDate() {
-  return new Date(Date.now() - NEWS_LOOKBACK_DAYS * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+function ymd(date) {
+  return new Date(date).toISOString().slice(0, 10);
 }
 
-/** Widen Google News windows from 7d/14d to the last 30 days. */
-function resolveFeedUrl(url) {
-  if (!/news\.google\.com/i.test(String(url || ''))) return url;
+/** Last 30 days in ~10-day slices so Google RSS returns older stories, not only this week. */
+function lookbackWindows(days = NEWS_LOOKBACK_DAYS, sliceDays = 10) {
+  const windows = [];
+  const now = Date.now();
+  for (let offset = 0; offset < days; offset += sliceDays) {
+    const before = new Date(now - offset * 86400000);
+    const after = new Date(now - Math.min(days, offset + sliceDays) * 86400000);
+    windows.push({
+      after: ymd(after),
+      before: ymd(new Date(before.getTime() + 86400000)),
+    });
+  }
+  return windows;
+}
+
+function applyGoogleWindow(url, after, before) {
+  const parsed = new URL(url);
+  let q = parsed.searchParams.get('q') || '';
+  q = q.replace(/\s*when:\d+[hdmy]\s*/gi, ' ');
+  q = q.replace(/\s*(after|before):\d{4}-\d{2}-\d{2}\s*/gi, ' ');
+  q = q.replace(/\s+/g, ' ').trim();
+  parsed.searchParams.set('q', `${q} after:${after} before:${before}`);
+  return parsed.toString();
+}
+
+function feedFetchUrls(feed) {
+  const url = String(feed?.url || '');
+  if (!/news\.google\.com/i.test(url)) return [url];
   try {
-    const parsed = new URL(url);
-    let q = parsed.searchParams.get('q') || '';
-    q = q.replace(/\s*when:\d+[hdmy]\s*/gi, ' ').replace(/\s+/g, ' ').trim();
-    q = q.replace(/\s*after:\d{4}-\d{2}-\d{2}\s*/gi, ' ').replace(/\s+/g, ' ').trim();
-    parsed.searchParams.set('q', `${q} after:${googleNewsAfterDate()}`);
-    return parsed.toString();
+    return lookbackWindows().map(({ after, before }) => applyGoogleWindow(url, after, before));
   } catch {
-    return url;
+    return [url];
   }
 }
 
@@ -641,12 +659,12 @@ async function replaceGoogleLogoImages(limit = 400) {
   return replaced;
 }
 
-async function fetchFeed(feed) {
-  const result = await parser.parseURL(resolveFeedUrl(feed.url));
+async function fetchFeedUrl(feed, requestUrl) {
+  const result = await parser.parseURL(requestUrl);
   const items = result.items || [];
   let upserted = 0;
 
-  for (const item of items.slice(0, 25)) {
+  for (const item of items.slice(0, 40)) {
     const title = stripHtml(item.title || '').slice(0, 300);
     const url = item.link || item.guid;
     if (!title || !url) continue;
@@ -725,6 +743,18 @@ async function fetchFeed(feed) {
     }
   }
 
+  return upserted;
+}
+
+async function fetchFeed(feed) {
+  let upserted = 0;
+  for (const requestUrl of feedFetchUrls(feed)) {
+    try {
+      upserted += await fetchFeedUrl(feed, requestUrl);
+    } catch (err) {
+      console.warn(`Tech news window failed (${feed.source}):`, err.message);
+    }
+  }
   return upserted;
 }
 
