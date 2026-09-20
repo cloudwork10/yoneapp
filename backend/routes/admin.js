@@ -489,4 +489,31 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// WhatsApp / form phone allowlist → annual grant (no Play update)
+router.get('/whatsapp-grants', async (req, res) => {
+  try {
+    const { grantStats } = require('../services/whatsappGrant');
+    const data = await grantStats();
+    res.json({ status: 'success', data });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message || 'Failed to load grant list' });
+  }
+});
+
+router.post('/whatsapp-grants', async (req, res) => {
+  try {
+    const { addGrantPhones } = require('../services/whatsappGrant');
+    const phones = req.body.phones || req.body.text || req.body.numbers || [];
+    const replace = req.body.replace === true;
+    const data = await addGrantPhones(phones, { replace });
+    res.json({
+      status: 'success',
+      message: 'Grant list saved. Matching accounts get an annual plan.',
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message || 'Failed to save grant list' });
+  }
+});
+
 module.exports = router;

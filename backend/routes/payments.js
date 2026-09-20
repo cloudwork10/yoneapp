@@ -92,6 +92,15 @@ router.get('/plans', (req, res) => {
 router.get('/subscription', requireAuth, async (req, res) => {
   try {
     const { ensureSubscriptionNotStale, remainingDays } = require('../services/subscriptionLifecycle');
+    try {
+      const user = await User.findById(req.user.id).select('_id phone');
+      if (user) {
+        const { activateIfAllowlisted } = require('../services/whatsappGrant');
+        await activateIfAllowlisted(user);
+      }
+    } catch (error) {
+      console.warn('WhatsApp grant on subscription check failed:', error.message);
+    }
     let subscription = await Subscription.findOne({
       user: req.user.id,
       status: 'active'

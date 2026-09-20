@@ -143,6 +143,13 @@ router.post('/register', registerValidation, async (req, res) => {
 
     await user.save();
 
+    try {
+      const { activateIfAllowlisted } = require('../services/whatsappGrant');
+      await activateIfAllowlisted(user);
+    } catch (error) {
+      console.warn('WhatsApp grant on register failed:', error.message);
+    }
+
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
 
@@ -265,6 +272,13 @@ router.post('/login', authLimiter, accountLockout, loginValidation, async (req, 
 
     // Update last login info
     await user.updateLastActive(req.ip);
+
+    try {
+      const { activateIfAllowlisted } = require('../services/whatsappGrant');
+      await activateIfAllowlisted(user);
+    } catch (error) {
+      console.warn('WhatsApp grant on login failed:', error.message);
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
@@ -430,6 +444,13 @@ router.get('/me', requireAuth, async (req, res) => {
         message: 'User not found',
         code: 'USER_NOT_FOUND'
       });
+    }
+
+    try {
+      const { activateIfAllowlisted } = require('../services/whatsappGrant');
+      await activateIfAllowlisted(user);
+    } catch (error) {
+      console.warn('WhatsApp grant on profile failed:', error.message);
     }
 
     res.json({

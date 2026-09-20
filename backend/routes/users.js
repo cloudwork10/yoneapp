@@ -120,6 +120,15 @@ router.post('/heartbeat', requireAuth, async (req, res) => {
     );
     await user.save();
 
+    try {
+      const { activateIfAllowlisted } = require('../services/whatsappGrant');
+      activateIfAllowlisted(user).catch((error) => {
+        console.warn('WhatsApp grant on heartbeat failed:', error.message);
+      });
+    } catch (error) {
+      console.warn('WhatsApp grant on heartbeat failed:', error.message);
+    }
+
     res.json({
       status: 'success',
       data: { currentStreak: streak },
@@ -415,6 +424,15 @@ router.put('/profile', [
       updateData,
       { new: true, runValidators: true }
     );
+
+    if (updateData.phone) {
+      try {
+        const { activateIfAllowlisted } = require('../services/whatsappGrant');
+        await activateIfAllowlisted(user);
+      } catch (error) {
+        console.warn('WhatsApp grant on profile update failed:', error.message);
+      }
+    }
 
     res.status(200).json({
       status: 'success',
