@@ -134,7 +134,12 @@ router.get('/', async (req, res) => {
 
     const jobs = await query.sort({ isFeatured: -1, createdAt: -1 }).limit(limit);
 
-    if (jobs.length < 40) {
+    const egyptish = jobs.filter((job) =>
+      /egypt|cairo|giza|alexandria|مصر|القاهرة|الجيزة/i.test(
+        `${job.location || ''} ${job.companyName || ''} ${job.title || ''}`
+      )
+    ).length;
+    if (jobs.length < 40 || egyptish < 8) {
       try {
         require('../services/jobFeed').kickJobFeed();
       } catch {

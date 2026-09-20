@@ -540,6 +540,17 @@ async function refreshJobFeed() {
     imported.hiddenExpired = stale.modifiedCount || 0;
   }
 
+  const activeFeed = await Job.find({ source: 'feed', isActive: true })
+    .select('title location companyName type')
+    .lean();
+  const dropIds = activeFeed
+    .filter((row) => !keepJob(row))
+    .map((row) => row._id);
+  if (dropIds.length) {
+    await Job.updateMany({ _id: { $in: dropIds } }, { $set: { isActive: false, isFeatured: false } });
+    imported.hiddenExpired += dropIds.length;
+  }
+
   return imported;
 }
 
